@@ -1,53 +1,83 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Dark mobile UI palette inspired by layered card interfaces.
  */
 
 import '@/global.css';
 
-import { Platform } from 'react-native';
+import { Platform, type TextStyle } from 'react-native';
+
+export const AccentColors = {
+  blue: '#3B82F6',
+  green: '#22A06B',
+  orange: '#E67E22',
+  pink: '#E85D75',
+  red: '#DA3633',
+} as const;
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#111111',
+    background: '#FFFFFF',
+    backgroundElement: '#F4F4F4',
+    backgroundSelected: '#E8EAED',
+    textSecondary: '#6B7280',
+    textOnAccent: '#FFFFFF',
+    border: '#E5E7EB',
+    accent: AccentColors.blue,
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#FFFFFF',
+    background: '#0D1117',
+    backgroundElement: '#1C212B',
+    backgroundSelected: '#252B36',
+    textSecondary: '#8B949E',
+    textOnAccent: '#FFFFFF',
+    border: '#2A3140',
+    accent: AccentColors.blue,
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+export const Helvetica: { medium: TextStyle; bold: TextStyle } = {
+  medium: Platform.select<TextStyle>({
+    ios: { fontFamily: 'HelveticaNeue-Medium', fontWeight: '500' },
+    android: { fontFamily: 'sans-serif-medium', fontWeight: '500' },
+    web: {
+      fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+      fontWeight: '500',
+    },
+    default: { fontWeight: '500' },
+  })!,
+  bold: Platform.select<TextStyle>({
+    ios: { fontFamily: 'Helvetica-Bold', fontWeight: '700' },
+    android: { fontFamily: 'sans-serif', fontWeight: '700' },
+    web: {
+      fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+      fontWeight: '700',
+    },
+    default: { fontWeight: '700' },
+  })!,
+};
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    sans: 'HelveticaNeue-Medium',
+    serif: 'HelveticaNeue-Medium',
+    rounded: 'HelveticaNeue-Medium',
+    mono: 'Helvetica-Bold',
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans: 'sans-serif-medium',
+    serif: 'sans-serif-medium',
+    rounded: 'sans-serif-medium',
+    mono: 'sans-serif',
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    sans: 'var(--font-helvetica)',
+    serif: 'var(--font-helvetica)',
+    rounded: 'var(--font-helvetica)',
+    mono: 'var(--font-helvetica)',
   },
 });
 

@@ -3,27 +3,28 @@ import {
   Animated,
   Easing,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import {
   BREATHING_PATTERNS,
+  BreathingColors,
   MIN_BREATH_SCALE,
   MAX_BREATH_SCALE,
+  PATTERN_ACCENT_COLORS,
   type BreathingPattern,
   type PhaseName,
 } from '@/constants/breathing-patterns';
-import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { AccentColors, Colors, Helvetica, Spacing } from '@/constants/theme';
 
-const CIRCLE_SIZE = 220;
+const CIRCLE_SIZE = 168;
+const screenColors = Colors.dark;
 
 export function BreathingScreen() {
-  const theme = useTheme();
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -99,137 +100,174 @@ export function BreathingScreen() {
     };
   }, [scaleAnim]);
 
+  const activeAccentColor = PATTERN_ACCENT_COLORS[selectedPatternId] ?? BreathingColors.saltwaterSlide;
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="subtitle" style={styles.title}>Breathe Easy</ThemedText>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          <ThemedText type="subtitle" style={styles.title}>Breathe Easy</ThemedText>
 
-        <View style={styles.patternRow}>
-          {BREATHING_PATTERNS.map((pattern) => {
-            const isSelected = pattern.id === selectedPatternId;
-            return (
-              <Pressable
-                key={pattern.id}
-                disabled={isRunning}
-                onPress={() => setSelectedPatternId(pattern.id)}
-                style={({ pressed }) => [
-                  styles.patternButton,
-                  {
-                    backgroundColor: isSelected ? theme.backgroundSelected : theme.backgroundElement,
-                    opacity: isRunning ? 0.5 : pressed ? 0.85 : 1,
-                  },
-                ]}>
-                <ThemedText type="smallBold">{pattern.name}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">{pattern.timing}</ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
+          <View style={styles.circleSection}>
+            <Animated.View
+              style={[
+                styles.circle,
+                {
+                  backgroundColor: activeAccentColor,
+                  transform: [{ scale: scaleAnim }],
+                },
+              ]}
+            />
+            <ThemedText type="default" style={styles.phaseText}>
+              {phaseName || 'Ready'}
+            </ThemedText>
+          </View>
 
-        <View style={styles.circleSection}>
-          <Animated.View
-            style={[
-              styles.circle,
-              {
-                backgroundColor: theme.backgroundSelected,
-                borderColor: '#5B9FD4',
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-          />
-          <ThemedText type="title" style={styles.phaseText}>
-            {phaseName || 'Ready'}
-          </ThemedText>
-        </View>
+          <View style={styles.patternList}>
+            {BREATHING_PATTERNS.map((pattern) => {
+              const isSelected = pattern.id === selectedPatternId;
+              const accentColor = PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide;
 
-        <View style={styles.controls}>
-          <Pressable
-            disabled={isRunning}
-            onPress={startBreathing}
-            style={({ pressed }) => [
-              styles.controlButton,
-              styles.startButton,
-              { opacity: isRunning ? 0.45 : pressed ? 0.85 : 1 },
-            ]}>
-            <ThemedText type="smallBold" style={styles.controlButtonText}>Start</ThemedText>
-          </Pressable>
+              return (
+                <Pressable
+                  key={pattern.id}
+                  disabled={isRunning}
+                  onPress={() => setSelectedPatternId(pattern.id)}
+                  style={({ pressed }) => [
+                    styles.patternCard,
+                    isSelected && styles.patternCardSelected,
+                    {
+                      opacity: isRunning ? 0.55 : pressed ? 0.9 : 1,
+                      borderColor: isSelected ? accentColor : screenColors.border,
+                    },
+                  ]}>
+                  <View style={styles.timingTag}>
+                    <ThemedText type="code" style={styles.timingText}>{pattern.timing}</ThemedText>
+                  </View>
+                  <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
+                  <ThemedText type="small" style={styles.patternDescription}>{pattern.description}</ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
 
-          <Pressable
-            disabled={!isRunning}
-            onPress={stopBreathing}
-            style={({ pressed }) => [
-              styles.controlButton,
-              styles.stopButton,
-              { opacity: !isRunning ? 0.45 : pressed ? 0.85 : 1 },
-            ]}>
-            <ThemedText type="smallBold" style={styles.controlButtonText}>Stop</ThemedText>
-          </Pressable>
-        </View>
+          <View style={styles.controls}>
+            <Pressable
+              disabled={isRunning}
+              onPress={startBreathing}
+              style={({ pressed }) => [
+                styles.controlButton,
+                styles.startButton,
+                { opacity: isRunning ? 0.45 : pressed ? 0.85 : 1 },
+              ]}>
+              <ThemedText type="smallBold" style={styles.controlButtonText}>Start</ThemedText>
+            </Pressable>
+
+            <Pressable
+              disabled={!isRunning}
+              onPress={stopBreathing}
+              style={({ pressed }) => [
+                styles.controlButton,
+                styles.stopButton,
+                { opacity: !isRunning ? 0.45 : pressed ? 0.85 : 1 },
+              ]}>
+              <ThemedText type="smallBold" style={styles.controlButtonText}>Stop</ThemedText>
+            </Pressable>
+          </View>
+        </ScrollView>
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: screenColors.background,
   },
   safeArea: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.four,
+    paddingBottom: Spacing.five,
     gap: Spacing.four,
   },
   title: {
     textAlign: 'center',
     marginTop: Spacing.two,
-  },
-  patternRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  patternButton: {
-    flex: 1,
-    borderRadius: Spacing.three,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.two,
-    alignItems: 'center',
-    gap: Spacing.half,
+    color: screenColors.text,
   },
   circleSection: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.four,
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
   },
   circle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
-    borderWidth: 3,
+    opacity: 0.92,
   },
   phaseText: {
     textAlign: 'center',
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 18,
+    lineHeight: 24,
+    color: screenColors.textSecondary,
+  },
+  patternList: {
+    gap: Spacing.three,
+  },
+  patternCard: {
+    backgroundColor: screenColors.backgroundElement,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three,
+    gap: Spacing.one,
+  },
+  patternCardSelected: {
+    backgroundColor: screenColors.backgroundSelected,
+  },
+  timingTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: screenColors.backgroundSelected,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.half,
+    marginBottom: Spacing.half,
+  },
+  patternName: {
+    color: screenColors.text,
+  },
+  patternDescription: {
+    color: screenColors.textSecondary,
+  },
+  timingText: {
+    color: screenColors.textSecondary,
   },
   controls: {
     flexDirection: 'row',
     gap: Spacing.three,
+    marginTop: Spacing.one,
   },
   controlButton: {
     flex: 1,
-    borderRadius: Spacing.three,
+    borderRadius: 24,
     paddingVertical: Spacing.three,
     alignItems: 'center',
   },
   startButton: {
-    backgroundColor: '#3C87F7',
+    backgroundColor: AccentColors.green,
   },
   stopButton: {
-    backgroundColor: '#D64545',
+    backgroundColor: AccentColors.pink,
   },
   controlButtonText: {
+    ...Helvetica.bold,
     color: '#FFFFFF',
+    fontSize: 15,
   },
 });

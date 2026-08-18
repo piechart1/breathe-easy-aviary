@@ -1,6 +1,6 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Helvetica, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -32,42 +32,44 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
 const styles = StyleSheet.create({
   small: {
+    ...Helvetica.medium,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: 500,
   },
   smallBold: {
-    fontSize: 14,
+    ...Helvetica.bold,
+    fontSize: 15,
     lineHeight: 20,
-    fontWeight: 700,
   },
   default: {
+    ...Helvetica.medium,
     fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
+    lineHeight: 22,
   },
   title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+    ...Helvetica.bold,
+    fontSize: 40,
+    lineHeight: 44,
   },
   subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    ...Helvetica.bold,
+    fontSize: 22,
+    lineHeight: 28,
   },
   link: {
-    lineHeight: 30,
+    ...Helvetica.medium,
+    lineHeight: 22,
     fontSize: 14,
   },
   linkPrimary: {
-    lineHeight: 30,
+    ...Helvetica.medium,
+    lineHeight: 22,
     fontSize: 14,
-    color: '#3c87f7',
+    color: '#3B82F6',
   },
   code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
+    ...Helvetica.medium,
     fontSize: 12,
+    lineHeight: 16,
   },
 });
