@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlassView } from 'expo-glass-effect';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -153,29 +154,22 @@ export function BreathingScreen() {
             })}
           </View>
 
-          <View style={styles.controls}>
-            <Pressable
-              disabled={isRunning}
-              onPress={startBreathing}
-              style={({ pressed }) => [
-                styles.controlButton,
-                styles.startButton,
-                { opacity: isRunning ? 0.45 : pressed ? 0.85 : 1 },
-              ]}>
-              <ThemedText type="smallBold" style={styles.controlButtonText}>Start</ThemedText>
-            </Pressable>
-
-            <Pressable
-              disabled={!isRunning}
-              onPress={stopBreathing}
-              style={({ pressed }) => [
-                styles.controlButton,
-                styles.stopButton,
-                { opacity: !isRunning ? 0.45 : pressed ? 0.85 : 1 },
-              ]}>
-              <ThemedText type="smallBold" style={styles.controlButtonText}>Stop</ThemedText>
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={isRunning ? stopBreathing : startBreathing}
+            style={({ pressed }) => [styles.controls, { opacity: pressed ? 0.85 : 1 }]}>
+            <GlassView
+              style={[
+                styles.toggleButton,
+                { backgroundColor: isRunning ? AccentColors.pink : AccentColors.green },
+              ]}
+              glassEffectStyle="regular"
+              tintColor={isRunning ? AccentColors.pink : AccentColors.green}
+              isInteractive>
+              <ThemedText type="smallBold" style={styles.controlButtonText}>
+                {isRunning ? 'Stop' : 'Start'}
+              </ThemedText>
+            </GlassView>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -249,21 +243,13 @@ const styles = StyleSheet.create({
     color: screenColors.textSecondary,
   },
   controls: {
-    flexDirection: 'row',
-    gap: Spacing.three,
     marginTop: Spacing.one,
   },
-  controlButton: {
-    flex: 1,
+  toggleButton: {
     borderRadius: 24,
     paddingVertical: Spacing.three,
     alignItems: 'center',
-  },
-  startButton: {
-    backgroundColor: AccentColors.green,
-  },
-  stopButton: {
-    backgroundColor: AccentColors.pink,
+    overflow: 'hidden',
   },
   controlButtonText: {
     ...Helvetica.bold,
