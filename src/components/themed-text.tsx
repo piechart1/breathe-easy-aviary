@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   smallBold: {
-    ...Helvetica.bold,
+    ...Helvetica.medium,
     fontSize: 15,
     lineHeight: 20,
   },

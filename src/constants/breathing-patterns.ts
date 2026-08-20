@@ -55,12 +55,12 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
   },
   {
     id: 'simpleCalm',
-    name: 'Simple Calm',
-    timing: '4-4',
+    name: 'Resonance Breathing',
+    timing: '5-5',
     description: 'Inhale, exhale',
     phases: [
-      { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
-      { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
+      { name: 'Inhale', durationMs: 5000, targetScale: MAX_BREATH_SCALE },
+      { name: 'Exhale', durationMs: 5000, targetScale: MIN_BREATH_SCALE },
     ],
   },
 ];

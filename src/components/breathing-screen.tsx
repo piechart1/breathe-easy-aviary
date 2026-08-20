@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -24,11 +25,15 @@ import { AccentColors, Colors, Helvetica, Spacing } from '@/constants/theme';
 
 const CIRCLE_SIZE = 168;
 const screenColors = Colors.dark;
+const AMBIENCE_SOURCE = require('../../assets/sounds/ocean-ambience.wav');
+const MIN_AMBIENCE_VOLUME = 0.12;
+const MAX_AMBIENCE_VOLUME = 0.85;
 
 export function BreathingScreen() {
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const ambiencePlayer = useAudioPlayer(AMBIENCE_SOURCE);
 
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
@@ -37,6 +42,21 @@ export function BreathingScreen() {
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
 
+  useEffect(() => {
+    ambiencePlayer.loop = true;
+    ambiencePlayer.volume = MIN_AMBIENCE_VOLUME;
+    setAudioModeAsync({ playsInSilentMode: true });
+  }, [ambiencePlayer]);
+
+  useEffect(() => {
+    const listenerId = scaleAnim.addListener(({ value }) => {
+      const ratio = (value - MIN_BREATH_SCALE) / (MAX_BREATH_SCALE - MIN_BREATH_SCALE);
+      ambiencePlayer.volume =
+        MIN_AMBIENCE_VOLUME + ratio * (MAX_AMBIENCE_VOLUME - MIN_AMBIENCE_VOLUME);
+    });
+    return () => scaleAnim.removeListener(listenerId);
+  }, [scaleAnim, ambiencePlayer]);
+
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
     activeAnimationRef.current?.stop();
@@ -44,9 +64,10 @@ export function BreathingScreen() {
     scaleAnim.stopAnimation(() => {
       scaleAnim.setValue(MIN_BREATH_SCALE);
     });
+    ambiencePlayer.pause();
     setIsRunning(false);
     setPhaseName('');
-  }, [scaleAnim]);
+  }, [scaleAnim, ambiencePlayer]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -84,8 +105,10 @@ export function BreathingScreen() {
     isRunningRef.current = true;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
+    ambiencePlayer.volume = MIN_AMBIENCE_VOLUME;
+    ambiencePlayer.play();
     runPhase(selectedPattern, 0);
-  }, [runPhase, scaleAnim, selectedPattern]);
+  }, [runPhase, scaleAnim, selectedPattern, ambiencePlayer]);
 
   useEffect(() => {
     if (isRunningRef.current) {
@@ -166,7 +189,7 @@ export function BreathingScreen() {
               tintColor={isRunning ? AccentColors.pink : AccentColors.green}
               isInteractive>
               <ThemedText type="smallBold" style={styles.controlButtonText}>
-                {isRunning ? 'Stop' : 'Start'}
+                {isRunning ? 'Stop' : 'Begin'}
               </ThemedText>
             </GlassView>
           </Pressable>
@@ -252,7 +275,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   controlButtonText: {
-    ...Helvetica.bold,
+    ...Helvetica.medium,
     color: '#FFFFFF',
     fontSize: 15,
   },
