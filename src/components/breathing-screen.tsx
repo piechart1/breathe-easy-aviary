@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -25,15 +25,27 @@ import { AccentColors, Colors, Helvetica, Spacing } from '@/constants/theme';
 
 const CIRCLE_SIZE = 168;
 const screenColors = Colors.dark;
-const AMBIENCE_SOURCE = require('../../assets/sounds/ocean-ambience.wav');
-const MIN_AMBIENCE_VOLUME = 0.12;
-const MAX_AMBIENCE_VOLUME = 0.85;
+const BREATHE_IN_SOURCE = require('../../assets/sounds/breathe-in.wav');
+const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
+// Measured durations (afinfo) used as a fallback until each async-loaded asset reports its own.
+const BREATHE_IN_FALLBACK_SEC = 3.784853;
+const BREATHE_OUT_FALLBACK_SEC = 5.723719;
+
+function playCueForPhase(player: AudioPlayer, clipDurationSec: number, phaseDurationMs: number) {
+  const rate = clipDurationSec / (phaseDurationMs / 1000);
+  player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
+  player.seekTo(0);
+  player.play();
+}
 
 export function BreathingScreen() {
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const ambiencePlayer = useAudioPlayer(AMBIENCE_SOURCE);
+  const breatheInPlayer = useAudioPlayer(BREATHE_IN_SOURCE);
+  const breatheOutPlayer = useAudioPlayer(BREATHE_OUT_SOURCE);
+  const breatheInStatus = useAudioPlayerStatus(breatheInPlayer);
+  const breatheOutStatus = useAudioPlayerStatus(breatheOutPlayer);
 
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
@@ -43,19 +55,8 @@ export function BreathingScreen() {
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
 
   useEffect(() => {
-    ambiencePlayer.loop = true;
-    ambiencePlayer.volume = MIN_AMBIENCE_VOLUME;
     setAudioModeAsync({ playsInSilentMode: true });
-  }, [ambiencePlayer]);
-
-  useEffect(() => {
-    const listenerId = scaleAnim.addListener(({ value }) => {
-      const ratio = (value - MIN_BREATH_SCALE) / (MAX_BREATH_SCALE - MIN_BREATH_SCALE);
-      ambiencePlayer.volume =
-        MIN_AMBIENCE_VOLUME + ratio * (MAX_AMBIENCE_VOLUME - MIN_AMBIENCE_VOLUME);
-    });
-    return () => scaleAnim.removeListener(listenerId);
-  }, [scaleAnim, ambiencePlayer]);
+  }, []);
 
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
@@ -64,10 +65,11 @@ export function BreathingScreen() {
     scaleAnim.stopAnimation(() => {
       scaleAnim.setValue(MIN_BREATH_SCALE);
     });
-    ambiencePlayer.pause();
+    breatheInPlayer.pause();
+    breatheOutPlayer.pause();
     setIsRunning(false);
     setPhaseName('');
-  }, [scaleAnim, ambiencePlayer]);
+  }, [scaleAnim, breatheInPlayer, breatheOutPlayer]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -77,6 +79,25 @@ export function BreathingScreen() {
 
       const phase = pattern.phases[phaseIndex];
       setPhaseName(phase.name);
+
+      if (phase.name === 'Inhale') {
+        breatheOutPlayer.pause();
+        playCueForPhase(
+          breatheInPlayer,
+          breatheInStatus.duration || BREATHE_IN_FALLBACK_SEC,
+          phase.durationMs,
+        );
+      } else if (phase.name === 'Exhale') {
+        breatheInPlayer.pause();
+        playCueForPhase(
+          breatheOutPlayer,
+          breatheOutStatus.duration || BREATHE_OUT_FALLBACK_SEC,
+          phase.durationMs,
+        );
+      } else {
+        breatheInPlayer.pause();
+        breatheOutPlayer.pause();
+      }
 
       const animation =
         phase.name === 'Hold'
@@ -98,17 +119,15 @@ export function BreathingScreen() {
         runPhase(pattern, nextIndex);
       });
     },
-    [scaleAnim],
+    [scaleAnim, breatheInPlayer, breatheOutPlayer, breatheInStatus.duration, breatheOutStatus.duration],
   );
 
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
-    ambiencePlayer.volume = MIN_AMBIENCE_VOLUME;
-    ambiencePlayer.play();
     runPhase(selectedPattern, 0);
-  }, [runPhase, scaleAnim, selectedPattern, ambiencePlayer]);
+  }, [runPhase, scaleAnim, selectedPattern]);
 
   useEffect(() => {
     if (isRunningRef.current) {
