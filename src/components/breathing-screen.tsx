@@ -206,11 +206,10 @@ export function BreathingScreen() {
                       borderColor: isSelected ? accentColor : screenColors.border,
                     },
                   ]}>
-                  <View style={styles.timingTag}>
-                    <ThemedText type="code" style={styles.timingText}>{pattern.timing}</ThemedText>
-                  </View>
                   <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
-                  <ThemedText type="small" style={styles.patternDescription}>{pattern.description}</ThemedText>
+                  <ThemedText type="small" style={styles.patternDescription}>
+                    {pattern.timing} | {pattern.description}
+                  </ThemedText>
                 </Pressable>
               );
             })}
@@ -312,21 +311,10 @@ const styles = StyleSheet.create({
   patternCardSelected: {
     backgroundColor: screenColors.backgroundSelected,
   },
-  timingTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: screenColors.backgroundSelected,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
-    marginBottom: Spacing.half,
-  },
   patternName: {
     color: screenColors.text,
   },
   patternDescription: {
-    color: screenColors.textSecondary,
-  },
-  timingText: {
     color: screenColors.textSecondary,
   },
   controls: {
