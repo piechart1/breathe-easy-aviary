@@ -31,10 +31,10 @@ const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
 const BREATHE_IN_FALLBACK_SEC = 3.784853;
 const BREATHE_OUT_FALLBACK_SEC = 5.723719;
 
-function playCueForPhase(player: AudioPlayer, clipDurationSec: number, phaseDurationMs: number) {
+async function playCueForPhase(player: AudioPlayer, clipDurationSec: number, phaseDurationMs: number) {
   const rate = clipDurationSec / (phaseDurationMs / 1000);
   player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
-  player.seekTo(0);
+  await player.seekTo(0);
   player.play();
 }
 
