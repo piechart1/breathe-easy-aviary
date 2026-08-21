@@ -56,7 +56,9 @@ export function BreathingScreen() {
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
-  }, []);
+    breatheInPlayer.volume = 1;
+    breatheOutPlayer.volume = 1;
+  }, [breatheInPlayer, breatheOutPlayer]);
 
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
