@@ -24,9 +24,9 @@ import {
 } from '@/constants/breathing-patterns';
 import { AccentColors, Colors, SystemFont, Spacing } from '@/constants/theme';
 
-const CIRCLE_SIZE = 168;
-const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.4;
-const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.6;
+const CIRCLE_SIZE = 120;
+const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
+const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
 const screenColors = Colors.dark;
 const BREATHE_IN_SOURCE = require('../../assets/sounds/breathe-in.wav');
 const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
@@ -34,7 +34,14 @@ const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
 const BREATHE_IN_FALLBACK_SEC = 3.784853;
 const BREATHE_OUT_FALLBACK_SEC = 5.723719;
 
+async function waitUntilLoaded(player: AudioPlayer, maxAttempts = 20) {
+  for (let attempt = 0; attempt < maxAttempts && !player.isLoaded; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  }
+}
+
 async function playCueForPhase(player: AudioPlayer, clipDurationSec: number, phaseDurationMs: number) {
+  await waitUntilLoaded(player);
   const rate = clipDurationSec / (phaseDurationMs / 1000);
   player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
   await player.seekTo(0);
