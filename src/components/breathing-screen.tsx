@@ -22,9 +22,11 @@ import {
   type BreathingPattern,
   type PhaseName,
 } from '@/constants/breathing-patterns';
-import { AccentColors, Colors, Helvetica, Spacing } from '@/constants/theme';
+import { AccentColors, Colors, SystemFont, Spacing } from '@/constants/theme';
 
 const CIRCLE_SIZE = 168;
+const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.4;
+const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.6;
 const screenColors = Colors.dark;
 const BREATHE_IN_SOURCE = require('../../assets/sounds/breathe-in.wav');
 const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
@@ -160,15 +162,20 @@ export function BreathingScreen() {
           <ThemedText type="subtitle" style={styles.title}>Breathe Easy</ThemedText>
 
           <View style={styles.circleSection}>
-            <Animated.View
-              style={[
-                styles.circle,
-                {
-                  backgroundColor: activeAccentColor,
-                  transform: [{ scale: scaleAnim }],
-                },
-              ]}
-            />
+            <View style={styles.circleWrapper}>
+              <View style={[styles.glowOuter, { backgroundColor: activeAccentColor }]} />
+              <View style={[styles.glowInner, { backgroundColor: activeAccentColor }]} />
+              <Animated.View
+                style={[
+                  styles.circle,
+                  {
+                    backgroundColor: activeAccentColor,
+                    shadowColor: activeAccentColor,
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              />
+            </View>
             <ThemedText type="default" style={styles.phaseText}>
               {phaseName || 'Ready'}
             </ThemedText>
@@ -238,6 +245,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   title: {
+    ...SystemFont.medium,
     textAlign: 'center',
     marginTop: Spacing.two,
     color: screenColors.text,
@@ -248,11 +256,35 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.two,
   },
+  circleWrapper: {
+    width: GLOW_OUTER_SIZE,
+    height: GLOW_OUTER_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowOuter: {
+    position: 'absolute',
+    width: GLOW_OUTER_SIZE,
+    height: GLOW_OUTER_SIZE,
+    borderRadius: GLOW_OUTER_SIZE / 2,
+    opacity: 0.12,
+  },
+  glowInner: {
+    position: 'absolute',
+    width: GLOW_INNER_SIZE,
+    height: GLOW_INNER_SIZE,
+    borderRadius: GLOW_INNER_SIZE / 2,
+    opacity: 0.22,
+  },
   circle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
     opacity: 0.92,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 30,
+    elevation: 20,
   },
   phaseText: {
     textAlign: 'center',
@@ -300,7 +332,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   controlButtonText: {
-    ...Helvetica.medium,
+    ...SystemFont.medium,
     color: '#FFFFFF',
     fontSize: 15,
   },

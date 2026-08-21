@@ -39,45 +39,41 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Helvetica: { medium: TextStyle; bold: TextStyle } = {
+const SYSTEM_FONT_WEB_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+export const SystemFont: { medium: TextStyle; bold: TextStyle } = {
   medium: Platform.select<TextStyle>({
-    ios: { fontFamily: 'HelveticaNeue-Medium', fontWeight: '500' },
-    android: { fontFamily: 'sans-serif-medium', fontWeight: '500' },
-    web: {
-      fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-      fontWeight: '500',
-    },
+    ios: { fontFamily: 'System', fontWeight: '500' },
+    android: { fontFamily: 'System', fontWeight: '500' },
+    web: { fontFamily: SYSTEM_FONT_WEB_STACK, fontWeight: '500' },
     default: { fontWeight: '500' },
   })!,
   bold: Platform.select<TextStyle>({
-    ios: { fontFamily: 'Helvetica-Bold', fontWeight: '700' },
-    android: { fontFamily: 'sans-serif', fontWeight: '700' },
-    web: {
-      fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-      fontWeight: '700',
-    },
+    ios: { fontFamily: 'System', fontWeight: '700' },
+    android: { fontFamily: 'System', fontWeight: '700' },
+    web: { fontFamily: SYSTEM_FONT_WEB_STACK, fontWeight: '700' },
     default: { fontWeight: '700' },
   })!,
 };
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'HelveticaNeue-Medium',
-    serif: 'HelveticaNeue-Medium',
-    rounded: 'HelveticaNeue-Medium',
-    mono: 'Helvetica-Bold',
+    sans: 'System',
+    serif: 'System',
+    rounded: 'System',
+    mono: 'System',
   },
   default: {
-    sans: 'sans-serif-medium',
-    serif: 'sans-serif-medium',
-    rounded: 'sans-serif-medium',
-    mono: 'sans-serif',
+    sans: 'System',
+    serif: 'System',
+    rounded: 'System',
+    mono: 'System',
   },
   web: {
-    sans: 'var(--font-helvetica)',
-    serif: 'var(--font-helvetica)',
-    rounded: 'var(--font-helvetica)',
-    mono: 'var(--font-helvetica)',
+    sans: SYSTEM_FONT_WEB_STACK,
+    serif: SYSTEM_FONT_WEB_STACK,
+    rounded: SYSTEM_FONT_WEB_STACK,
+    mono: SYSTEM_FONT_WEB_STACK,
   },
 });
 
