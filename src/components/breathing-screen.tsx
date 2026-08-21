@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -83,6 +84,7 @@ export function BreathingScreen() {
       setPhaseName(phase.name);
 
       if (phase.name === 'Inhale') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         breatheOutPlayer.pause();
         playCueForPhase(
           breatheInPlayer,
@@ -90,6 +92,7 @@ export function BreathingScreen() {
           phase.durationMs,
         );
       } else if (phase.name === 'Exhale') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         breatheInPlayer.pause();
         playCueForPhase(
           breatheOutPlayer,
@@ -97,6 +100,7 @@ export function BreathingScreen() {
           phase.durationMs,
         );
       } else {
+        Haptics.selectionAsync();
         breatheInPlayer.pause();
         breatheOutPlayer.pause();
       }
