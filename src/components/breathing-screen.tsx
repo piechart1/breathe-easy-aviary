@@ -166,10 +166,12 @@ export function BreathingScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          <ThemedText type="subtitle" style={styles.title}>Breathe Easy</ThemedText>
+          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
+            Breathe Easy
+          </ThemedText>
 
           <View style={styles.circleSection}>
-            <View style={styles.circleWrapper}>
+            <View style={styles.circleWrapper} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
               <View style={[styles.glowOuter, { backgroundColor: activeAccentColor }]} />
               <View style={[styles.glowInner, { backgroundColor: activeAccentColor }]} />
               <Animated.View
@@ -183,7 +185,11 @@ export function BreathingScreen() {
                 ]}
               />
             </View>
-            <ThemedText type="default" style={styles.phaseText}>
+            <ThemedText
+              type="default"
+              style={styles.phaseText}
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={`Breathing status: ${phaseName || 'Ready'}`}>
               {phaseName || 'Ready'}
             </ThemedText>
           </View>
@@ -198,6 +204,9 @@ export function BreathingScreen() {
                   key={pattern.id}
                   disabled={isRunning}
                   onPress={() => setSelectedPatternId(pattern.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${pattern.name}, ${pattern.timing}, ${pattern.description}`}
+                  accessibilityState={{ selected: isSelected, disabled: isRunning }}
                   style={({ pressed }) => [
                     styles.patternCard,
                     isSelected && styles.patternCardSelected,
@@ -217,6 +226,8 @@ export function BreathingScreen() {
 
           <Pressable
             onPress={isRunning ? stopBreathing : startBreathing}
+            accessibilityRole="button"
+            accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
             style={({ pressed }) => [styles.controls, { opacity: pressed ? 0.85 : 1 }]}>
             <GlassView
               style={[
