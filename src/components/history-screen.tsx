@@ -9,7 +9,7 @@ import { getDailyTotals, seedMockDailyMinutes, type DailyTotal } from '@/lib/ses
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-const BAR_COLOR = '#F7A88D'; // Pantone 14-1228 TCX "Peach Nectar"
+const BAR_COLOR = '#B0A99F'; // warm stone/taupe
 const CHART_HEIGHT = 120;
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
