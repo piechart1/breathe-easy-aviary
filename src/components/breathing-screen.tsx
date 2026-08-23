@@ -40,12 +40,34 @@ async function waitUntilLoaded(player: AudioPlayer, maxAttempts = 20) {
   }
 }
 
-async function playCueForPhase(player: AudioPlayer, clipDurationSec: number, phaseDurationMs: number) {
-  await waitUntilLoaded(player);
-  const rate = clipDurationSec / (phaseDurationMs / 1000);
-  player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
-  await player.seekTo(0);
-  player.play();
+async function playCueForPhase(
+  label: string,
+  player: AudioPlayer,
+  clipDurationSec: number,
+  phaseDurationMs: number,
+) {
+  const tag = `[audio ${label}]`;
+  try {
+    await waitUntilLoaded(player);
+    const rate = clipDurationSec / (phaseDurationMs / 1000);
+    player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
+    await player.seekTo(0);
+    player.play();
+
+    // Forcibly pausing the other player mid-playback (a direct Exhale->Inhale
+    // transition with no Hold in between) can occasionally cause the native
+    // player to silently drop this play() call. Verify it actually started
+    // and retry a couple of times if not.
+    for (let attempt = 0; attempt < 3 && !player.playing; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      if (!player.playing) {
+        console.log(tag, 'play() did not take effect, retrying', { attempt });
+        player.play();
+      }
+    }
+  } catch (error) {
+    console.log(tag, 'ERROR', error);
+  }
 }
 
 export function BreathingScreen() {
@@ -96,6 +118,7 @@ export function BreathingScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         breatheOutPlayer.pause();
         playCueForPhase(
+          'inhale',
           breatheInPlayer,
           breatheInStatus.duration || BREATHE_IN_FALLBACK_SEC,
           phase.durationMs,
@@ -104,6 +127,7 @@ export function BreathingScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         breatheInPlayer.pause();
         playCueForPhase(
+          'exhale',
           breatheOutPlayer,
           breatheOutStatus.duration || BREATHE_OUT_FALLBACK_SEC,
           phase.durationMs,
