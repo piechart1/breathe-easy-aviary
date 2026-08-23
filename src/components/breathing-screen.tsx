@@ -225,17 +225,30 @@ export function BreathingScreen() {
             <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
               Breathe Easy
             </ThemedText>
-            <Pressable
-              onPress={() => router.push('/history')}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="View breathing time history">
-              <SymbolView
-                name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
-                size={22}
-                tintColor={theme.text}
-              />
-            </Pressable>
+            <View style={styles.headerIconColumn}>
+              <Pressable
+                onPress={() => router.push('/history')}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="View breathing time history">
+                <SymbolView
+                  name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
+                  size={22}
+                  tintColor={theme.text}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/articles')}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="View articles and information">
+                <SymbolView
+                  name={{ ios: 'book.closed', android: 'menu_book', web: 'menu_book' }}
+                  size={22}
+                  tintColor={theme.text}
+                />
+              </Pressable>
+            </View>
           </View>
 
           <Pressable
@@ -363,6 +376,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   },
   headerSpacer: {
     width: 22,
+  },
+  headerIconColumn: {
+    gap: Spacing.two,
   },
   title: {
     ...SystemFont.medium,
