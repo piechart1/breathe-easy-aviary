@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -23,13 +23,13 @@ import {
   type BreathingPattern,
   type PhaseName,
 } from '@/constants/breathing-patterns';
-import { Colors, SystemFont, Spacing } from '@/constants/theme';
+import { SystemFont, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { recordSessionSeconds } from '@/lib/session-history';
 
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
 const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
-const screenColors = Colors.dark;
 const BREATHE_IN_SOURCE = require('../../assets/sounds/breathe-in.wav');
 const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
 // Measured durations (afinfo) used as a fallback until each async-loaded asset reports its own.
@@ -80,6 +80,8 @@ async function playCueForPhase(
 
 export function BreathingScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -231,7 +233,7 @@ export function BreathingScreen() {
               <SymbolView
                 name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
                 size={22}
-                tintColor={screenColors.text}
+                tintColor={theme.text}
               />
             </Pressable>
           </View>
@@ -292,7 +294,7 @@ export function BreathingScreen() {
                     isSelected && styles.patternCardSelected,
                     {
                       opacity: isRunning ? 0.55 : pressed ? 0.9 : 1,
-                      borderColor: isSelected ? accentColor : screenColors.border,
+                      borderColor: isSelected ? accentColor : theme.border,
                     },
                   ]}>
                   <View style={styles.patternCardHeader}>
@@ -305,7 +307,7 @@ export function BreathingScreen() {
                       <SymbolView
                         name={{ ios: 'info.circle', android: 'info', web: 'info' }}
                         size={18}
-                        tintColor={screenColors.textSecondary}
+                        tintColor={theme.textSecondary}
                       />
                     </Pressable>
                   </View>
@@ -339,10 +341,11 @@ export function BreathingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: screenColors.background,
+    backgroundColor: theme.background,
   },
   safeArea: {
     flex: 1,
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
   title: {
     ...SystemFont.medium,
     textAlign: 'center',
-    color: screenColors.text,
+    color: theme.text,
   },
   circleSection: {
     alignItems: 'center',
@@ -412,26 +415,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     lineHeight: 24,
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
   },
   elapsedText: {
     fontSize: 18,
     lineHeight: 24,
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
     fontVariant: ['tabular-nums'],
   },
   patternList: {
     gap: Spacing.three,
   },
   patternCard: {
-    backgroundColor: screenColors.backgroundElement,
+    backgroundColor: theme.backgroundElement,
     borderRadius: 16,
     borderWidth: 1,
     padding: Spacing.three,
     gap: Spacing.one,
   },
   patternCardSelected: {
-    backgroundColor: screenColors.backgroundSelected,
+    backgroundColor: theme.backgroundSelected,
   },
   patternCardHeader: {
     flexDirection: 'row',
@@ -439,10 +442,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   patternName: {
-    color: screenColors.text,
+    color: theme.text,
   },
   patternDescription: {
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
   },
   modalBackdrop: {
     position: 'absolute',
@@ -458,17 +461,17 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: screenColors.backgroundElement,
+    backgroundColor: theme.backgroundElement,
     borderRadius: 20,
     padding: Spacing.four,
     gap: Spacing.three,
   },
   modalTitle: {
-    color: screenColors.text,
+    color: theme.text,
     fontSize: 18,
   },
   modalInfoText: {
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
     lineHeight: 20,
   },
   modalCloseButton: {
@@ -477,6 +480,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   modalCloseText: {
-    color: screenColors.accent,
+    color: theme.accent,
   },
-});
+  });
+}

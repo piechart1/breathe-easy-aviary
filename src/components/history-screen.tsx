@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,9 +6,9 @@ import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { getDailyTotals, seedMockDailyMinutes, type DailyTotal } from '@/lib/session-history';
-import { Colors, Spacing, SystemFont } from '@/constants/theme';
+import { Spacing, SystemFont } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
-const screenColors = Colors.dark;
 const BAR_COLOR = '#F7A88D'; // Pantone 14-1228 TCX "Peach Nectar"
 const CHART_HEIGHT = 120;
 const MONTH_NAMES = [
@@ -32,7 +32,21 @@ function formatDateRange(start: Date, end: Date): string {
   return `${startLabel} – ${endLabel}`;
 }
 
-function WeekChart({ days, maxSeconds, accentColor }: { days: DailyTotal[]; maxSeconds: number; accentColor: string }) {
+type Styles = ReturnType<typeof createStyles>;
+
+function WeekChart({
+  days,
+  maxSeconds,
+  accentColor,
+  borderColor,
+  styles,
+}: {
+  days: DailyTotal[];
+  maxSeconds: number;
+  accentColor: string;
+  borderColor: string;
+  styles: Styles;
+}) {
   const weekTotal = days.reduce((sum, day) => sum + day.seconds, 0);
   const weekAverage = weekTotal / days.length;
   const averageRatio = maxSeconds > 0 ? Math.min(1, weekAverage / maxSeconds) : 0;
@@ -64,7 +78,7 @@ function WeekChart({ days, maxSeconds, accentColor }: { days: DailyTotal[]; maxS
                     styles.bar,
                     {
                       height: barHeight,
-                      backgroundColor: day.seconds > 0 ? accentColor : screenColors.border,
+                      backgroundColor: day.seconds > 0 ? accentColor : borderColor,
                     },
                   ]}
                   accessibilityLabel={`${DAY_INITIALS[day.date.getDay()]}: ${formatDuration(day.seconds)}`}
@@ -84,6 +98,8 @@ function WeekChart({ days, maxSeconds, accentColor }: { days: DailyTotal[]; maxS
 
 export function HistoryScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[] | null>(null);
 
   const loadTotals = useCallback(() => {
@@ -111,7 +127,7 @@ export function HistoryScreen() {
             <SymbolView
               name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
               size={22}
-              tintColor={screenColors.text}
+              tintColor={theme.text}
             />
           </Pressable>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
@@ -124,8 +140,20 @@ export function HistoryScreen() {
 
         {dailyTotals && (
           <View style={styles.weeksRow}>
-            <WeekChart days={olderWeek} maxSeconds={maxSeconds} accentColor={BAR_COLOR} />
-            <WeekChart days={newerWeek} maxSeconds={maxSeconds} accentColor={BAR_COLOR} />
+            <WeekChart
+              days={olderWeek}
+              maxSeconds={maxSeconds}
+              accentColor={BAR_COLOR}
+              borderColor={theme.border}
+              styles={styles}
+            />
+            <WeekChart
+              days={newerWeek}
+              maxSeconds={maxSeconds}
+              accentColor={BAR_COLOR}
+              borderColor={theme.border}
+              styles={styles}
+            />
           </View>
         )}
       </SafeAreaView>
@@ -133,10 +161,11 @@ export function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof useTheme>) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: screenColors.background,
+    backgroundColor: theme.background,
   },
   safeArea: {
     flex: 1,
@@ -153,12 +182,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...SystemFont.medium,
-    color: screenColors.text,
+    color: theme.text,
   },
   subtitle: {
     fontSize: 18,
     lineHeight: 24,
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
     marginTop: Spacing.four,
   },
   weeksRow: {
@@ -174,7 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   weekAverage: {
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
   },
   chartArea: {
     height: CHART_HEIGHT,
@@ -186,7 +215,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopWidth: 1,
     borderStyle: 'dashed',
-    borderColor: screenColors.textSecondary,
+    borderColor: theme.textSecondary,
   },
   barsRow: {
     flexDirection: 'row',
@@ -205,6 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   weekRangeLabel: {
-    color: screenColors.textSecondary,
+    color: theme.textSecondary,
   },
-});
+  });
+}
