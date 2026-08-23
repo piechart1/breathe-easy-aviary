@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,10 +9,12 @@ import { ARTICLES } from '@/constants/articles';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export function ArticlesScreen() {
+export function ArticleDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const article = ARTICLES.find((item) => item.slug === slug);
 
   return (
     <View style={styles.container}>
@@ -29,34 +31,27 @@ export function ArticlesScreen() {
               tintColor={theme.text}
             />
           </Pressable>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Articles & Info
-          </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}>
-          {ARTICLES.map((article) => (
-            <Pressable
-              key={article.slug}
-              onPress={() => router.push(`/articles/${article.slug}`)}
-              accessibilityRole="button"
-              accessibilityLabel={`Read: ${article.title}`}
-              style={({ pressed }) => [styles.articleCard, { opacity: pressed ? 0.85 : 1 }]}>
-              <View style={styles.articleCardText}>
-                <ThemedText type="smallBold" style={styles.articleTitle}>{article.title}</ThemedText>
-                <ThemedText type="small" style={styles.articleSummary}>{article.summary}</ThemedText>
-              </View>
-              <SymbolView
-                name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-                size={16}
-                tintColor={theme.textSecondary}
-              />
-            </Pressable>
-          ))}
-        </ScrollView>
+        {article ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}>
+            <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
+              {article.title}
+            </ThemedText>
+            {article.body.split('\n\n').map((paragraph, index) => (
+              <ThemedText key={index} type="default" style={styles.paragraph}>
+                {paragraph}
+              </ThemedText>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.notFound}>
+            <ThemedText type="default" style={styles.notFoundText}>Article not found.</ThemedText>
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -81,32 +76,25 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     headerSpacer: {
       width: 22,
     },
+    scrollContent: {
+      paddingTop: Spacing.two,
+      paddingBottom: Spacing.five,
+      gap: Spacing.three,
+    },
     title: {
       ...SystemFont.medium,
       color: theme.text,
     },
-    list: {
-      gap: Spacing.three,
-      paddingTop: Spacing.four,
-      paddingBottom: Spacing.five,
+    paragraph: {
+      color: theme.textSecondary,
+      lineHeight: 22,
     },
-    articleCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: Spacing.three,
-      backgroundColor: theme.backgroundElement,
-      borderRadius: 16,
-      padding: Spacing.three,
-    },
-    articleCardText: {
+    notFound: {
       flex: 1,
-      gap: Spacing.one,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    articleTitle: {
-      color: theme.text,
-    },
-    articleSummary: {
+    notFoundText: {
       color: theme.textSecondary,
     },
   });
