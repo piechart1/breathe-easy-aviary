@@ -18,21 +18,9 @@ export function ArticlesScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Back">
-            <SymbolView
-              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-              size={22}
-              tintColor={theme.text}
-            />
-          </Pressable>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Articles & Info
+            Topics
           </ThemedText>
-          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView
@@ -73,13 +61,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: Spacing.four,
     },
     header: {
-      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       marginTop: Spacing.two,
-    },
-    headerSpacer: {
-      width: 22,
     },
     title: {
       ...SystemFont.medium,

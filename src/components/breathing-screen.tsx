@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
-import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -79,7 +78,6 @@ async function playCueForPhase(
 }
 
 export function BreathingScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
@@ -221,34 +219,9 @@ export function BreathingScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <View style={styles.headerSpacer} />
             <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
               Breathe Easy
             </ThemedText>
-            <View style={styles.headerIconColumn}>
-              <Pressable
-                onPress={() => router.push('/history')}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="View breathing time history">
-                <SymbolView
-                  name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
-                  size={22}
-                  tintColor={theme.text}
-                />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/articles')}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="View articles and information">
-                <SymbolView
-                  name={{ ios: 'book.closed', android: 'menu_book', web: 'menu_book' }}
-                  size={22}
-                  tintColor={theme.text}
-                />
-              </Pressable>
-            </View>
           </View>
 
           <Pressable
@@ -369,16 +342,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     gap: Spacing.four,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: Spacing.two,
-  },
-  headerSpacer: {
-    width: 22,
-  },
-  headerIconColumn: {
-    gap: Spacing.two,
   },
   title: {
     ...SystemFont.medium,

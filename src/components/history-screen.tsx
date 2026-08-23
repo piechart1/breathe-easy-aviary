@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { getDailyTotals, seedMockDailyMinutes, type DailyTotal } from '@/lib/session-history';
@@ -97,7 +95,6 @@ function WeekChart({
 }
 
 export function HistoryScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[] | null>(null);
@@ -119,21 +116,9 @@ export function HistoryScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Back">
-            <SymbolView
-              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-              size={22}
-              tintColor={theme.text}
-            />
-          </Pressable>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
             Breathing Time
           </ThemedText>
-          <View style={styles.headerSpacer} />
         </View>
 
         <ThemedText type="small" style={styles.subtitle}>Last 14 Days</ThemedText>
@@ -172,13 +157,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     paddingHorizontal: Spacing.four,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: Spacing.two,
-  },
-  headerSpacer: {
-    width: 22,
   },
   title: {
     ...SystemFont.medium,
