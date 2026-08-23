@@ -12,6 +12,7 @@ import { GlassView } from 'expo-glass-effect';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -24,6 +25,7 @@ import {
   type PhaseName,
 } from '@/constants/breathing-patterns';
 import { AccentColors, Colors, SystemFont, Spacing } from '@/constants/theme';
+import { recordSessionSeconds } from '@/lib/session-history';
 
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
@@ -78,6 +80,7 @@ async function playCueForPhase(
 }
 
 export function BreathingScreen() {
+  const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -117,7 +120,10 @@ export function BreathingScreen() {
     }
     setIsRunning(false);
     setPhaseName('');
-    setElapsedSeconds(0);
+    setElapsedSeconds((secondsPracticed) => {
+      recordSessionSeconds(secondsPracticed);
+      return 0;
+    });
   }, [scaleAnim, breatheInPlayer, breatheOutPlayer]);
 
   const runPhase = useCallback(
@@ -213,9 +219,23 @@ export function BreathingScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Breathe Easy
-          </ThemedText>
+          <View style={styles.header}>
+            <View style={styles.headerSpacer} />
+            <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
+              Breathe Easy
+            </ThemedText>
+            <Pressable
+              onPress={() => router.push('/history')}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="View breathing time history">
+              <SymbolView
+                name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
+                size={22}
+                tintColor={screenColors.text}
+              />
+            </Pressable>
+          </View>
 
           <View style={styles.circleSection}>
             <View style={styles.circleWrapper} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -349,10 +369,18 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.five,
     gap: Spacing.four,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.two,
+  },
+  headerSpacer: {
+    width: 22,
+  },
   title: {
     ...SystemFont.medium,
     textAlign: 'center',
-    marginTop: Spacing.two,
     color: screenColors.text,
   },
   circleSection: {
