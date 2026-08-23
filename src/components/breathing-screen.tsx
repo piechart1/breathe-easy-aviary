@@ -8,7 +8,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GlassView } from 'expo-glass-effect';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
@@ -24,7 +23,7 @@ import {
   type BreathingPattern,
   type PhaseName,
 } from '@/constants/breathing-patterns';
-import { AccentColors, Colors, SystemFont, Spacing } from '@/constants/theme';
+import { Colors, SystemFont, Spacing } from '@/constants/theme';
 import { recordSessionSeconds } from '@/lib/session-history';
 
 const CIRCLE_SIZE = 120;
@@ -237,8 +236,12 @@ export function BreathingScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.circleSection}>
-            <View style={styles.circleWrapper} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Pressable
+            onPress={isRunning ? stopBreathing : startBreathing}
+            accessibilityRole="button"
+            accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
+            style={({ pressed }) => [styles.circleSection, { opacity: pressed ? 0.85 : 1 }]}>
+            <View style={styles.circleWrapper}>
               <View style={[styles.glowOuter, { backgroundColor: activeAccentColor }]} />
               <View style={[styles.glowInner, { backgroundColor: activeAccentColor }]} />
               <Animated.View
@@ -252,14 +255,24 @@ export function BreathingScreen() {
                 ]}
               />
             </View>
-            <ThemedText
-              type="default"
-              style={styles.phaseText}
-              accessibilityLiveRegion="polite"
-              accessibilityLabel={`Breathing status: ${phaseName || 'Ready'}`}>
-              {phaseName || 'Ready'}
-            </ThemedText>
-          </View>
+            <View style={styles.phaseRow}>
+              <ThemedText
+                type="default"
+                style={styles.phaseText}
+                accessibilityLiveRegion="polite"
+                accessibilityLabel={`Breathing status: ${phaseName || 'Tap the circle to begin'}`}>
+                {phaseName || 'Tap to begin'}
+              </ThemedText>
+              {isRunning && (
+                <ThemedText
+                  type="default"
+                  style={styles.elapsedText}
+                  accessibilityLabel={`Elapsed time: ${formatElapsed(elapsedSeconds)}`}>
+                  {formatElapsed(elapsedSeconds)}
+                </ThemedText>
+              )}
+            </View>
+          </Pressable>
 
           <View style={styles.patternList}>
             {BREATHING_PATTERNS.map((pattern) => {
@@ -304,36 +317,6 @@ export function BreathingScreen() {
             })}
           </View>
 
-          <View style={styles.controls}>
-            {isRunning ? (
-              <ThemedText
-                type="default"
-                style={styles.elapsedText}
-                accessibilityLabel={`Elapsed time: ${formatElapsed(elapsedSeconds)}`}>
-                {formatElapsed(elapsedSeconds)}
-              </ThemedText>
-            ) : (
-              <View />
-            )}
-            <Pressable
-              onPress={isRunning ? stopBreathing : startBreathing}
-              accessibilityRole="button"
-              accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-              <GlassView
-                style={[
-                  styles.toggleButton,
-                  { backgroundColor: isRunning ? AccentColors.pink : AccentColors.green },
-                ]}
-                glassEffectStyle="regular"
-                tintColor={isRunning ? AccentColors.pink : AccentColors.green}
-                isInteractive>
-                <ThemedText type="smallBold" style={styles.controlButtonText}>
-                  {isRunning ? 'Stop' : 'Begin'}
-                </ThemedText>
-              </GlassView>
-            </Pressable>
-          </View>
         </ScrollView>
       </SafeAreaView>
 
@@ -419,6 +402,12 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     elevation: 20,
   },
+  phaseRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: Spacing.two,
+  },
   phaseText: {
     textAlign: 'center',
     fontSize: 18,
@@ -454,24 +443,6 @@ const styles = StyleSheet.create({
   },
   patternDescription: {
     color: screenColors.textSecondary,
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.one,
-  },
-  toggleButton: {
-    borderRadius: 20,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  controlButtonText: {
-    ...SystemFont.medium,
-    color: '#FFFFFF',
-    fontSize: 15,
   },
   modalBackdrop: {
     position: 'absolute',
