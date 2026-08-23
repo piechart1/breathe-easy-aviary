@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -33,6 +34,12 @@ const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
 // Measured durations (afinfo) used as a fallback until each async-loaded asset reports its own.
 const BREATHE_IN_FALLBACK_SEC = 3.784853;
 const BREATHE_OUT_FALLBACK_SEC = 5.723719;
+
+function formatElapsed(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
 async function waitUntilLoaded(player: AudioPlayer, maxAttempts = 20) {
   for (let attempt = 0; attempt < maxAttempts && !player.isLoaded; attempt += 1) {
@@ -74,6 +81,7 @@ export function BreathingScreen() {
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const breatheInPlayer = useAudioPlayer(BREATHE_IN_SOURCE);
   const breatheOutPlayer = useAudioPlayer(BREATHE_OUT_SOURCE);
   const breatheInStatus = useAudioPlayerStatus(breatheInPlayer);
@@ -82,6 +90,8 @@ export function BreathingScreen() {
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
   const [phaseName, setPhaseName] = useState<PhaseName | ''>('');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -101,8 +111,13 @@ export function BreathingScreen() {
     });
     breatheInPlayer.pause();
     breatheOutPlayer.pause();
+    if (elapsedIntervalRef.current) {
+      clearInterval(elapsedIntervalRef.current);
+      elapsedIntervalRef.current = null;
+    }
     setIsRunning(false);
     setPhaseName('');
+    setElapsedSeconds(0);
   }, [scaleAnim, breatheInPlayer, breatheOutPlayer]);
 
   const runPhase = useCallback(
@@ -164,7 +179,11 @@ export function BreathingScreen() {
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
+    setElapsedSeconds(0);
     scaleAnim.setValue(MIN_BREATH_SCALE);
+    elapsedIntervalRef.current = setInterval(() => {
+      setElapsedSeconds((seconds) => seconds + 1);
+    }, 1000);
     runPhase(selectedPattern, 0);
   }, [runPhase, scaleAnim, selectedPattern]);
 
@@ -179,10 +198,14 @@ export function BreathingScreen() {
       isRunningRef.current = false;
       activeAnimationRef.current?.stop();
       scaleAnim.stopAnimation();
+      if (elapsedIntervalRef.current) {
+        clearInterval(elapsedIntervalRef.current);
+      }
     };
   }, [scaleAnim]);
 
   const activeAccentColor = PATTERN_ACCENT_COLORS[selectedPatternId] ?? BreathingColors.saltwaterSlide;
+  const infoPattern = BREATHING_PATTERNS.find((pattern) => pattern.id === infoPatternId) ?? null;
 
   return (
     <View style={styles.container}>
@@ -239,7 +262,20 @@ export function BreathingScreen() {
                       borderColor: isSelected ? accentColor : screenColors.border,
                     },
                   ]}>
-                  <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
+                  <View style={styles.patternCardHeader}>
+                    <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
+                    <Pressable
+                      onPress={() => setInfoPatternId(pattern.id)}
+                      hitSlop={10}
+                      accessibilityRole="button"
+                      accessibilityLabel={`About ${pattern.name}`}>
+                      <SymbolView
+                        name={{ ios: 'info.circle', android: 'info', web: 'info' }}
+                        size={18}
+                        tintColor={screenColors.textSecondary}
+                      />
+                    </Pressable>
+                  </View>
                   <ThemedText type="small" style={styles.patternDescription}>
                     {pattern.timing} | {pattern.description}
                   </ThemedText>
@@ -248,26 +284,54 @@ export function BreathingScreen() {
             })}
           </View>
 
-          <Pressable
-            onPress={isRunning ? stopBreathing : startBreathing}
-            accessibilityRole="button"
-            accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
-            style={({ pressed }) => [styles.controls, { opacity: pressed ? 0.85 : 1 }]}>
-            <GlassView
-              style={[
-                styles.toggleButton,
-                { backgroundColor: isRunning ? AccentColors.pink : AccentColors.green },
-              ]}
-              glassEffectStyle="regular"
-              tintColor={isRunning ? AccentColors.pink : AccentColors.green}
-              isInteractive>
-              <ThemedText type="smallBold" style={styles.controlButtonText}>
-                {isRunning ? 'Stop' : 'Begin'}
+          <View style={styles.controls}>
+            {isRunning ? (
+              <ThemedText
+                type="default"
+                style={styles.elapsedText}
+                accessibilityLabel={`Elapsed time: ${formatElapsed(elapsedSeconds)}`}>
+                {formatElapsed(elapsedSeconds)}
               </ThemedText>
-            </GlassView>
-          </Pressable>
+            ) : (
+              <View />
+            )}
+            <Pressable
+              onPress={isRunning ? stopBreathing : startBreathing}
+              accessibilityRole="button"
+              accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+              <GlassView
+                style={[
+                  styles.toggleButton,
+                  { backgroundColor: isRunning ? AccentColors.pink : AccentColors.green },
+                ]}
+                glassEffectStyle="regular"
+                tintColor={isRunning ? AccentColors.pink : AccentColors.green}
+                isInteractive>
+                <ThemedText type="smallBold" style={styles.controlButtonText}>
+                  {isRunning ? 'Stop' : 'Begin'}
+                </ThemedText>
+              </GlassView>
+            </Pressable>
+          </View>
         </ScrollView>
       </SafeAreaView>
+
+      {infoPattern && (
+        <Pressable style={styles.modalBackdrop} onPress={() => setInfoPatternId(null)}>
+          <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
+            <ThemedText type="smallBold" style={styles.modalTitle}>{infoPattern.name}</ThemedText>
+            <ThemedText type="small" style={styles.modalInfoText}>{infoPattern.info}</ThemedText>
+            <Pressable
+              onPress={() => setInfoPatternId(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={styles.modalCloseButton}>
+              <ThemedText type="smallBold" style={styles.modalCloseText}>Close</ThemedText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -333,6 +397,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: screenColors.textSecondary,
   },
+  elapsedText: {
+    fontSize: 18,
+    lineHeight: 24,
+    color: screenColors.textSecondary,
+    fontVariant: ['tabular-nums'],
+  },
   patternList: {
     gap: Spacing.three,
   },
@@ -346,6 +416,11 @@ const styles = StyleSheet.create({
   patternCardSelected: {
     backgroundColor: screenColors.backgroundSelected,
   },
+  patternCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   patternName: {
     color: screenColors.text,
   },
@@ -353,11 +428,15 @@ const styles = StyleSheet.create({
     color: screenColors.textSecondary,
   },
   controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: Spacing.one,
   },
   toggleButton: {
-    borderRadius: 24,
-    paddingVertical: Spacing.three,
+    borderRadius: 20,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.four,
     alignItems: 'center',
     overflow: 'hidden',
   },
@@ -365,5 +444,40 @@ const styles = StyleSheet.create({
     ...SystemFont.medium,
     color: '#FFFFFF',
     fontSize: 15,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.five,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: screenColors.backgroundElement,
+    borderRadius: 20,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  modalTitle: {
+    color: screenColors.text,
+    fontSize: 18,
+  },
+  modalInfoText: {
+    color: screenColors.textSecondary,
+    lineHeight: 20,
+  },
+  modalCloseButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  modalCloseText: {
+    color: screenColors.accent,
   },
 });

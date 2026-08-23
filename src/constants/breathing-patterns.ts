@@ -17,6 +17,7 @@ export type BreathingPattern = {
   name: string;
   timing: string;
   description: string;
+  info: string;
   phases: BreathingPhase[];
 };
 
@@ -35,6 +36,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Box Breathing',
     timing: '4-4-4-4',
     description: 'Inhale, hold, exhale, hold',
+    info: 'Also called square breathing, this technique uses equal counts for every phase to create a steady, balanced rhythm. It\'s used by Navy SEALs and in clinical stress management to calm the nervous system, sharpen focus, and regain composure under pressure.',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Hold', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
@@ -47,6 +49,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: '4-7-8',
     timing: '4-7-8',
     description: 'Inhale, hold, exhale',
+    info: 'Popularized by Dr. Andrew Weil and rooted in ancient pranayama practice, this pattern stretches the exhale far longer than the inhale. That extended release helps activate the parasympathetic nervous system, making it a favorite for easing anxiety and falling asleep faster.',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Hold', durationMs: 7000, targetScale: MAX_BREATH_SCALE },
@@ -58,6 +61,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Resonance Breathing',
     timing: '5-5',
     description: 'Inhale, exhale',
+    info: 'Also known as coherent breathing, this pattern keeps inhale and exhale equal at a slow, steady pace of about 5-6 breaths per minute. That rhythm helps synchronize your heart rate variability with your breath, promoting a calm, balanced state well suited to everyday practice.',
     phases: [
       { name: 'Inhale', durationMs: 5000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 5000, targetScale: MIN_BREATH_SCALE },
