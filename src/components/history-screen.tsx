@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { getDailyTotals, seedMockDailyMinutes, type DailyTotal } from '@/lib/session-history';
+import { getDailyTotals, type DailyTotal } from '@/lib/session-history';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -46,25 +47,14 @@ function WeekChart({
   styles: Styles;
 }) {
   const weekTotal = days.reduce((sum, day) => sum + day.seconds, 0);
-  const weekAverage = weekTotal / days.length;
-  const averageRatio = maxSeconds > 0 ? Math.min(1, weekAverage / maxSeconds) : 0;
 
   return (
     <View style={styles.weekBlock}>
-      <ThemedText type="smallBold" style={[styles.weekTotal, { color: accentColor }]}>
-        {formatDuration(weekTotal)}
-      </ThemedText>
-      <ThemedText type="small" style={styles.weekAverage}>
-        {formatDuration(weekAverage)} avg
+      <ThemedText type="smallBold" style={styles.weekTotal}>
+        {formatDuration(weekTotal)} total
       </ThemedText>
 
       <View style={styles.chartArea}>
-        {weekTotal > 0 && (
-          <View
-            style={[styles.averageLine, { bottom: averageRatio * CHART_HEIGHT }]}
-            accessibilityElementsHidden
-          />
-        )}
         <View style={styles.barsRow}>
           {days.map((day) => {
             const ratio = maxSeconds > 0 ? day.seconds / maxSeconds : 0;
@@ -103,10 +93,10 @@ export function HistoryScreen() {
     getDailyTotals(14).then(setDailyTotals);
   }, []);
 
-  useEffect(() => {
-    // TEMPORARY: seed requested mock data (minutes/day, 10 Aug onward), then load.
-    seedMockDailyMinutes([3, 6, 2, 9, 1, 3, 6, 8, 5, 3, 2, 1, 1, 5]).then(loadTotals);
-  }, [loadTotals]);
+  // Refetch every time this tab gains focus, so the rolling 14-day window
+  // and any session just recorded are reflected immediately, not just on
+  // first app launch.
+  useFocusEffect(loadTotals);
 
   const maxSeconds = dailyTotals ? Math.max(1, ...dailyTotals.map((day) => day.seconds)) : 1;
   const olderWeek = dailyTotals?.slice(0, 7) ?? [];
@@ -181,21 +171,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   },
   weekTotal: {
     fontSize: 16,
-  },
-  weekAverage: {
     color: theme.textSecondary,
   },
   chartArea: {
     height: CHART_HEIGHT,
     justifyContent: 'flex-end',
-  },
-  averageLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    borderTopWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: theme.textSecondary,
   },
   barsRow: {
     flexDirection: 'row',

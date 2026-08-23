@@ -37,20 +37,6 @@ export async function recordSessionSeconds(seconds: number): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(totals));
 }
 
-export async function seedMockDailyMinutes(minutesOldestFirst: number[]): Promise<void> {
-  const totals = await readTotals();
-  const today = new Date();
-
-  minutesOldestFirst.forEach((minutes, index) => {
-    const offset = minutesOldestFirst.length - 1 - index;
-    const date = new Date(today);
-    date.setDate(date.getDate() - offset);
-    totals[toDateKey(date)] = minutes * 60;
-  });
-
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(totals));
-}
-
 export async function getDailyTotals(days: number): Promise<DailyTotal[]> {
   const totals = await readTotals();
   const result: DailyTotal[] = [];
