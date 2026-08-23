@@ -35,11 +35,11 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
   cyclicSighing: BreathingColors.meadowMist,
   ujjayi: BreathingColors.oceanWhisper,
   buteyko: BreathingColors.duskLavender,
-  wimHof: BreathingColors.polarBlue,
+  tummo: BreathingColors.polarBlue,
 };
 
-const WIM_HOF_RAPID_BREATH_COUNT = 40;
-const wimHofRapidBreaths: BreathingPhase[] = Array.from({ length: WIM_HOF_RAPID_BREATH_COUNT }).flatMap(
+const TUMMO_RAPID_BREATH_COUNT = 30;
+const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BREATH_COUNT }).flatMap(
   () => [
     { name: 'Inhale' as const, durationMs: 1500, targetScale: MAX_BREATH_SCALE },
     { name: 'Exhale' as const, durationMs: 1500, targetScale: MIN_BREATH_SCALE },
@@ -119,13 +119,13 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     ],
   },
   {
-    id: 'wimHof',
-    name: 'Wim Hof Method',
-    timing: '3 rounds of 40 breaths + hold + 15s recovery',
+    id: 'tummo',
+    name: 'Tummo Breathing',
+    timing: '3 rounds of 30 breaths + hold + 15s recovery',
     description: 'Rapid deep breaths, retention, recovery',
-    info: 'Three rounds of 40 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.',
+    info: 'Three rounds of 30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.',
     phases: [
-      ...wimHofRapidBreaths,
+      ...tummoRapidBreaths,
       { name: 'Hold', durationMs: 60000, targetScale: MIN_BREATH_SCALE },
       { name: 'Inhale', durationMs: 3000, targetScale: MAX_BREATH_SCALE },
       { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE },
