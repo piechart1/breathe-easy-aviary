@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, type AudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 
@@ -29,11 +29,9 @@ import { recordSessionSeconds } from '@/lib/session-history';
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
 const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
-const BREATHE_IN_SOURCE = require('../../assets/sounds/breathe-in.wav');
-const BREATHE_OUT_SOURCE = require('../../assets/sounds/breathe-out.wav');
-// Measured durations (afinfo) used as a fallback until each async-loaded asset reports its own.
-const BREATHE_IN_FALLBACK_SEC = 3.784853;
-const BREATHE_OUT_FALLBACK_SEC = 5.723719;
+const TICK_SOURCE = require('../../assets/sounds/tick.wav');
+const TICK_ACCENT_VOLUME = 1;
+const TICK_VOLUME = 0.15;
 
 function formatElapsed(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -41,39 +39,16 @@ function formatElapsed(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-async function waitUntilLoaded(player: AudioPlayer, maxAttempts = 20) {
-  for (let attempt = 0; attempt < maxAttempts && !player.isLoaded; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 30));
+async function playTick(player: AudioPlayer, volume: number) {
+  if (!player.isLoaded) {
+    return;
   }
-}
-
-async function playCueForPhase(
-  label: string,
-  player: AudioPlayer,
-  clipDurationSec: number,
-  phaseDurationMs: number,
-) {
-  const tag = `[audio ${label}]`;
   try {
-    await waitUntilLoaded(player);
-    const rate = clipDurationSec / (phaseDurationMs / 1000);
-    player.setPlaybackRate(Math.min(2, Math.max(0.5, rate)), 'high');
+    player.volume = volume;
     await player.seekTo(0);
     player.play();
-
-    // Forcibly pausing the other player mid-playback (a direct Exhale->Inhale
-    // transition with no Hold in between) can occasionally cause the native
-    // player to silently drop this play() call. Verify it actually started
-    // and retry a couple of times if not.
-    for (let attempt = 0; attempt < 3 && !player.playing; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      if (!player.playing) {
-        console.log(tag, 'play() did not take effect, retrying', { attempt });
-        player.play();
-      }
-    }
   } catch (error) {
-    console.log(tag, 'ERROR', error);
+    console.log('[audio tick] ERROR', error);
   }
 }
 
@@ -84,10 +59,9 @@ export function BreathingScreen() {
   const isRunningRef = useRef(false);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const breatheInPlayer = useAudioPlayer(BREATHE_IN_SOURCE);
-  const breatheOutPlayer = useAudioPlayer(BREATHE_OUT_SOURCE);
-  const breatheInStatus = useAudioPlayerStatus(breatheInPlayer);
-  const breatheOutStatus = useAudioPlayerStatus(breatheOutPlayer);
+  const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickPlayer = useAudioPlayer(TICK_SOURCE);
 
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
@@ -100,9 +74,35 @@ export function BreathingScreen() {
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
-    breatheInPlayer.volume = 1;
-    breatheOutPlayer.volume = 1;
-  }, [breatheInPlayer, breatheOutPlayer]);
+  }, []);
+
+  const clearScheduledTicks = useCallback(() => {
+    tickTimeoutsRef.current.forEach(clearTimeout);
+    tickTimeoutsRef.current = [];
+  }, []);
+
+  // Schedules one tick per second across the phase (rounded so a 1.5s phase
+  // gets 2 evenly-spaced ticks rather than 1 long silent gap), with the
+  // first tick of the phase - the first beat of that Inhale/Hold/Exhale -
+  // accented louder like the downbeat of a metronome.
+  const scheduleTicksForPhase = useCallback(
+    (durationMs: number) => {
+      clearScheduledTicks();
+      const numTicks = Math.max(1, Math.round(durationMs / 1000));
+      const tickIntervalMs = durationMs / numTicks;
+
+      for (let i = 0; i < numTicks; i += 1) {
+        const timeoutId = setTimeout(() => {
+          if (!isRunningRef.current) {
+            return;
+          }
+          playTick(tickPlayer, i === 0 ? TICK_ACCENT_VOLUME : TICK_VOLUME);
+        }, i * tickIntervalMs);
+        tickTimeoutsRef.current.push(timeoutId);
+      }
+    },
+    [clearScheduledTicks, tickPlayer],
+  );
 
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
@@ -111,8 +111,12 @@ export function BreathingScreen() {
     scaleAnim.stopAnimation(() => {
       scaleAnim.setValue(MIN_BREATH_SCALE);
     });
-    breatheInPlayer.pause();
-    breatheOutPlayer.pause();
+    clearScheduledTicks();
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+    tickPlayer.pause();
     if (elapsedIntervalRef.current) {
       clearInterval(elapsedIntervalRef.current);
       elapsedIntervalRef.current = null;
@@ -123,7 +127,7 @@ export function BreathingScreen() {
       recordSessionSeconds(secondsPracticed);
       return 0;
     });
-  }, [scaleAnim, breatheInPlayer, breatheOutPlayer]);
+  }, [scaleAnim, clearScheduledTicks, tickPlayer]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -136,55 +140,52 @@ export function BreathingScreen() {
 
       if (phase.name === 'Inhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        breatheOutPlayer.pause();
-        playCueForPhase(
-          'inhale',
-          breatheInPlayer,
-          breatheInStatus.duration || BREATHE_IN_FALLBACK_SEC,
-          phase.durationMs,
-        );
       } else if (phase.name === 'Exhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        breatheInPlayer.pause();
-        playCueForPhase(
-          'exhale',
-          breatheOutPlayer,
-          breatheOutStatus.duration || BREATHE_OUT_FALLBACK_SEC,
-          phase.durationMs,
-        );
       } else {
         Haptics.selectionAsync();
-        breatheInPlayer.pause();
-        breatheOutPlayer.pause();
       }
 
-      const animation =
-        phase.name === 'Hold'
-          ? Animated.delay(phase.durationMs)
-          : Animated.timing(scaleAnim, {
-              toValue: phase.targetScale,
-              duration: phase.durationMs,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            });
+      scheduleTicksForPhase(phase.durationMs);
 
-      activeAnimationRef.current = animation;
-      animation.start(({ finished }) => {
-        if (!finished || !isRunningRef.current) {
+      // The visual animation is fire-and-forget here - phase advancement is
+      // timed by the setTimeout below instead of this animation's own
+      // completion callback. Inhale/Exhale run on the native UI thread
+      // (useNativeDriver) and report "finished" back to JS over a bridge
+      // round-trip, while Hold's Animated.delay is JS-thread only with no
+      // such hop; chaining off that callback made Inhale/Exhale -> Hold
+      // transitions land a few ms later than Hold -> Inhale/Exhale ones,
+      // which was audible as a gap against the metronome ticks (which run
+      // on their own setTimeout clock). A single JS timer keeps every
+      // transition - and therefore every tick schedule - equally precise.
+      if (phase.name === 'Hold') {
+        activeAnimationRef.current = null;
+      } else {
+        const animation = Animated.timing(scaleAnim, {
+          toValue: phase.targetScale,
+          duration: phase.durationMs,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        });
+        activeAnimationRef.current = animation;
+        animation.start();
+      }
+
+      phaseTimeoutRef.current = setTimeout(() => {
+        if (!isRunningRef.current) {
           return;
         }
-
         const nextIndex = (phaseIndex + 1) % pattern.phases.length;
         runPhase(pattern, nextIndex);
-      });
+      }, phase.durationMs);
     },
-    [scaleAnim, breatheInPlayer, breatheOutPlayer, breatheInStatus.duration, breatheOutStatus.duration],
+    [scaleAnim, scheduleTicksForPhase],
   );
 
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
-    setElapsedSeconds(0);
+    setElapsedSeconds(1);
     scaleAnim.setValue(MIN_BREATH_SCALE);
     elapsedIntervalRef.current = setInterval(() => {
       setElapsedSeconds((seconds) => seconds + 1);
@@ -203,6 +204,10 @@ export function BreathingScreen() {
       isRunningRef.current = false;
       activeAnimationRef.current?.stop();
       scaleAnim.stopAnimation();
+      tickTimeoutsRef.current.forEach(clearTimeout);
+      if (phaseTimeoutRef.current) {
+        clearTimeout(phaseTimeoutRef.current);
+      }
       if (elapsedIntervalRef.current) {
         clearInterval(elapsedIntervalRef.current);
       }
