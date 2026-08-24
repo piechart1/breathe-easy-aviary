@@ -60,6 +60,63 @@ async function playTick(player: AudioPlayer, volume: number) {
   }
 }
 
+type Styles = ReturnType<typeof createStyles>;
+
+function PatternCard({
+  pattern,
+  isSelected,
+  isRunning,
+  accentColor,
+  theme,
+  styles,
+  onSelect,
+  onShowInfo,
+}: {
+  pattern: BreathingPattern;
+  isSelected: boolean;
+  isRunning: boolean;
+  accentColor: string;
+  theme: ReturnType<typeof useTheme>;
+  styles: Styles;
+  onSelect: () => void;
+  onShowInfo: () => void;
+}) {
+  return (
+    <Pressable
+      disabled={isRunning}
+      onPress={onSelect}
+      accessibilityRole="button"
+      accessibilityLabel={`${pattern.name}, ${pattern.timing ? `${pattern.timing}, ` : ''}${pattern.description}`}
+      accessibilityState={{ selected: isSelected, disabled: isRunning }}
+      style={({ pressed }) => [
+        styles.patternCard,
+        isSelected && styles.patternCardSelected,
+        {
+          opacity: isRunning ? 0.55 : pressed ? 0.9 : 1,
+          borderColor: isSelected ? accentColor : theme.border,
+        },
+      ]}>
+      <View style={styles.patternCardHeader}>
+        <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
+        <Pressable
+          onPress={onShowInfo}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`About ${pattern.name}`}>
+          <SymbolView
+            name={{ ios: 'info.circle', android: 'info', web: 'info' }}
+            size={18}
+            tintColor={theme.textSecondary}
+          />
+        </Pressable>
+      </View>
+      <ThemedText type="small" style={styles.patternDescription}>
+        {pattern.timing ? `${pattern.timing} | ${pattern.description}` : pattern.description}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export function BreathingScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -81,6 +138,8 @@ export function BreathingScreen() {
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
+  const guidedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'guided');
+  const advancedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'advanced');
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
@@ -299,46 +358,39 @@ export function BreathingScreen() {
           </Pressable>
 
           <View style={styles.patternList}>
-            {BREATHING_PATTERNS.map((pattern) => {
-              const isSelected = pattern.id === selectedPatternId;
-              const accentColor = PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide;
+            <ThemedText type="smallBold" style={styles.patternSectionHeader}>
+              Guided Patterns
+            </ThemedText>
+            {guidedPatterns.map((pattern) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                isSelected={pattern.id === selectedPatternId}
+                isRunning={isRunning}
+                accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
+                theme={theme}
+                styles={styles}
+                onSelect={() => setSelectedPatternId(pattern.id)}
+                onShowInfo={() => setInfoPatternId(pattern.id)}
+              />
+            ))}
 
-              return (
-                <Pressable
-                  key={pattern.id}
-                  disabled={isRunning}
-                  onPress={() => setSelectedPatternId(pattern.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${pattern.name}, ${pattern.timing ? `${pattern.timing}, ` : ''}${pattern.description}`}
-                  accessibilityState={{ selected: isSelected, disabled: isRunning }}
-                  style={({ pressed }) => [
-                    styles.patternCard,
-                    isSelected && styles.patternCardSelected,
-                    {
-                      opacity: isRunning ? 0.55 : pressed ? 0.9 : 1,
-                      borderColor: isSelected ? accentColor : theme.border,
-                    },
-                  ]}>
-                  <View style={styles.patternCardHeader}>
-                    <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
-                    <Pressable
-                      onPress={() => setInfoPatternId(pattern.id)}
-                      hitSlop={10}
-                      accessibilityRole="button"
-                      accessibilityLabel={`About ${pattern.name}`}>
-                      <SymbolView
-                        name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                        size={18}
-                        tintColor={theme.textSecondary}
-                      />
-                    </Pressable>
-                  </View>
-                  <ThemedText type="small" style={styles.patternDescription}>
-                    {pattern.timing ? `${pattern.timing} | ${pattern.description}` : pattern.description}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
+            <ThemedText type="smallBold" style={[styles.patternSectionHeader, styles.patternSectionHeaderSpaced]}>
+              Advanced / Self-Paced
+            </ThemedText>
+            {advancedPatterns.map((pattern) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                isSelected={pattern.id === selectedPatternId}
+                isRunning={isRunning}
+                accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
+                theme={theme}
+                styles={styles}
+                onSelect={() => setSelectedPatternId(pattern.id)}
+                onShowInfo={() => setInfoPatternId(pattern.id)}
+              />
+            ))}
           </View>
 
         </ScrollView>
@@ -450,6 +502,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   },
   patternList: {
     gap: Spacing.three,
+  },
+  patternSectionHeader: {
+    color: theme.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 12,
+  },
+  patternSectionHeaderSpaced: {
+    marginTop: Spacing.two,
   },
   patternCard: {
     backgroundColor: theme.backgroundElement,
