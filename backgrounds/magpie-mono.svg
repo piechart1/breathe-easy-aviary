@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1600" height="1600"><title>magpie</title>
-<path d="M56 8.4 L34.5 13.4 L54 22.6 Z" fill="#111111"></path>
-<path d="M34.5 13.4 L44.5 11.1 L44 17 Z" fill="#111111"></path>
+<path d="M67 8.4 L88.5 13.4 L69 22.6 Z" fill="#111111"></path>
+<path d="M88.5 13.4 L78.5 11.1 L79 17 Z" fill="#111111"></path>
 <path d="M60 6 C70.5 13 75.5 20 75.4 29 C81 38 79.4 48 76.2 56.2 C73.4 65 68.8 71 62 73.6 C54 76.4 45 75.6 37 77.6 C30.4 79.4 24.4 80.6 19 80.6 C25 74 29 65 33 56 C37 47 41 38 45 30 C47 24.4 49 19 51 15.4 Z" fill="#111111"></path>
 <ellipse cx="45.5" cy="43" rx="16.5" ry="6.6" transform="rotate(-57 45.5 43)" fill="#111111"></ellipse>
 <ellipse cx="68" cy="32" rx="5.6" ry="4.4" transform="rotate(22 68 32)" fill="#111111"></ellipse>
@@ -11,6 +11,5 @@
 <ellipse cx="45.6" cy="63" rx="3.6" ry="2.2" transform="rotate(-12 45.6 63)" fill="#111111"></ellipse>
 <ellipse cx="34" cy="71" rx="5.2" ry="4" transform="rotate(-32 34 71)" fill="#111111"></ellipse>
 <g stroke="#111111" stroke-width="3.7" stroke-linecap="round" fill="none">
-<path d="M50.6 67 L46.6 95.4"></path><path d="M59.4 68 L58.6 91.6"></path><path d="M33 95.8 L52.4 94.8"></path><path d="M46.8 95.2 L54.6 99.2"></path>
-</g>
-</svg>
+<path d="M50.6 67 L46.6 95.4"></path><path d="M59.4 68 L58.6 91.6"></path><path d="M33 95.8 L52.4 94.8"></path><path d="M46.8 95.2 L54.6 99.2"></path><path d="M58.6 91.6 L72 90.6"></path><path d="M65 90.9 L69.4 95.2"></path>
+</g></svg>

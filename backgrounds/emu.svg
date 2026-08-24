@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1600" height="1600"><title>emu</title>
-<ellipse cx="58" cy="60" rx="32" ry="26" fill="#5f5850"></ellipse>
+<ellipse cx="61" cy="60" rx="35" ry="26" fill="#5f5850"></ellipse>
 <ellipse cx="72" cy="48" rx="13" ry="7" transform="rotate(-24 72 48)" fill="#8a8177"></ellipse>
 <ellipse cx="80" cy="66" rx="10" ry="6" transform="rotate(14 80 66)" fill="#8a8177"></ellipse>
 <ellipse cx="52" cy="72" rx="9" ry="5.4" transform="rotate(-8 52 72)" fill="#8a8177"></ellipse>
-<path d="M43 56 C32 46 27 32 29 20 C31 12 35 9 41 9.5" stroke="#5f5850" stroke-width="9.5" fill="none" stroke-linecap="round"></path>
-<ellipse cx="42" cy="9.5" rx="8" ry="6.6" fill="#5f5850"></ellipse>
-<path d="M44 5.5 L15 10 L44 14.5 Z" fill="#c9b79a"></path>
-<path d="M15 10 L27 7.9 L27 12.3 Z" fill="#241f1b"></path>
-<circle cx="44" cy="8.6" r="2.9" fill="#cf2b5c"></circle>
+<path d="M43 56 C32 46 27 32 29 20 C29 12 33 9 37 9.5" stroke="#5f5850" stroke-width="9.5" fill="none" stroke-linecap="butt"></path>
+<path d="M33.7 44.8 C26.3 37.1 24 28.9 26 18" stroke="#a9c9d6" stroke-width="4.6" fill="none" stroke-linecap="round" opacity="0.85"></path>
+<ellipse cx="31" cy="9.5" rx="8" ry="6.6" fill="#5f5850"></ellipse>
+<path d="M28 6.4 L13 10 L28 13.6 Z" fill="#c9b79a"></path>
+<path d="M13 10 L18.5 8.5 L18.5 11.5 Z" fill="#241f1b"></path>
+<circle cx="33" cy="8.6" r="2.9" fill="#cf2b5c"></circle>
 <g stroke="#3b4a52" stroke-width="3.6" stroke-linecap="round" fill="none">
-<path d="M50 82 L44 95"></path><path d="M66 84 L69 97"></path><path d="M34 96 L49 95"></path><path d="M44.5 95.4 L54 99.6"></path><path d="M62 98 L76 97"></path>
-</g>
-</svg>
+<path d="M50 71 L42 99"></path><path d="M66 73 L70 99.5"></path><path d="M31 99.5 L47 98.5"></path><path d="M42 98.9 L51 99.9"></path><path d="M60 99.8 L75 99.3"></path>
+</g></svg>

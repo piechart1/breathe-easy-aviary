@@ -352,6 +352,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     right: -BG_MAGPIE_SIZE * 0.22 + BG_MAGPIE_SHIFT_LEFT,
     bottom: -BG_MAGPIE_SIZE * 0.06 + BG_MAGPIE_LIFT,
     opacity: BG_MAGPIE_OPACITY,
+    transform: [{ scaleX: -1 }],
   },
   safeArea: {
     flex: 1,
