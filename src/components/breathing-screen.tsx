@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -26,6 +27,7 @@ import {
 import { SystemFont, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { recordSessionSeconds } from '@/lib/session-history';
+import { DEFAULT_TIMER_MINUTES, getTimerSettings } from '@/lib/settings';
 
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
@@ -74,6 +76,8 @@ export function BreathingScreen() {
   const [phaseName, setPhaseName] = useState<PhaseName | ''>('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -81,6 +85,18 @@ export function BreathingScreen() {
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
   }, []);
+
+  // Refetch whenever this tab gains focus, so a change made on the Settings
+  // screen takes effect the next time a session is started, without needing
+  // an app restart.
+  useFocusEffect(
+    useCallback(() => {
+      getTimerSettings().then(({ enabled, minutes }) => {
+        setTimerEnabled(enabled);
+        setTimerMinutes(minutes);
+      });
+    }, []),
+  );
 
   const clearScheduledTicks = useCallback(() => {
     tickTimeoutsRef.current.forEach(clearTimeout);
@@ -191,13 +207,21 @@ export function BreathingScreen() {
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
-    setElapsedSeconds(1);
     scaleAnim.setValue(MIN_BREATH_SCALE);
+
+    let secondsElapsed = 1;
+    setElapsedSeconds(secondsElapsed);
+    const timerLimitSeconds = timerEnabled ? timerMinutes * 60 : null;
+
     elapsedIntervalRef.current = setInterval(() => {
-      setElapsedSeconds((seconds) => seconds + 1);
+      secondsElapsed += 1;
+      setElapsedSeconds(secondsElapsed);
+      if (timerLimitSeconds !== null && secondsElapsed >= timerLimitSeconds) {
+        stopBreathing();
+      }
     }, 1000);
     runPhase(selectedPattern, 0);
-  }, [runPhase, scaleAnim, selectedPattern]);
+  }, [runPhase, scaleAnim, selectedPattern, timerEnabled, timerMinutes, stopBreathing]);
 
   useEffect(() => {
     if (isRunningRef.current) {

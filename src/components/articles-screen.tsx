@@ -2,20 +2,12 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { ARTICLES } from '@/constants/articles';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-
-// Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
-const BG_EMU_SIZE = 380;
-const BG_EMU_OPACITY = 0.2;
-const BG_EMU_LIFT = 20;
-const BG_EMU_SHIFT_LEFT = 10;
 
 export function ArticlesScreen() {
   const router = useRouter();
@@ -24,7 +16,6 @@ export function ArticlesScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
@@ -64,14 +55,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.background,
-    },
-    bgImage: {
-      position: 'absolute',
-      width: BG_EMU_SIZE,
-      height: BG_EMU_SIZE,
-      right: -BG_EMU_SIZE * 0.22 + BG_EMU_SHIFT_LEFT,
-      bottom: -BG_EMU_SIZE * 0.06 + BG_EMU_LIFT,
-      opacity: BG_EMU_OPACITY,
     },
     safeArea: {
       flex: 1,
