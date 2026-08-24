@@ -309,7 +309,7 @@ export function BreathingScreen() {
                   disabled={isRunning}
                   onPress={() => setSelectedPatternId(pattern.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${pattern.name}, ${pattern.timing}, ${pattern.description}`}
+                  accessibilityLabel={`${pattern.name}, ${pattern.timing ? `${pattern.timing}, ` : ''}${pattern.description}`}
                   accessibilityState={{ selected: isSelected, disabled: isRunning }}
                   style={({ pressed }) => [
                     styles.patternCard,
@@ -334,7 +334,7 @@ export function BreathingScreen() {
                     </Pressable>
                   </View>
                   <ThemedText type="small" style={styles.patternDescription}>
-                    {pattern.timing} | {pattern.description}
+                    {pattern.timing ? `${pattern.timing} | ${pattern.description}` : pattern.description}
                   </ThemedText>
                 </Pressable>
               );
