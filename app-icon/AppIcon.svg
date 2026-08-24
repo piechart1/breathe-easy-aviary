@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Magpie app icon</title>
+  <defs>
+    <radialGradient id="field" cx="42%" cy="34%" r="78%">
+      <stop offset="0%" stop-color="#e3c8d4"></stop>
+      <stop offset="58%" stop-color="#d3b0c0"></stop>
+      <stop offset="100%" stop-color="#bf98aa"></stop>
+    </radialGradient>
+    <filter id="bloom" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.011" numOctaves="4" seed="4" result="t"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="52" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+      <feGaussianBlur stdDeviation="12"></feGaussianBlur>
+    </filter>
+    <clipPath id="plate"><rect width="1024" height="1024"></rect></clipPath>
+  </defs>
+
+  
+  <rect width="1024" height="1024" fill="url(#field)"></rect>
+  <g clip-path="url(#plate)">
+    <ellipse cx="300" cy="820" rx="240" ry="104" fill="#e8dfd6" opacity=".30" filter="url(#bloom)"></ellipse>
+    <ellipse cx="808" cy="456" rx="92" ry="80" fill="#e8dfd6" opacity=".22" filter="url(#bloom)"></ellipse>
+    <ellipse cx="400" cy="300" rx="150" ry="104" fill="#c9a0b3" opacity=".22" filter="url(#bloom)"></ellipse>
+  </g>
+
+  
+  <g transform="translate(144,120) scale(7.36)">
+    <path d="M56 8.4 L34.5 13.4 L54 22.6 Z" fill="#dbe3e5"></path>
+    <path d="M34.5 13.4 L44.5 11.1 L44 17 Z" fill="#141110"></path>
+    <path d="M60 6 C70.5 13 75.5 20 75.4 29 C81 38 79.4 48 76.2 56.2 C73.4 65 68.8 71 62 73.6 C54 76.4 45 75.6 37 77.6 C30.4 79.4 24.4 80.6 19 80.6 C25 74 29 65 33 56 C37 47 41 38 45 30 C47 24.4 49 19 51 15.4 Z" fill="#141110"></path>
+    <ellipse cx="45.5" cy="43" rx="16.5" ry="6.6" transform="rotate(-57 45.5 43)" fill="#dbe3e5"></ellipse>
+    <ellipse cx="68" cy="32" rx="5.6" ry="4.4" transform="rotate(22 68 32)" fill="#dbe3e5"></ellipse>
+    <circle cx="62" cy="17.2" r="3.3" fill="#cf2b5c"></circle>
+    <ellipse cx="51.5" cy="50" rx="6.2" ry="3" transform="rotate(-52 51.5 50)" fill="#e7e6e0"></ellipse>
+    <ellipse cx="63" cy="56" rx="5" ry="3.4" transform="rotate(-26 63 56)" fill="#e7e6e0"></ellipse>
+    <ellipse cx="35.6" cy="60" rx="3.2" ry="2.2" transform="rotate(-20 35.6 60)" fill="#e7e6e0"></ellipse>
+    <ellipse cx="45.6" cy="63" rx="3.6" ry="2.2" transform="rotate(-12 45.6 63)" fill="#e7e6e0"></ellipse>
+    <ellipse cx="34" cy="71" rx="5.2" ry="4" transform="rotate(-32 34 71)" fill="#dbe3e5"></ellipse>
+    <g stroke="#3b4a52" stroke-width="3.7" stroke-linecap="round" fill="none">
+      <path d="M50.6 67 L46.6 95.4"></path>
+      <path d="M59.4 68 L58.6 91.6"></path>
+      <path d="M33 95.8 L52.4 94.8"></path>
+      <path d="M46.8 95.2 L54.6 99.2"></path>
+    </g>
+  </g>
+</svg>
