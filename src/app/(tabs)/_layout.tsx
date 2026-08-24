@@ -20,9 +20,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Breathe',
+          title: 'Home',
           tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'wind', android: 'air', web: 'air' }} size={22} tintColor={color} />
+            <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} size={22} tintColor={color} />
           ),
         }}
       />
@@ -32,7 +32,7 @@ export default function TabsLayout() {
           title: 'Metrics',
           tabBarIcon: ({ color }) => (
             <SymbolView
-              name={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
+              name={{ ios: 'chart.bar.xaxis', android: 'bar_chart', web: 'bar_chart' }}
               size={22}
               tintColor={color}
             />

@@ -2,13 +2,18 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
-import { getDailyTotals, type DailyTotal } from '@/lib/session-history';
+import { getDailyTotals, getStreakDays, getTotalSessionCount, type DailyTotal } from '@/lib/session-history';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const BAR_COLOR = '#B0A99F'; // warm stone/taupe
+const STREAK_COLOR = '#E67E22';
+const STREAK_BG = 'rgba(230, 126, 34, 0.15)';
+const SESSIONS_COLOR = '#22A06B';
+const SESSIONS_BG = 'rgba(34, 160, 107, 0.15)';
 const CHART_HEIGHT = 120;
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -88,9 +93,13 @@ export function HistoryScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[] | null>(null);
+  const [streakDays, setStreakDays] = useState(0);
+  const [totalSessions, setTotalSessions] = useState(0);
 
   const loadTotals = useCallback(() => {
     getDailyTotals(14).then(setDailyTotals);
+    getStreakDays().then(setStreakDays);
+    getTotalSessionCount().then(setTotalSessions);
   }, []);
 
   // Refetch every time this tab gains focus, so the rolling 14-day window
@@ -109,6 +118,29 @@ export function HistoryScreen() {
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
             Breathing Time
           </ThemedText>
+        </View>
+
+        <View style={styles.pillsRow}>
+          <View style={[styles.pill, { backgroundColor: STREAK_BG }]}>
+            <SymbolView
+              name={{ ios: 'flame.fill', android: 'local_fire_department', web: 'local_fire_department' }}
+              size={14}
+              tintColor={STREAK_COLOR}
+            />
+            <ThemedText type="smallBold" style={[styles.pillText, { color: STREAK_COLOR }]}>
+              {streakDays} day streak
+            </ThemedText>
+          </View>
+          <View style={[styles.pill, { backgroundColor: SESSIONS_BG }]}>
+            <SymbolView
+              name={{ ios: 'wind', android: 'air', web: 'air' }}
+              size={14}
+              tintColor={SESSIONS_COLOR}
+            />
+            <ThemedText type="smallBold" style={[styles.pillText, { color: SESSIONS_COLOR }]}>
+              {totalSessions} Breathwork sessions
+            </ThemedText>
+          </View>
         </View>
 
         <ThemedText type="small" style={styles.subtitle}>Last 14 Days</ThemedText>
@@ -159,6 +191,23 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     lineHeight: 24,
     color: theme.textSecondary,
     marginTop: Spacing.four,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    marginTop: Spacing.three,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: 999,
+  },
+  pillText: {
+    fontSize: 13,
   },
   weeksRow: {
     flexDirection: 'row',
