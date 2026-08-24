@@ -8,7 +8,6 @@
     "scheme": "breathe",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.anonymous.breathe-easy"
     },
     "android": {

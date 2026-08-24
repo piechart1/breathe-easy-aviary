@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
+<defs>
+<linearGradient id="aSky" x1="0.15" y1="1" x2="0.85" y2="0">
+      <stop offset="0" stop-color="#8aa4ae"></stop>
+      <stop offset="0.45" stop-color="#5d7d8a"></stop>
+      <stop offset="1" stop-color="#334c58"></stop>
+    </linearGradient>
+    <linearGradient id="aSnow" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#ffffff"></stop>
+      <stop offset="0.55" stop-color="#f2f6f9"></stop>
+      <stop offset="1" stop-color="#cfdae2"></stop>
+    </linearGradient>
+    <linearGradient id="aRock" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#59616a"></stop>
+      <stop offset="1" stop-color="#2e343b"></stop>
+    </linearGradient>
+
+    <linearGradient id="bSky" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#2b333d"></stop>
+      <stop offset="0.55" stop-color="#5a6773"></stop>
+      <stop offset="1" stop-color="#8f9daa"></stop>
+    </linearGradient>
+    <linearGradient id="bSnow" x1="0.1" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#ffffff"></stop>
+      <stop offset="0.6" stop-color="#eef3f7"></stop>
+      <stop offset="1" stop-color="#c9d5e0"></stop>
+    </linearGradient>
+    <linearGradient id="bShade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9dabb9"></stop>
+      <stop offset="1" stop-color="#6f7f8e"></stop>
+    </linearGradient>
+    <filter id="plume" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14"></feGaussianBlur>
+    </filter>
+    <filter id="softA" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"></feGaussianBlur>
+    </filter>
+</defs>
+<rect width="512" height="512" fill="url(#aSky)"></rect>
+      <g opacity="0.14" filter="url(#softA)">
+        <path d="M0 150 L512 -20 L512 22 L0 200 Z" fill="#cfe0e8"></path>
+      </g>
+      <path d="M512 118 L487 103 L462 112 L440 138 L420 168 L404 200 L384 244 L360 288 L392 336 L438 378 L486 406 L512 418 Z" fill="url(#aRock)"></path>
+      <g fill="#7c858e" opacity="0.55">
+        <path d="M462 116 L512 140 L512 268 L446 200 Z"></path>
+        <path d="M404 206 L446 206 L470 306 L392 268 Z"></path>
+      </g>
+      <g fill="#dfe9f0" opacity="0.35">
+        <path d="M455 132 L461 130 L484 214 L477 217 Z"></path>
+        <path d="M428 178 L433 176 L455 254 L448 256 Z"></path>
+        <path d="M403 228 L408 226 L429 295 L422 297 Z"></path>
+        <path d="M380 272 L385 270 L404 331 L397 333 Z"></path>
+        <path d="M492 170 L499 168 L509 233 L502 235 Z"></path>
+        <path d="M473 262 L479 260 L498 315 L491 317 Z"></path>
+      </g>
+      <path d="M360 288 L404 200 L440 138 L462 112 L487 103 L512 118 L512 133 L488 117 L467 125 L448 148 L414 209 L371 295 Z" fill="#f1f6fa"></path>
+      <g fill="#20262c" opacity="0.65">
+        <path d="M436 140 L446 124 L455 138 L446 148 Z"></path>
+        <path d="M400 202 L410 186 L419 200 L410 210 Z"></path>
+        <path d="M470 108 L480 100 L490 110 L478 116 Z"></path>
+      </g>
+      <g fill="#2f353c" opacity="0.85">
+        <path d="M226 378 L233 330 L241 313 L250 331 L259 352 L270 376 Z"></path>
+        <path d="M262 372 L272 352 L284 366 L292 384 Z"></path>
+      </g>
+      <path d="M0 512 L0 446 L118 404 L208 372 L254 344 L308 300 L360 288 L400 334 L446 380 L494 424 L512 448 L512 512 Z" fill="url(#aSnow)"></path>
+      <path d="M0 446 L118 404 L208 372 L254 344 L308 300 L360 288 L356 308 L302 322 L250 362 L204 390 L114 422 L0 466 Z" fill="#c6d3dd" opacity="0.5"></path>
+      <g fill="#b6c5d1" opacity="0.45">
+        <path d="M118 408 L134 410 L98 512 L58 512 Z"></path>
+        <path d="M208 376 L221 380 L212 512 L178 512 Z"></path>
+        <path d="M256 348 L266 352 L272 512 L244 512 Z"></path>
+        <path d="M308 306 L322 312 L336 512 L300 512 Z"></path>
+        <path d="M404 344 L418 352 L444 512 L414 512 Z"></path>
+      </g>
+      <g fill="#3b434b" opacity="0.6">
+        <path d="M88 466 L102 456 L112 468 L94 478 Z"></path>
+        <path d="M160 436 L172 428 L180 440 L164 448 Z"></path>
+        <path d="M330 402 L342 394 L350 406 L334 414 Z"></path>
+        <path d="M240 424 L250 418 L256 428 L244 434 Z"></path>
+      </g>
+
+</svg>
