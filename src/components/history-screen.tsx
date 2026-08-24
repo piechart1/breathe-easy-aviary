@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +16,12 @@ const STREAK_BG = 'rgba(230, 126, 34, 0.15)';
 const SESSIONS_COLOR = '#22A06B';
 const SESSIONS_BG = 'rgba(34, 160, 107, 0.15)';
 const CHART_HEIGHT = 120;
+// Matches the magpie background on the Home screen (breathing-screen.tsx).
+const BG_POSSUM_SOURCE = require('../../assets/images/bg-possum.png');
+const BG_POSSUM_SIZE = 380;
+const BG_POSSUM_OPACITY = 0.2;
+const BG_POSSUM_LIFT = 20;
+const BG_POSSUM_SHIFT_LEFT = 10;
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
@@ -113,6 +120,7 @@ export function HistoryScreen() {
 
   return (
     <View style={styles.container}>
+      <Image source={BG_POSSUM_SOURCE} style={styles.bgImage} pointerEvents="none" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
@@ -173,6 +181,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   container: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  bgImage: {
+    position: 'absolute',
+    width: BG_POSSUM_SIZE,
+    height: BG_POSSUM_SIZE,
+    right: -BG_POSSUM_SIZE * 0.22 + BG_POSSUM_SHIFT_LEFT,
+    bottom: -BG_POSSUM_SIZE * 0.06 + BG_POSSUM_LIFT,
+    opacity: BG_POSSUM_OPACITY,
   },
   safeArea: {
     flex: 1,

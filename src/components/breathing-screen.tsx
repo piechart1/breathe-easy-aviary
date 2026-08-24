@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -29,6 +30,11 @@ import { recordSessionSeconds } from '@/lib/session-history';
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
 const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
+const BG_MAGPIE_SOURCE = require('../../assets/images/bg-magpie.png');
+const BG_MAGPIE_SIZE = 380;
+const BG_MAGPIE_OPACITY = 0.2;
+const BG_MAGPIE_LIFT = 20;
+const BG_MAGPIE_SHIFT_LEFT = 10;
 const TICK_SOURCE = require('../../assets/sounds/tick.wav');
 const TICK_ACCENT_VOLUME = 1;
 const TICK_VOLUME = 0.15;
@@ -219,6 +225,7 @@ export function BreathingScreen() {
 
   return (
     <View style={styles.container}>
+      <Image source={BG_MAGPIE_SOURCE} style={styles.bgImage} pointerEvents="none" />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -337,6 +344,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   container: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  bgImage: {
+    position: 'absolute',
+    width: BG_MAGPIE_SIZE,
+    height: BG_MAGPIE_SIZE,
+    right: -BG_MAGPIE_SIZE * 0.22 + BG_MAGPIE_SHIFT_LEFT,
+    bottom: -BG_MAGPIE_SIZE * 0.06 + BG_MAGPIE_LIFT,
+    opacity: BG_MAGPIE_OPACITY,
   },
   safeArea: {
     flex: 1,
