@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1600" height="1600"><title>kookaburra</title>
+<path d="M60 8 C71 14 76 22 76 31 C81 40 79.5 50 76 58 C73 67 68 73 61 76 C53 79 44 78 36 80 C29.5 82 23.5 83.2 18 83.2 C24 76.5 28 68 32 59.5 C36 50.5 40 41.5 44 33 C46.5 27 48.8 20.6 51 16 Z" fill="#111111"></path>
+<path d="M60 8 L34 13.4 L53.5 22.4 Z" fill="#111111"></path>
+<path d="M34 13.4 L44.5 11 L44 16.8 Z" fill="#111111"></path>
+<ellipse cx="44" cy="42" rx="15" ry="6.2" transform="rotate(-56 44 42)" fill="#111111"></ellipse>
+<ellipse cx="60" cy="19.6" rx="4.4" ry="4" fill="#111111"></ellipse>
+<ellipse cx="61.2" cy="18.4" rx="1.6" ry="1.4" fill="#fff"></ellipse>
+<ellipse cx="46" cy="60" rx="14" ry="16" fill="#111111"></ellipse>
+<ellipse cx="60" cy="66" rx="8" ry="9.5" fill="#111111"></ellipse>
+<ellipse cx="52" cy="70" rx="17" ry="12" fill="#111111"></ellipse>
+<ellipse cx="66" cy="42" rx="7" ry="12" transform="rotate(18 66 42)" fill="#111111"></ellipse>
+<g stroke="#111111" stroke-width="3.6" stroke-linecap="round" fill="none">
+<path d="M48 80 L44 97"></path><path d="M58 81 L60 96"></path><path d="M33 97 L52 96"></path><path d="M47 96.4 L55 100.4"></path>
+</g></svg>
