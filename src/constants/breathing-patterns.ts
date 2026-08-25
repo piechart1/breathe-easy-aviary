@@ -125,7 +125,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Buteyko Breathing',
     timing: '4-4-hold-4-4',
     description: 'Inhale, exhale, long hold, inhale, exhale.',
-    info: 'A gentle, restrained technique built around light nasal breathing and a brief pause with empty lungs after each exhale. Developed to reduce chronic over-breathing, it\'s used to ease anxiety and breathlessness by gradually building tolerance to carbon dioxide. Breathe lightly throughout, the aim is to train your body to feel a mild air hunger during these exercises.\n\n1. After a relaxed inhale and exhale, hold your breath.\n2. Retain your breath for as long as comfortably possible.\n3. Once you\'ve reached the point of moderate discomfort, inhale.\n4. Resume normal breathing.\n5. Repeat several times.',
+    info: 'A gentle, restrained technique built around light nasal breathing and a brief pause with empty lungs after each exhale. Developed to reduce chronic over-breathing, it\'s used to ease anxiety and breathlessness by gradually building tolerance to carbon dioxide. Breathe lightly throughout, the aim is to train your body to feel a mild air hunger during these exercises.\n\n1. After a relaxed inhale and exhale, hold your breath.\n2. Retain your breath for as long as comfortably possible.\n3. Once you\'ve reached the point of moderate discomfort, inhale.\n4. Resume normal breathing.\n5. Repeat several times.\n\nYou can update the default hold duration from the Settings page.',
     category: 'advanced',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },

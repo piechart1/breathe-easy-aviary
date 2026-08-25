@@ -28,7 +28,12 @@ import {
 import { SystemFont, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { recordSessionSeconds } from '@/lib/session-history';
-import { DEFAULT_TIMER_MINUTES, getTimerSettings } from '@/lib/settings';
+import {
+  DEFAULT_BUTEYKO_HOLD_SECONDS,
+  DEFAULT_TIMER_MINUTES,
+  getButeykoHoldSeconds,
+  getTimerSettings,
+} from '@/lib/settings';
 
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
@@ -137,14 +142,29 @@ export function BreathingScreen() {
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
+  const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
   const guidedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'guided');
   const advancedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'advanced');
 
+  // Buteyko's Hold duration is user-configurable (Settings), unlike every
+  // other pattern's fixed phase durations - swap it in here rather than in
+  // the shared BREATHING_PATTERNS constant so runPhase/the timing-segment
+  // tracker below both see the current value without extra plumbing.
+  const activePattern =
+    selectedPattern.id === 'buteyko'
+      ? {
+          ...selectedPattern,
+          phases: selectedPattern.phases.map((phase) =>
+            phase.name === 'Hold' ? { ...phase, durationMs: buteykoHoldSeconds * 1000 } : phase,
+          ),
+        }
+      : selectedPattern;
+
   const timingSegments = selectedPattern.timing ? selectedPattern.timing.split('-') : [];
-  const activePhase = selectedPattern.phases[currentPhaseIndex];
+  const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
 
   useEffect(() => {
@@ -160,6 +180,7 @@ export function BreathingScreen() {
         setTimerEnabled(enabled);
         setTimerMinutes(minutes);
       });
+      getButeykoHoldSeconds().then(setButeykoHoldSeconds);
     }, []),
   );
 
@@ -286,8 +307,8 @@ export function BreathingScreen() {
         stopBreathing();
       }
     }, 1000);
-    runPhase(selectedPattern, 0);
-  }, [runPhase, scaleAnim, selectedPattern, timerEnabled, timerMinutes, stopBreathing]);
+    runPhase(activePattern, 0);
+  }, [runPhase, scaleAnim, activePattern, timerEnabled, timerMinutes, stopBreathing]);
 
   useEffect(() => {
     if (isRunningRef.current) {

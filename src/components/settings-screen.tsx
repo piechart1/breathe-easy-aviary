@@ -3,14 +3,20 @@ import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
+import { Host, Picker } from '@expo/ui';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
+  DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_TIMER_MINUTES,
+  MAX_BUTEYKO_HOLD_SECONDS,
+  MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
+  getButeykoHoldSeconds,
   getTimerSettings,
+  setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
 } from '@/lib/settings';
@@ -22,19 +28,17 @@ const BG_EMU_OPACITY = 0.2;
 const BG_EMU_LIFT = 20;
 const BG_EMU_SHIFT_LEFT = 10;
 
-type SoundStyle = 'metronome' | 'resonant';
-
-const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
-  { id: 'metronome', label: 'Metronome' },
-  { id: 'resonant', label: 'Resonant' },
-];
+const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
+  { length: MAX_BUTEYKO_HOLD_SECONDS - MIN_BUTEYKO_HOLD_SECONDS + 1 },
+  (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
+);
 
 export function SettingsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('metronome');
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
+  const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
 
   useFocusEffect(
     useCallback(() => {
@@ -42,6 +46,7 @@ export function SettingsScreen() {
         setTimerEnabledState(enabled);
         setTimerMinutesState(minutes);
       });
+      getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
     }, []),
   );
 
@@ -55,6 +60,11 @@ export function SettingsScreen() {
     persistTimerMinutes(minutes);
   };
 
+  const handleButeykoHoldChange = (seconds: number) => {
+    setButeykoHoldSecondsState(seconds);
+    persistButeykoHoldSeconds(seconds);
+  };
+
   return (
     <View style={styles.container}>
       <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
@@ -62,37 +72,6 @@ export function SettingsScreen() {
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
             Settings
-          </ThemedText>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={styles.sectionLabel}>
-            Breath Cue Sound
-          </ThemedText>
-
-          <View style={styles.segmentedControl}>
-            {SOUND_STYLE_OPTIONS.map((option) => {
-              const isSelected = option.id === soundStyle;
-              return (
-                <Pressable
-                  key={option.id}
-                  onPress={() => setSoundStyle(option.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ selected: isSelected }}
-                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
-                  <ThemedText
-                    type="smallBold"
-                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
-                    {option.label}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <ThemedText type="small" style={styles.sectionHint}>
-            Choose the audio cue style played during breathing exercises.
           </ThemedText>
         </View>
 
@@ -141,6 +120,25 @@ export function SettingsScreen() {
               : 'Sessions run until you stop them manually.'}
           </ThemedText>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <ThemedText type="smallBold" style={styles.sectionLabel}>
+              Buteyko Hold Duration
+            </ThemedText>
+
+            <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
+              <Picker
+                selectedValue={buteykoHoldSeconds}
+                onValueChange={handleButeykoHoldChange}
+                appearance="menu">
+                {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
+                  <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
+                ))}
+              </Picker>
+            </Host>
+          </View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -182,22 +180,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sectionLabel: {
       color: theme.text,
     },
-    segmentedControl: {
-      flexDirection: 'row',
-      backgroundColor: theme.backgroundSelected,
-      borderRadius: 10,
-      padding: 3,
-      gap: 3,
-    },
-    segment: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: Spacing.two,
-      borderRadius: 8,
-    },
-    segmentText: {
-      fontSize: 14,
-    },
     sectionHint: {
       color: theme.textSecondary,
     },
@@ -219,6 +201,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     minutePillText: {
       fontSize: 14,
+    },
+    secondsPickerHost: {
+      alignSelf: 'flex-start',
     },
   });
 }
