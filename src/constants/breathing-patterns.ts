@@ -123,16 +123,16 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
   {
     id: 'buteyko',
     name: 'Buteyko Breathing',
-    timing: '4-long hold-4-4-4',
-    description: 'Exhale, long hold, 12s normal breathing, repeat sequence',
-    info: 'A gentle, restrained technique built around light nasal breathing and a brief pause with empty lungs after each exhale. Developed to reduce chronic over-breathing, it\'s used to ease anxiety and breathlessness by gradually building tolerance to carbon dioxide. Breathe lightly throughout, the aim is to train your body to feel a mild air hunger during these exercises.\n\n1. After a relaxed exhale, hold your breath.\n2. Retain your breath for as long as comfortably possible.\n3. Once you\'ve reached the point of moderate discomfort, inhale.\n4. Breathe normally for at least 12 seconds.\n5. Repeat several times.',
+    timing: '4-4-hold-4-4',
+    description: 'Inhale, exhale, long hold, inhale, exhale.',
+    info: 'A gentle, restrained technique built around light nasal breathing and a brief pause with empty lungs after each exhale. Developed to reduce chronic over-breathing, it\'s used to ease anxiety and breathlessness by gradually building tolerance to carbon dioxide. Breathe lightly throughout, the aim is to train your body to feel a mild air hunger during these exercises.\n\n1. After a relaxed inhale and exhale, hold your breath.\n2. Retain your breath for as long as comfortably possible.\n3. Once you\'ve reached the point of moderate discomfort, inhale.\n4. Resume normal breathing.\n5. Repeat several times.',
     category: 'advanced',
     phases: [
+      { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
       { name: 'Hold', durationMs: 15000, targetScale: MIN_BREATH_SCALE },
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
-      { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
     ],
   },
   {
