@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -131,6 +132,7 @@ export function BreathingScreen() {
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
   const [phaseName, setPhaseName] = useState<PhaseName | ''>('');
+  const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -140,6 +142,10 @@ export function BreathingScreen() {
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
   const guidedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'guided');
   const advancedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'advanced');
+
+  const timingSegments = selectedPattern.timing ? selectedPattern.timing.split('-') : [];
+  const activePhase = selectedPattern.phases[currentPhaseIndex];
+  const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
@@ -218,6 +224,7 @@ export function BreathingScreen() {
 
       const phase = pattern.phases[phaseIndex];
       setPhaseName(phase.name);
+      setCurrentPhaseIndex(phaseIndex);
 
       if (phase.name === 'Inhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -355,6 +362,21 @@ export function BreathingScreen() {
                 </ThemedText>
               )}
             </View>
+            {timingSegments.length > 0 && (
+              <ThemedText
+                type="small"
+                style={styles.patternTimingText}
+                accessibilityLabel={`Pattern: ${selectedPattern.timing}`}>
+                {timingSegments.map((segment, index) => (
+                  <Text key={index}>
+                    <Text style={index === activeTimingSegmentIndex ? styles.patternTimingSegmentActive : undefined}>
+                      {segment}
+                    </Text>
+                    {index < timingSegments.length - 1 ? '-' : ''}
+                  </Text>
+                ))}
+              </ThemedText>
+            )}
           </Pressable>
 
           <View style={styles.patternList}>
@@ -499,6 +521,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     lineHeight: 24,
     color: theme.textSecondary,
     fontVariant: ['tabular-nums'],
+  },
+  patternTimingText: {
+    textAlign: 'center',
+    fontSize: 18,
+    lineHeight: 24,
+    color: theme.textSecondary,
+    marginTop: Spacing.one,
+  },
+  patternTimingSegmentActive: {
+    ...SystemFont.bold,
+    color: theme.text,
   },
   patternList: {
     gap: Spacing.three,

@@ -14,6 +14,12 @@ export type BreathingPhase = {
   name: PhaseName;
   durationMs: number;
   targetScale: number;
+  // Which '-'-separated segment of the pattern's `timing` label this phase
+  // corresponds to, for highlighting progress through that label as the
+  // pattern runs. Defaults to this phase's own index in `phases` when
+  // omitted, which is correct for every pattern except Tummo (many rapid
+  // breath phases all map back to its single "30 breaths" segment).
+  timingSegmentIndex?: number;
 };
 
 export type PatternCategory = 'guided' | 'advanced';
@@ -44,8 +50,8 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
 const TUMMO_RAPID_BREATH_COUNT = 30;
 const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BREATH_COUNT }).flatMap(
   () => [
-    { name: 'Inhale' as const, durationMs: 1500, targetScale: MAX_BREATH_SCALE },
-    { name: 'Exhale' as const, durationMs: 1500, targetScale: MIN_BREATH_SCALE },
+    { name: 'Inhale' as const, durationMs: 1500, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 0 },
+    { name: 'Exhale' as const, durationMs: 1500, targetScale: MIN_BREATH_SCALE, timingSegmentIndex: 0 },
   ],
 );
 
@@ -138,9 +144,9 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     category: 'advanced',
     phases: [
       ...tummoRapidBreaths,
-      { name: 'Hold', durationMs: 60000, targetScale: MIN_BREATH_SCALE },
-      { name: 'Inhale', durationMs: 3000, targetScale: MAX_BREATH_SCALE },
-      { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE },
+      { name: 'Hold', durationMs: 60000, targetScale: MIN_BREATH_SCALE, timingSegmentIndex: 1 },
+      { name: 'Inhale', durationMs: 3000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
+      { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 3 },
     ],
   },
 ];
