@@ -34,6 +34,7 @@ import {
   getButeykoHoldSeconds,
   getTimerSettings,
 } from '@/lib/settings';
+import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
 
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
@@ -233,9 +234,12 @@ export function BreathingScreen() {
     setPhaseName('');
     setElapsedSeconds((secondsPracticed) => {
       recordSessionSeconds(secondsPracticed);
+      if (secondsPracticed > 0) {
+        trackSessionCompleted(selectedPatternId, secondsPracticed);
+      }
       return 0;
     });
-  }, [scaleAnim, clearScheduledTicks, tickPlayer]);
+  }, [scaleAnim, clearScheduledTicks, tickPlayer, selectedPatternId]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -295,6 +299,7 @@ export function BreathingScreen() {
     isRunningRef.current = true;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
+    trackPatternStarted(selectedPatternId);
 
     let secondsElapsed = 1;
     setElapsedSeconds(secondsElapsed);
@@ -308,7 +313,7 @@ export function BreathingScreen() {
       }
     }, 1000);
     runPhase(activePattern, 0);
-  }, [runPhase, scaleAnim, activePattern, timerEnabled, timerMinutes, stopBreathing]);
+  }, [runPhase, scaleAnim, activePattern, timerEnabled, timerMinutes, stopBreathing, selectedPatternId]);
 
   useEffect(() => {
     if (isRunningRef.current) {

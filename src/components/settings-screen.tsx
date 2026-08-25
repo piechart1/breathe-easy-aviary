@@ -14,12 +14,15 @@ import {
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
+  getAnalyticsEnabled,
   getButeykoHoldSeconds,
   getTimerSettings,
+  setAnalyticsEnabled as persistAnalyticsEnabled,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
 } from '@/lib/settings';
+import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
@@ -39,6 +42,7 @@ export function SettingsScreen() {
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,6 +51,7 @@ export function SettingsScreen() {
         setTimerMinutesState(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
+      getAnalyticsEnabled().then(setAnalyticsEnabledState);
     }, []),
   );
 
@@ -63,6 +68,16 @@ export function SettingsScreen() {
   const handleButeykoHoldChange = (seconds: number) => {
     setButeykoHoldSecondsState(seconds);
     persistButeykoHoldSeconds(seconds);
+  };
+
+  const handleToggleAnalytics = (enabled: boolean) => {
+    setAnalyticsEnabledState(enabled);
+    persistAnalyticsEnabled(enabled);
+    if (enabled) {
+      initTelemetry();
+    } else {
+      disableTelemetry();
+    }
   };
 
   return (
@@ -139,6 +154,23 @@ export function SettingsScreen() {
             </Host>
           </View>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <ThemedText type="smallBold" style={styles.sectionLabel}>
+              Share Anonymous Usage &amp; Crash Data
+            </ThemedText>
+            <Switch
+              value={analyticsEnabled}
+              onValueChange={handleToggleAnalytics}
+              accessibilityLabel="Share anonymous usage and crash data"
+            />
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
+          </ThemedText>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -179,6 +211,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     sectionLabel: {
       color: theme.text,
+      flex: 1,
+      flexShrink: 1,
     },
     sectionHint: {
       color: theme.textSecondary,
@@ -187,6 +221,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: Spacing.two,
     },
     minutesRow: {
       flexDirection: 'row',
