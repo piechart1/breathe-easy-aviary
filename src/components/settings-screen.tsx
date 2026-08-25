@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Host, Picker } from '@expo/ui';
+import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, SystemFont } from '@/constants/theme';
@@ -14,15 +15,21 @@ import {
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
+  type ReminderSettings,
   getAnalyticsEnabled,
   getButeykoHoldSeconds,
+  getDailyNudgeSettings,
   getTimerSettings,
+  getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
+  setDailyNudgeSettings as persistDailyNudgeSettings,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
+  setWindDownSettings as persistWindDownSettings,
 } from '@/lib/settings';
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
+import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
@@ -36,6 +43,12 @@ const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
   (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
 );
 
+function reminderToDate(reminder: ReminderSettings): Date {
+  const date = new Date();
+  date.setHours(reminder.hour, reminder.minute, 0, 0);
+  return date;
+}
+
 export function SettingsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -43,6 +56,8 @@ export function SettingsScreen() {
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
+  const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
+  const [windDown, setWindDown] = useState<ReminderSettings>({ enabled: false, hour: 21, minute: 0 });
 
   useFocusEffect(
     useCallback(() => {
@@ -52,6 +67,8 @@ export function SettingsScreen() {
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
+      getDailyNudgeSettings().then(setDailyNudge);
+      getWindDownSettings().then(setWindDown);
     }, []),
   );
 
@@ -80,6 +97,62 @@ export function SettingsScreen() {
     }
   };
 
+  const handleToggleDailyNudge = async (enabled: boolean) => {
+    setDailyNudge((current) => ({ ...current, enabled }));
+    if (enabled) {
+      const granted = await scheduleDailyNudge(dailyNudge.hour, dailyNudge.minute);
+      if (!granted) {
+        // OS permission was declined - don't leave the toggle on with
+        // nothing actually scheduled.
+        setDailyNudge((current) => ({ ...current, enabled: false }));
+        await persistDailyNudgeSettings({ ...dailyNudge, enabled: false });
+        return;
+      }
+    } else {
+      await cancelDailyNudge();
+    }
+    await persistDailyNudgeSettings({ ...dailyNudge, enabled });
+  };
+
+  const handleDailyNudgeTimeChange = async (_event: unknown, date: Date | undefined) => {
+    if (!date) {
+      return;
+    }
+    const next = { ...dailyNudge, hour: date.getHours(), minute: date.getMinutes() };
+    setDailyNudge(next);
+    await persistDailyNudgeSettings(next);
+    if (next.enabled) {
+      await scheduleDailyNudge(next.hour, next.minute);
+    }
+  };
+
+  const handleToggleWindDown = async (enabled: boolean) => {
+    setWindDown((current) => ({ ...current, enabled }));
+    if (enabled) {
+      const granted = await scheduleWindDown(windDown.hour, windDown.minute);
+      if (!granted) {
+        setWindDown((current) => ({ ...current, enabled: false }));
+        await persistWindDownSettings({ ...windDown, enabled: false });
+        return;
+      }
+    } else {
+      await cancelWindDown();
+    }
+    await persistWindDownSettings({ ...windDown, enabled });
+  };
+
+  const handleWindDownTimeChange = async (_event: unknown, date: Date | undefined) => {
+    if (!date) {
+      return;
+    }
+    const next = { ...windDown, hour: date.getHours(), minute: date.getMinutes() };
+    setWindDown(next);
+    await persistWindDownSettings(next);
+    if (next.enabled) {
+      await scheduleWindDown(next.hour, next.minute);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
@@ -90,6 +163,7 @@ export function SettingsScreen() {
           </ThemedText>
         </View>
 
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <View style={styles.toggleRow}>
             <ThemedText type="smallBold" style={styles.sectionLabel}>
@@ -171,6 +245,63 @@ export function SettingsScreen() {
             Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
           </ThemedText>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Daily practice nudge
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                One prompt to fit a session into your day
+              </ThemedText>
+            </View>
+            <Switch
+              value={dailyNudge.enabled}
+              onValueChange={handleToggleDailyNudge}
+              accessibilityLabel="Daily practice nudge"
+            />
+          </View>
+
+          {dailyNudge.enabled && (
+            <DateTimePicker
+              value={reminderToDate(dailyNudge)}
+              mode="time"
+              display="compact"
+              onValueChange={handleDailyNudgeTimeChange}
+              style={styles.timePicker}
+            />
+          )}
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Wind-down at night
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                A gentle cue before bed
+              </ThemedText>
+            </View>
+            <Switch
+              value={windDown.enabled}
+              onValueChange={handleToggleWindDown}
+              accessibilityLabel="Wind-down at night"
+            />
+          </View>
+
+          {windDown.enabled && (
+            <DateTimePicker
+              value={reminderToDate(windDown)}
+              mode="time"
+              display="compact"
+              onValueChange={handleWindDownTimeChange}
+              style={styles.timePicker}
+            />
+          )}
+        </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -193,6 +324,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     safeArea: {
       flex: 1,
       paddingHorizontal: Spacing.four,
+    },
+    scrollContent: {
+      paddingBottom: Spacing.five,
     },
     header: {
       alignItems: 'center',
@@ -239,6 +373,20 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     secondsPickerHost: {
       alignSelf: 'flex-start',
+    },
+    reminderLabel: {
+      flex: 1,
+      flexShrink: 1,
+      gap: Spacing.half,
+    },
+    timePicker: {
+      width: '100%',
+      marginTop: Spacing.two,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.border,
+      marginVertical: Spacing.three,
     },
   });
 }

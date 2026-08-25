@@ -4,6 +4,8 @@ const TIMER_ENABLED_KEY = 'breathe-easy:timer-enabled';
 const TIMER_MINUTES_KEY = 'breathe-easy:timer-minutes';
 const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
+const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
+const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 
 export const DEFAULT_TIMER_MINUTES = 10;
 export const TIMER_MINUTE_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30] as const;
@@ -57,4 +59,48 @@ export async function getAnalyticsEnabled(): Promise<boolean> {
 
 export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(ANALYTICS_ENABLED_KEY, String(enabled));
+}
+
+export type ReminderSettings = { enabled: boolean; hour: number; minute: number };
+
+async function getReminderSettings(key: string, defaultHour: number, defaultMinute: number): Promise<ReminderSettings> {
+  const raw = await AsyncStorage.getItem(key);
+  if (!raw) {
+    return { enabled: false, hour: defaultHour, minute: defaultMinute };
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<ReminderSettings>;
+    return {
+      enabled: parsed.enabled === true,
+      hour: Number.isFinite(parsed.hour) ? (parsed.hour as number) : defaultHour,
+      minute: Number.isFinite(parsed.minute) ? (parsed.minute as number) : defaultMinute,
+    };
+  } catch {
+    return { enabled: false, hour: defaultHour, minute: defaultMinute };
+  }
+}
+
+async function setReminderSettings(key: string, settings: ReminderSettings): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(settings));
+}
+
+export const DEFAULT_DAILY_NUDGE_HOUR = 9;
+export const DEFAULT_DAILY_NUDGE_MINUTE = 0;
+export const DEFAULT_WIND_DOWN_HOUR = 21;
+export const DEFAULT_WIND_DOWN_MINUTE = 0;
+
+export async function getDailyNudgeSettings(): Promise<ReminderSettings> {
+  return getReminderSettings(DAILY_NUDGE_KEY, DEFAULT_DAILY_NUDGE_HOUR, DEFAULT_DAILY_NUDGE_MINUTE);
+}
+
+export async function setDailyNudgeSettings(settings: ReminderSettings): Promise<void> {
+  await setReminderSettings(DAILY_NUDGE_KEY, settings);
+}
+
+export async function getWindDownSettings(): Promise<ReminderSettings> {
+  return getReminderSettings(WIND_DOWN_KEY, DEFAULT_WIND_DOWN_HOUR, DEFAULT_WIND_DOWN_MINUTE);
+}
+
+export async function setWindDownSettings(settings: ReminderSettings): Promise<void> {
+  await setReminderSettings(WIND_DOWN_KEY, settings);
 }
