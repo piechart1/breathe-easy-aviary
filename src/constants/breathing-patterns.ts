@@ -20,6 +20,12 @@ export type BreathingPhase = {
   // omitted, which is correct for every pattern except Tummo (many rapid
   // breath phases all map back to its single "30 breaths" segment).
   timingSegmentIndex?: number;
+  // Overrides which resonant-style voice cue plays for this specific phase,
+  // for patterns with more than one phase of the same name that need
+  // different cues (e.g. Cyclic Sighing's short second "top-off" inhale).
+  // Keyed into RESONANT_SOUND_SOURCES in breathing-screen.tsx; defaults to
+  // the phase's name (lowercased) when omitted.
+  resonantSoundId?: string;
 };
 
 export type PatternCategory = 'guided' | 'advanced';
@@ -67,7 +73,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Hold', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
-      { name: 'Hold', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
+      { name: 'Hold', durationMs: 4000, targetScale: MIN_BREATH_SCALE, resonantSoundId: 'hold-down-intonation' },
     ],
   },
   {
@@ -104,7 +110,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 2000, targetScale: 0.85 },
-      { name: 'Inhale', durationMs: 1000, targetScale: MAX_BREATH_SCALE },
+      { name: 'Inhale', durationMs: 1000, targetScale: MAX_BREATH_SCALE, resonantSoundId: 'inhale-top-off' },
       { name: 'Exhale', durationMs: 6000, targetScale: MIN_BREATH_SCALE },
     ],
   },
@@ -130,7 +136,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
-      { name: 'Hold', durationMs: 15000, targetScale: MIN_BREATH_SCALE },
+      { name: 'Hold', durationMs: 15000, targetScale: MIN_BREATH_SCALE, resonantSoundId: 'hold-down-intonation' },
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
       { name: 'Exhale', durationMs: 4000, targetScale: MIN_BREATH_SCALE },
     ],

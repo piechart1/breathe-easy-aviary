@@ -23,6 +23,7 @@ import {
   MAX_BREATH_SCALE,
   PATTERN_ACCENT_COLORS,
   type BreathingPattern,
+  type BreathingPhase,
   type PhaseName,
 } from '@/constants/breathing-patterns';
 import { SystemFont, Spacing } from '@/constants/theme';
@@ -30,8 +31,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
+  DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  type SoundStyle,
   getButeykoHoldSeconds,
+  getSoundStyle,
   getTimerSettings,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
@@ -47,6 +51,28 @@ const BG_MAGPIE_SHIFT_LEFT = 10;
 const TICK_SOURCE = require('../../assets/sounds/tick.wav');
 const TICK_ACCENT_VOLUME = 1;
 const TICK_VOLUME = 0.15;
+
+// Resonant sound style: one spoken cue per phase instead of the metronome's
+// repeated ticks. Not offered for Tummo yet - its rapid-breath phases would
+// re-trigger "Breathe in relaxed" dozens of times per round. Keyed by id
+// rather than just phase name so a pattern with more than one phase of the
+// same name can use a different cue for each - e.g. Cyclic Sighing's short
+// second "top-off" inhale (see resonantSoundId in breathing-patterns.ts).
+const RESONANT_SOUND_SOURCES = {
+  inhale: require('../../assets/sounds/breathe-in-relaxed.m4a'),
+  'inhale-top-off': require('../../assets/sounds/in-relaxed.m4a'),
+  hold: require('../../assets/sounds/hold.m4a'),
+  'hold-down-intonation': require('../../assets/sounds/Hold-downintonation.m4a'),
+  exhale: require('../../assets/sounds/breathe-out-relaxed.m4a'),
+} as const;
+const RESONANT_CUE_VOLUME = 1;
+
+function resonantSoundIdForPhase(phase: BreathingPhase): keyof typeof RESONANT_SOUND_SOURCES {
+  if (phase.resonantSoundId && phase.resonantSoundId in RESONANT_SOUND_SOURCES) {
+    return phase.resonantSoundId as keyof typeof RESONANT_SOUND_SOURCES;
+  }
+  return phase.name.toLowerCase() as keyof typeof RESONANT_SOUND_SOURCES;
+}
 
 function formatElapsed(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -64,7 +90,7 @@ function getPatternTiming(pattern: BreathingPattern, buteykoHoldSeconds: number)
   return pattern.timing;
 }
 
-async function playTick(player: AudioPlayer, volume: number) {
+async function playSound(player: AudioPlayer, volume: number) {
   if (!player.isLoaded) {
     return;
   }
@@ -73,7 +99,7 @@ async function playTick(player: AudioPlayer, volume: number) {
     await player.seekTo(0);
     player.play();
   } catch (error) {
-    console.log('[audio tick] ERROR', error);
+    console.log('[audio] ERROR', error);
   }
 }
 
@@ -146,6 +172,27 @@ export function BreathingScreen() {
   const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
+  const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
+  const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
+  const resonantHoldPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.hold);
+  const resonantHoldDownIntonationPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['hold-down-intonation']);
+  const resonantExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.exhale);
+  const resonantPlayers = useMemo(
+    () => ({
+      inhale: resonantInhalePlayer,
+      'inhale-top-off': resonantInhaleTopOffPlayer,
+      hold: resonantHoldPlayer,
+      'hold-down-intonation': resonantHoldDownIntonationPlayer,
+      exhale: resonantExhalePlayer,
+    }),
+    [
+      resonantInhalePlayer,
+      resonantInhaleTopOffPlayer,
+      resonantHoldPlayer,
+      resonantHoldDownIntonationPlayer,
+      resonantExhalePlayer,
+    ],
+  );
 
   const [selectedPatternId, setSelectedPatternId] = useState(BREATHING_PATTERNS[0].id);
   const [isRunning, setIsRunning] = useState(false);
@@ -156,6 +203,7 @@ export function BreathingScreen() {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -195,6 +243,7 @@ export function BreathingScreen() {
         setTimerMinutes(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSeconds);
+      getSoundStyle().then(setSoundStyle);
     }, []),
   );
 
@@ -218,12 +267,23 @@ export function BreathingScreen() {
           if (!isRunningRef.current) {
             return;
           }
-          playTick(tickPlayer, i === 0 ? TICK_ACCENT_VOLUME : TICK_VOLUME);
+          playSound(tickPlayer, i === 0 ? TICK_ACCENT_VOLUME : TICK_VOLUME);
         }, i * tickIntervalMs);
         tickTimeoutsRef.current.push(timeoutId);
       }
     },
     [clearScheduledTicks, tickPlayer],
+  );
+
+  // Resonant style: a single spoken cue at the start of the phase instead of
+  // the metronome's repeated ticks. Stop any cue still playing from the
+  // previous phase first, in case a recording runs longer than its phase.
+  const playResonantCue = useCallback(
+    (phase: BreathingPhase) => {
+      Object.values(resonantPlayers).forEach((player) => player.pause());
+      playSound(resonantPlayers[resonantSoundIdForPhase(phase)], RESONANT_CUE_VOLUME);
+    },
+    [resonantPlayers],
   );
 
   const stopBreathing = useCallback(() => {
@@ -239,6 +299,7 @@ export function BreathingScreen() {
       phaseTimeoutRef.current = null;
     }
     tickPlayer.pause();
+    Object.values(resonantPlayers).forEach((player) => player.pause());
     if (elapsedIntervalRef.current) {
       clearInterval(elapsedIntervalRef.current);
       elapsedIntervalRef.current = null;
@@ -252,7 +313,7 @@ export function BreathingScreen() {
       }
       return 0;
     });
-  }, [scaleAnim, clearScheduledTicks, tickPlayer, selectedPatternId]);
+  }, [scaleAnim, clearScheduledTicks, tickPlayer, resonantPlayers, selectedPatternId]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -272,7 +333,12 @@ export function BreathingScreen() {
         Haptics.selectionAsync();
       }
 
-      scheduleTicksForPhase(phase.durationMs);
+      if (soundStyle === 'resonant' && pattern.id !== 'tummo') {
+        clearScheduledTicks();
+        playResonantCue(phase);
+      } else {
+        scheduleTicksForPhase(phase.durationMs);
+      }
 
       // The visual animation is fire-and-forget here - phase advancement is
       // timed by the setTimeout below instead of this animation's own
@@ -305,7 +371,7 @@ export function BreathingScreen() {
         runPhase(pattern, nextIndex);
       }, phase.durationMs);
     },
-    [scaleAnim, scheduleTicksForPhase],
+    [scaleAnim, scheduleTicksForPhase, clearScheduledTicks, playResonantCue, soundStyle],
   );
 
   const startBreathing = useCallback(() => {

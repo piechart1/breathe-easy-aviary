@@ -11,19 +11,23 @@ import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
+  DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
   type ReminderSettings,
+  type SoundStyle,
   getAnalyticsEnabled,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
+  getSoundStyle,
   getTimerSettings,
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setDailyNudgeSettings as persistDailyNudgeSettings,
+  setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
   setWindDownSettings as persistWindDownSettings,
@@ -43,11 +47,9 @@ const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
   (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
 );
 
-type SoundStyle = 'metronome' | 'resonant';
-
 const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'metronome', label: 'Metronome' },
-  { id: 'resonant', label: 'Resonant' },
+  { id: 'resonant', label: 'Voice' },
 ];
 
 function reminderToDate(reminder: ReminderSettings): Date {
@@ -62,7 +64,7 @@ export function SettingsScreen() {
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
-  const [soundStyle, setSoundStyle] = useState<SoundStyle>('metronome');
+  const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
   const [windDown, setWindDown] = useState<ReminderSettings>({ enabled: false, hour: 21, minute: 0 });
@@ -74,6 +76,7 @@ export function SettingsScreen() {
         setTimerMinutesState(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
+      getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
       getWindDownSettings().then(setWindDown);
@@ -93,6 +96,11 @@ export function SettingsScreen() {
   const handleButeykoHoldChange = (seconds: number) => {
     setButeykoHoldSecondsState(seconds);
     persistButeykoHoldSeconds(seconds);
+  };
+
+  const handleSelectSoundStyle = (style: SoundStyle) => {
+    setSoundStyleState(style);
+    persistSoundStyle(style);
   };
 
   const handleToggleAnalytics = (enabled: boolean) => {
@@ -177,6 +185,37 @@ export function SettingsScreen() {
         </ThemedText>
 
         <View style={styles.section}>
+          <ThemedText type="smallBold" style={styles.sectionLabel}>
+            Audio selection
+          </ThemedText>
+
+          <View style={styles.segmentedControl}>
+            {SOUND_STYLE_OPTIONS.map((option) => {
+              const isSelected = option.id === soundStyle;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => handleSelectSoundStyle(option.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Choose the audio cue style played during breathing exercises.
+          </ThemedText>
+        </View>
+
+        <View style={styles.section}>
           <View style={styles.toggleRow}>
             <ThemedText type="smallBold" style={styles.sectionLabel}>
               Default Timer Duration
@@ -239,37 +278,6 @@ export function SettingsScreen() {
               </Picker>
             </Host>
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={styles.sectionLabel}>
-            Breath Cue Sound
-          </ThemedText>
-
-          <View style={styles.segmentedControl}>
-            {SOUND_STYLE_OPTIONS.map((option) => {
-              const isSelected = option.id === soundStyle;
-              return (
-                <Pressable
-                  key={option.id}
-                  onPress={() => setSoundStyle(option.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ selected: isSelected }}
-                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
-                  <ThemedText
-                    type="smallBold"
-                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
-                    {option.label}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <ThemedText type="small" style={styles.sectionHint}>
-            Choose the audio cue style played during breathing exercises.
-          </ThemedText>
         </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
