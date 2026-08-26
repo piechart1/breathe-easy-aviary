@@ -264,13 +264,15 @@ export function SettingsScreen() {
           </View>
 
           {dailyNudge.enabled && (
-            <DateTimePicker
-              value={reminderToDate(dailyNudge)}
-              mode="time"
-              display="compact"
-              onValueChange={handleDailyNudgeTimeChange}
-              style={styles.timePicker}
-            />
+            <View style={styles.timePickerRow}>
+              <DateTimePicker
+                value={reminderToDate(dailyNudge)}
+                mode="time"
+                display="compact"
+                onValueChange={handleDailyNudgeTimeChange}
+                style={styles.timePicker}
+              />
+            </View>
           )}
 
           <View style={styles.divider} />
@@ -292,13 +294,15 @@ export function SettingsScreen() {
           </View>
 
           {windDown.enabled && (
-            <DateTimePicker
-              value={reminderToDate(windDown)}
-              mode="time"
-              display="compact"
-              onValueChange={handleWindDownTimeChange}
-              style={styles.timePicker}
-            />
+            <View style={styles.timePickerRow}>
+              <DateTimePicker
+                value={reminderToDate(windDown)}
+                mode="time"
+                display="compact"
+                onValueChange={handleWindDownTimeChange}
+                style={styles.timePicker}
+              />
+            </View>
           )}
         </View>
         </ScrollView>
@@ -379,9 +383,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexShrink: 1,
       gap: Spacing.half,
     },
+    timePickerRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: Spacing.one,
+    },
     timePicker: {
-      width: '100%',
-      marginTop: Spacing.two,
+      width: 100,
     },
     divider: {
       height: StyleSheet.hairlineWidth,

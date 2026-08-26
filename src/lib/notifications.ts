@@ -40,7 +40,7 @@ export async function scheduleDailyNudge(hour: number, minute: number): Promise<
     hour,
     minute,
     'Time to breathe',
-    'One prompt to fit a session into your day.',
+    "It's another day, make it a great one.",
   );
 }
 
@@ -49,7 +49,7 @@ export async function cancelDailyNudge(): Promise<void> {
 }
 
 export async function scheduleWindDown(hour: number, minute: number): Promise<boolean> {
-  return scheduleDaily(WIND_DOWN_ID, hour, minute, 'Wind down', 'A gentle cue before bed.');
+  return scheduleDaily(WIND_DOWN_ID, hour, minute, 'Wind down', 'What are you grateful for today?');
 }
 
 export async function cancelWindDown(): Promise<void> {
