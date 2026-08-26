@@ -54,6 +54,16 @@ function formatElapsed(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+// Buteyko's timing string has a literal "hold" placeholder since its hold
+// duration is user-configurable (Settings) rather than fixed like every
+// other pattern - swap in the actual duration wherever timing is shown.
+function getPatternTiming(pattern: BreathingPattern, buteykoHoldSeconds: number): string | undefined {
+  if (pattern.id === 'buteyko' && pattern.timing) {
+    return pattern.timing.replace('hold', `${buteykoHoldSeconds}`);
+  }
+  return pattern.timing;
+}
+
 async function playTick(player: AudioPlayer, volume: number) {
   if (!player.isLoaded) {
     return;
@@ -71,6 +81,7 @@ type Styles = ReturnType<typeof createStyles>;
 
 function PatternCard({
   pattern,
+  timing,
   isSelected,
   isRunning,
   accentColor,
@@ -80,6 +91,7 @@ function PatternCard({
   onShowInfo,
 }: {
   pattern: BreathingPattern;
+  timing?: string;
   isSelected: boolean;
   isRunning: boolean;
   accentColor: string;
@@ -93,7 +105,7 @@ function PatternCard({
       disabled={isRunning}
       onPress={onSelect}
       accessibilityRole="button"
-      accessibilityLabel={`${pattern.name}, ${pattern.timing ? `${pattern.timing}, ` : ''}${pattern.description}`}
+      accessibilityLabel={`${pattern.name}, ${timing ? `${timing}, ` : ''}${pattern.description}`}
       accessibilityState={{ selected: isSelected, disabled: isRunning }}
       style={({ pressed }) => [
         styles.patternCard,
@@ -118,7 +130,7 @@ function PatternCard({
         </Pressable>
       </View>
       <ThemedText type="small" style={styles.patternDescription}>
-        {pattern.timing ? `${pattern.timing} | ${pattern.description}` : pattern.description}
+        {timing ? `${timing} | ${pattern.description}` : pattern.description}
       </ThemedText>
     </Pressable>
   );
@@ -164,7 +176,8 @@ export function BreathingScreen() {
         }
       : selectedPattern;
 
-  const timingSegments = selectedPattern.timing ? selectedPattern.timing.split('-') : [];
+  const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds);
+  const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
   const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
 
@@ -392,7 +405,7 @@ export function BreathingScreen() {
               <ThemedText
                 type="small"
                 style={styles.patternTimingText}
-                accessibilityLabel={`Pattern: ${selectedPattern.timing}`}>
+                accessibilityLabel={`Pattern: ${selectedPatternTiming}`}>
                 {timingSegments.map((segment, index) => (
                   <Text key={index}>
                     <Text style={index === activeTimingSegmentIndex ? styles.patternTimingSegmentActive : undefined}>
@@ -413,6 +426,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
@@ -430,6 +444,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}

@@ -43,6 +43,13 @@ const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
   (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
 );
 
+type SoundStyle = 'metronome' | 'resonant';
+
+const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
+  { id: 'metronome', label: 'Metronome' },
+  { id: 'resonant', label: 'Resonant' },
+];
+
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
   date.setHours(reminder.hour, reminder.minute, 0, 0);
@@ -55,6 +62,7 @@ export function SettingsScreen() {
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [soundStyle, setSoundStyle] = useState<SoundStyle>('metronome');
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
   const [windDown, setWindDown] = useState<ReminderSettings>({ enabled: false, hour: 21, minute: 0 });
@@ -164,6 +172,10 @@ export function SettingsScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Breathwork
+        </ThemedText>
+
         <View style={styles.section}>
           <View style={styles.toggleRow}>
             <ThemedText type="smallBold" style={styles.sectionLabel}>
@@ -230,21 +242,39 @@ export function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <View style={styles.toggleRow}>
-            <ThemedText type="smallBold" style={styles.sectionLabel}>
-              Share Anonymous Usage &amp; Crash Data
-            </ThemedText>
-            <Switch
-              value={analyticsEnabled}
-              onValueChange={handleToggleAnalytics}
-              accessibilityLabel="Share anonymous usage and crash data"
-            />
+          <ThemedText type="smallBold" style={styles.sectionLabel}>
+            Breath Cue Sound
+          </ThemedText>
+
+          <View style={styles.segmentedControl}>
+            {SOUND_STYLE_OPTIONS.map((option) => {
+              const isSelected = option.id === soundStyle;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setSoundStyle(option.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
           </View>
 
           <ThemedText type="small" style={styles.sectionHint}>
-            Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
+            Choose the audio cue style played during breathing exercises.
           </ThemedText>
         </View>
+
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Reminders
+        </ThemedText>
 
         <View style={styles.section}>
           <View style={styles.toggleRow}>
@@ -305,6 +335,27 @@ export function SettingsScreen() {
             </View>
           )}
         </View>
+
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Data
+        </ThemedText>
+
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <ThemedText type="smallBold" style={styles.sectionLabel}>
+              Share Anonymous Usage &amp; Crash Data
+            </ThemedText>
+            <Switch
+              value={analyticsEnabled}
+              onValueChange={handleToggleAnalytics}
+              accessibilityLabel="Share anonymous usage and crash data"
+            />
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
+          </ThemedText>
+        </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -340,8 +391,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       ...SystemFont.medium,
       color: theme.text,
     },
-    section: {
+    subHeading: {
       marginTop: Spacing.five,
+      color: theme.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      fontSize: 12,
+    },
+    section: {
+      marginTop: Spacing.three,
       backgroundColor: theme.backgroundElement,
       borderRadius: 16,
       padding: Spacing.three,
@@ -354,6 +412,22 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     sectionHint: {
       color: theme.textSecondary,
+    },
+    segmentedControl: {
+      flexDirection: 'row',
+      backgroundColor: theme.backgroundSelected,
+      borderRadius: 10,
+      padding: 3,
+      gap: 3,
+    },
+    segment: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: Spacing.two,
+      borderRadius: 8,
+    },
+    segmentText: {
+      fontSize: 14,
     },
     toggleRow: {
       flexDirection: 'row',
