@@ -250,16 +250,16 @@ export function SettingsScreen() {
           <View style={styles.toggleRow}>
             <View style={styles.reminderLabel}>
               <ThemedText type="smallBold" style={styles.sectionLabel}>
-                Daily practice nudge
+                Daily practice
               </ThemedText>
               <ThemedText type="small" style={styles.sectionHint}>
-                One prompt to fit a session into your day
+                Fit a session into your day
               </ThemedText>
             </View>
             <Switch
               value={dailyNudge.enabled}
               onValueChange={handleToggleDailyNudge}
-              accessibilityLabel="Daily practice nudge"
+              accessibilityLabel="Daily practice"
             />
           </View>
 

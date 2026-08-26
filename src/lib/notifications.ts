@@ -40,7 +40,7 @@ export async function scheduleDailyNudge(hour: number, minute: number): Promise<
     hour,
     minute,
     'Time to breathe',
-    "It's another day, make it a great one.",
+    "It's a new day, make it a great one.",
   );
 }
 
