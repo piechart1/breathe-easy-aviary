@@ -56,8 +56,8 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
 const TUMMO_RAPID_BREATH_COUNT = 30;
 const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BREATH_COUNT }).flatMap(
   () => [
-    { name: 'Inhale' as const, durationMs: 750, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 0 },
-    { name: 'Exhale' as const, durationMs: 750, targetScale: MIN_BREATH_SCALE, timingSegmentIndex: 0 },
+    { name: 'Inhale' as const, durationMs: 1499, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 0 },
+    { name: 'Exhale' as const, durationMs: 1499, targetScale: MIN_BREATH_SCALE, timingSegmentIndex: 0 },
   ],
 );
 
