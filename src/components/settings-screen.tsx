@@ -23,6 +23,7 @@ import {
   getDailyNudgeSettings,
   getSoundStyle,
   getTimerSettings,
+  getTummoSkipToHold,
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
@@ -30,6 +31,7 @@ import {
   setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
+  setTummoSkipToHold as persistTummoSkipToHold,
   setWindDownSettings as persistWindDownSettings,
 } from '@/lib/settings';
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
@@ -48,9 +50,13 @@ const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
 );
 
 const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
-  { id: 'metronome', label: 'Metronome' },
   { id: 'resonant', label: 'Voice' },
+  { id: 'metronome', label: 'Metronome' },
 ];
+
+// Not yet wired to the actual Tummo pattern - see BreathingScreen.
+const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
+const DEFAULT_TUMMO_ROUNDS = 3;
 
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
@@ -64,6 +70,8 @@ export function SettingsScreen() {
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [tummoRounds, setTummoRounds] = useState<number>(DEFAULT_TUMMO_ROUNDS);
+  const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
@@ -76,6 +84,7 @@ export function SettingsScreen() {
         setTimerMinutesState(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
+      getTummoSkipToHold().then(setTummoSkipToHoldState);
       getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
@@ -96,6 +105,11 @@ export function SettingsScreen() {
   const handleButeykoHoldChange = (seconds: number) => {
     setButeykoHoldSecondsState(seconds);
     persistButeykoHoldSeconds(seconds);
+  };
+
+  const handleToggleTummoSkipToHold = (enabled: boolean) => {
+    setTummoSkipToHoldState(enabled);
+    persistTummoSkipToHold(enabled);
   };
 
   const handleSelectSoundStyle = (style: SoundStyle) => {
@@ -185,7 +199,7 @@ export function SettingsScreen() {
         </ThemedText>
 
         <View style={styles.section}>
-          <ThemedText type="smallBold" style={styles.sectionLabel}>
+          <ThemedText type="smallBold" style={styles.cardTitle}>
             Audio selection
           </ThemedText>
 
@@ -262,9 +276,13 @@ export function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Buteyko Breathing
+          </ThemedText>
+
           <View style={styles.toggleRow}>
-            <ThemedText type="smallBold" style={styles.sectionLabel}>
-              Buteyko Hold Duration
+            <ThemedText type="small" style={styles.sectionHint}>
+              Hold duration
             </ThemedText>
 
             <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
@@ -277,6 +295,59 @@ export function SettingsScreen() {
                 ))}
               </Picker>
             </Host>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Tummo Breathing
+          </ThemedText>
+
+          <View style={styles.minutesRow}>
+            {TUMMO_ROUND_OPTIONS.map((rounds) => {
+              const isSelected = rounds === tummoRounds;
+              return (
+                <Pressable
+                  key={rounds}
+                  onPress={() => setTummoRounds(rounds)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${rounds} round${rounds > 1 ? 's' : ''}`}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[
+                    styles.minutePill,
+                    { borderColor: isSelected ? theme.accent : theme.border },
+                    isSelected && { backgroundColor: theme.backgroundSelected },
+                  ]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {rounds}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Number of full rounds
+          </ThemedText>
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Skip to Hold
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                Go straight to the retention hold, skipping the 30 breaths
+              </ThemedText>
+            </View>
+            <Switch
+              value={tummoSkipToHold}
+              onValueChange={handleToggleTummoSkipToHold}
+              accessibilityLabel="Skip to Hold"
+            />
           </View>
         </View>
 
@@ -417,6 +488,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.text,
       flex: 1,
       flexShrink: 1,
+    },
+    // For a title standing alone as a card's only heading (not sharing a
+    // row with a Switch/control) - sectionLabel's flex:1 is only meant for
+    // that row context and can collapse to zero height on native without a
+    // sibling to size against.
+    cardTitle: {
+      color: theme.text,
     },
     sectionHint: {
       color: theme.textSecondary,

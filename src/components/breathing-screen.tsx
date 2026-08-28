@@ -22,6 +22,7 @@ import {
   MIN_BREATH_SCALE,
   MAX_BREATH_SCALE,
   PATTERN_ACCENT_COLORS,
+  TUMMO_RAPID_PHASE_COUNT,
   type BreathingPattern,
   type BreathingPhase,
   type PhaseName,
@@ -37,6 +38,7 @@ import {
   getButeykoHoldSeconds,
   getSoundStyle,
   getTimerSettings,
+  getTummoSkipToHold,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
 
@@ -272,6 +274,7 @@ export function BreathingScreen() {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [tummoSkipToHold, setTummoSkipToHold] = useState(false);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
 
   const selectedPattern =
@@ -279,10 +282,11 @@ export function BreathingScreen() {
   const guidedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'guided');
   const advancedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'advanced');
 
-  // Buteyko's Hold duration is user-configurable (Settings), unlike every
-  // other pattern's fixed phase durations - swap it in here rather than in
-  // the shared BREATHING_PATTERNS constant so runPhase/the timing-segment
-  // tracker below both see the current value without extra plumbing.
+  // Buteyko's Hold duration and Tummo's "skip to hold" are both
+  // user-configurable (Settings), unlike every other pattern's fixed phase
+  // list - swap them in here rather than in the shared BREATHING_PATTERNS
+  // constant so runPhase/the timing-segment tracker below both see the
+  // current value without extra plumbing.
   const activePattern =
     selectedPattern.id === 'buteyko'
       ? {
@@ -291,7 +295,9 @@ export function BreathingScreen() {
             phase.name === 'Hold' ? { ...phase, durationMs: buteykoHoldSeconds * 1000 } : phase,
           ),
         }
-      : selectedPattern;
+      : selectedPattern.id === 'tummo' && tummoSkipToHold
+        ? { ...selectedPattern, phases: selectedPattern.phases.slice(TUMMO_RAPID_PHASE_COUNT) }
+        : selectedPattern;
 
   const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds);
   const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
@@ -312,6 +318,7 @@ export function BreathingScreen() {
         setTimerMinutes(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSeconds);
+      getTummoSkipToHold().then(setTummoSkipToHold);
       getSoundStyle().then(setSoundStyle);
     }, []),
   );

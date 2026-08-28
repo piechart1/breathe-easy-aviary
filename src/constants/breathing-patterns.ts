@@ -124,6 +124,11 @@ const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BRE
   },
 );
 
+// Number of phases the 30 rapid breaths occupy at the start of Tummo's
+// phases array (Inhale+Exhale per breath) - lets the Home screen skip
+// straight to the retention hold when that Settings option is on.
+export const TUMMO_RAPID_PHASE_COUNT = tummoRapidBreaths.length;
+
 export const BREATHING_PATTERNS: BreathingPattern[] = [
   {
     id: 'box',

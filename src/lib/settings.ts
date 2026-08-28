@@ -5,6 +5,7 @@ const TIMER_MINUTES_KEY = 'breathe-easy:timer-minutes';
 const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
 const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
+const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 
@@ -63,15 +64,27 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
 }
 
 export type SoundStyle = 'metronome' | 'resonant';
-export const DEFAULT_SOUND_STYLE: SoundStyle = 'metronome';
+export const DEFAULT_SOUND_STYLE: SoundStyle = 'resonant';
 
 export async function getSoundStyle(): Promise<SoundStyle> {
   const raw = await AsyncStorage.getItem(SOUND_STYLE_KEY);
-  return raw === 'resonant' ? 'resonant' : DEFAULT_SOUND_STYLE;
+  if (raw === 'metronome' || raw === 'resonant') {
+    return raw;
+  }
+  return DEFAULT_SOUND_STYLE;
 }
 
 export async function setSoundStyle(style: SoundStyle): Promise<void> {
   await AsyncStorage.setItem(SOUND_STYLE_KEY, style);
+}
+
+export async function getTummoSkipToHold(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(TUMMO_SKIP_TO_HOLD_KEY);
+  return raw === 'true';
+}
+
+export async function setTummoSkipToHold(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(TUMMO_SKIP_TO_HOLD_KEY, String(enabled));
 }
 
 export type ReminderSettings = { enabled: boolean; hour: number; minute: number };
