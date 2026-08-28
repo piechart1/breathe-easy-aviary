@@ -83,6 +83,12 @@ const RESONANT_SOUND_SOURCES = {
   'relax-your-shoulders': require('../../assets/sounds/relax-your-shoulders-00.m4a'),
   'relax-your-body': require('../../assets/sounds/relax-your-body-00.m4a'),
   'be-aware-of-the-energy-in-your-body': require('../../assets/sounds/be-aware-of-the-energy-in-your-body-00.m4a'),
+  'minute-1': require('../../assets/sounds/1-minute.m4a'),
+  'minute-2': require('../../assets/sounds/2-minutes.m4a'),
+  'minute-3': require('../../assets/sounds/3-minutes.m4a'),
+  'minute-4': require('../../assets/sounds/4-minutes.m4a'),
+  'take-a-deep-breath-in-and-hold': require('../../assets/sounds/Take-a-deep-breath-in-and-hold-00.m4a'),
+  '5-4-3-2-1-let-go': require('../../assets/sounds/5-4-3-2-1-let-go.m4a'),
 } as const;
 const RESONANT_CUE_VOLUME = 1;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
@@ -93,20 +99,27 @@ const RESONANT_CUE_VOLUME_OVERRIDES: Partial<Record<keyof typeof RESONANT_SOUND_
   'tummo-exhale': 0.05,
 };
 
-function resonantSoundIdForPhase(phase: BreathingPhase): keyof typeof RESONANT_SOUND_SOURCES {
+// null return means the phase explicitly opted out of a start-of-phase cue
+// (resonantSoundId: null) - distinct from it being omitted, which falls
+// back to the phase's name.
+function resonantSoundIdForPhase(phase: BreathingPhase): keyof typeof RESONANT_SOUND_SOURCES | null {
+  if (phase.resonantSoundId === null) {
+    return null;
+  }
   if (phase.resonantSoundId && phase.resonantSoundId in RESONANT_SOUND_SOURCES) {
     return phase.resonantSoundId as keyof typeof RESONANT_SOUND_SOURCES;
   }
   return phase.name.toLowerCase() as keyof typeof RESONANT_SOUND_SOURCES;
 }
 
-// The primary cue plus any resonantOverlaySoundIds, all played concurrently
-// on their own player instances - see playResonantCue below.
+// The primary cue (if any) plus any resonantOverlaySoundIds, all played
+// concurrently on their own player instances - see playResonantCue below.
 function resonantSoundIdsForPhase(phase: BreathingPhase): (keyof typeof RESONANT_SOUND_SOURCES)[] {
+  const primaryId = resonantSoundIdForPhase(phase);
   const overlayIds = (phase.resonantOverlaySoundIds ?? []).filter(
     (id): id is keyof typeof RESONANT_SOUND_SOURCES => id in RESONANT_SOUND_SOURCES,
   );
-  return [resonantSoundIdForPhase(phase), ...overlayIds];
+  return primaryId ? [primaryId, ...overlayIds] : overlayIds;
 }
 
 function formatElapsed(totalSeconds: number) {
@@ -147,6 +160,24 @@ const TUMMO_HOLD_CUE_START_MS = 2000;
 const TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS = 14000;
 const TUMMO_HOLD_CUE_CYCLE_RESTART_GAP_MS = 18000;
 
+// Fixed minute-mark callouts, layered on top of the reassurance cycle above:
+// a bell chime exactly on each round minute, then the spoken minute count a
+// second later. No 5-minute spoken callout - it would sit at
+// MAX_TUMMO_HOLD_SECONDS exactly, past which the practitioner can't hold
+// anyway. The 300s bell chime has the same edge case (only reachable if the
+// max were ever raised) but is kept for consistency with the other four.
+const TUMMO_HOLD_FIXED_CUES: { atMs: number; soundId: string }[] = [
+  { atMs: 60000, soundId: 'delicate-bells' },
+  { atMs: 61000, soundId: 'minute-1' },
+  { atMs: 120000, soundId: 'delicate-bells' },
+  { atMs: 121000, soundId: 'minute-2' },
+  { atMs: 180000, soundId: 'delicate-bells' },
+  { atMs: 181000, soundId: 'minute-3' },
+  { atMs: 240000, soundId: 'delicate-bells' },
+  { atMs: 241000, soundId: 'minute-4' },
+  { atMs: 300000, soundId: 'delicate-bells' },
+];
+
 function tummoHoldDelayedCues(durationMs: number): { atMs: number; soundId: string }[] {
   const cues: { atMs: number; soundId: string }[] = [];
   const cycleLength = TUMMO_HOLD_CUE_CYCLE.length;
@@ -162,6 +193,13 @@ function tummoHoldDelayedCues(durationMs: number): { atMs: number; soundId: stri
       cues.push({ atMs, soundId: TUMMO_HOLD_CUE_CYCLE[i] });
     }
   }
+
+  for (const fixedCue of TUMMO_HOLD_FIXED_CUES) {
+    if (fixedCue.atMs < durationMs) {
+      cues.push(fixedCue);
+    }
+  }
+
   return cues;
 }
 
@@ -280,6 +318,12 @@ export function BreathingScreen() {
   const resonantBeAwareOfEnergyPlayer = useAudioPlayer(
     RESONANT_SOUND_SOURCES['be-aware-of-the-energy-in-your-body'],
   );
+  const resonantMinute1Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-1']);
+  const resonantMinute2Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-2']);
+  const resonantMinute3Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-3']);
+  const resonantMinute4Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-4']);
+  const resonantTakeADeepBreathPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['take-a-deep-breath-in-and-hold']);
+  const resonantLetGoCountdownPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['5-4-3-2-1-let-go']);
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -299,6 +343,12 @@ export function BreathingScreen() {
       'relax-your-shoulders': resonantRelaxYourShouldersCuePlayer,
       'relax-your-body': resonantRelaxYourBodyCuePlayer,
       'be-aware-of-the-energy-in-your-body': resonantBeAwareOfEnergyPlayer,
+      'minute-1': resonantMinute1Player,
+      'minute-2': resonantMinute2Player,
+      'minute-3': resonantMinute3Player,
+      'minute-4': resonantMinute4Player,
+      'take-a-deep-breath-in-and-hold': resonantTakeADeepBreathPlayer,
+      '5-4-3-2-1-let-go': resonantLetGoCountdownPlayer,
     }),
     [
       resonantInhalePlayer,
@@ -318,6 +368,12 @@ export function BreathingScreen() {
       resonantRelaxYourShouldersCuePlayer,
       resonantRelaxYourBodyCuePlayer,
       resonantBeAwareOfEnergyPlayer,
+      resonantMinute1Player,
+      resonantMinute2Player,
+      resonantMinute3Player,
+      resonantMinute4Player,
+      resonantTakeADeepBreathPlayer,
+      resonantLetGoCountdownPlayer,
     ],
   );
 
@@ -511,11 +567,12 @@ export function BreathingScreen() {
         Haptics.selectionAsync();
       }
 
-      // Tummo's later phases (retention hold, recovery breath) don't have a
-      // resonant cue set up yet, so only its phases with an explicit
-      // resonantSoundId (currently just the 30 rapid breaths) opt in -
-      // everything else on Tummo stays on the metronome regardless of style.
-      const supportsResonant = pattern.id !== 'tummo' || phase.resonantSoundId != null;
+      // Only Tummo phases explicitly configured with a resonant cue - a
+      // resonantSoundId, or (for the final hold's countdown) just a
+      // resonantDelayedCues entry - opt into Voice; everything else on
+      // Tummo stays on the metronome regardless of style.
+      const supportsResonant =
+        pattern.id !== 'tummo' || phase.resonantSoundId != null || (phase.resonantDelayedCues?.length ?? 0) > 0;
       if (soundStyle === 'resonant' && supportsResonant) {
         clearScheduledTicks();
         playResonantCue(phase);

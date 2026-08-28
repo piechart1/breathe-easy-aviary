@@ -24,8 +24,11 @@ export type BreathingPhase = {
   // for patterns with more than one phase of the same name that need
   // different cues (e.g. Cyclic Sighing's short second "top-off" inhale).
   // Keyed into RESONANT_SOUND_SOURCES in breathing-screen.tsx; defaults to
-  // the phase's name (lowercased) when omitted.
-  resonantSoundId?: string;
+  // the phase's name (lowercased) when omitted. Set explicitly to null to
+  // suppress that name-based default entirely - e.g. Tummo's final hold,
+  // which only wants its resonantDelayedCues countdown, not the generic
+  // "hold" cue at the start.
+  resonantSoundId?: string | null;
   // Additional voice-style cues layered concurrently on top of the main
   // resonantSoundId cue for this phase, rather than replacing it - e.g.
   // Tummo's first two breaths pairing their quiet tummo-inhale/tummo-exhale
@@ -230,8 +233,24 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
         // hold's actual (user-configurable) duration - see
         // tummoHoldDelayedCues/TUMMO_HOLD_CUE_CYCLE.
       },
-      { name: 'Inhale', durationMs: 1000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
-      { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 3 },
+      {
+        name: 'Inhale',
+        durationMs: 1000,
+        targetScale: MAX_BREATH_SCALE,
+        timingSegmentIndex: 2,
+        resonantSoundId: 'take-a-deep-breath-in-and-hold',
+      },
+      {
+        name: 'Hold',
+        durationMs: 15000,
+        targetScale: MAX_BREATH_SCALE,
+        timingSegmentIndex: 3,
+        // No cue at the start - only the countdown below.
+        resonantSoundId: null,
+        // 5-4-3-2-1-let-go.m4a is ~5.18s - starting it at 8820ms means it
+        // finishes right around the 14s mark, just before the hold ends.
+        resonantDelayedCues: [{ atMs: 8820, soundId: '5-4-3-2-1-let-go' }],
+      },
     ],
   },
 ];
