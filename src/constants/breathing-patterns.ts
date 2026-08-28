@@ -198,7 +198,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     id: 'buteyko',
     name: 'Buteyko Breathing',
     timing: '4-4-hold-4-4',
-    description: 'Inhale, exhale, long hold, inhale, exhale.',
+    description: 'Inhale, exhale, hold, inhale, exhale',
     info: 'A gentle, restrained technique built around light nasal breathing and a brief pause with empty lungs after each exhale. Developed to reduce chronic over-breathing, it\'s used to ease anxiety and breathlessness by gradually building tolerance to carbon dioxide. Breathe lightly throughout, the aim is to train your body to feel a mild air hunger during these exercises.\n\n1. After a relaxed inhale and exhale, hold your breath.\n2. Retain your breath for as long as comfortably possible.\n3. Once you\'ve reached the point of moderate discomfort, inhale.\n4. Resume normal breathing.\n5. Repeat several times.\n\nYou can update the default hold duration from the Settings page.',
     category: 'advanced',
     phases: [
@@ -212,8 +212,8 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
   {
     id: 'tummo',
     name: 'Tummo Breathing',
-    timing: '30 breaths-hold(exhaled)-3-15',
-    description: 'Rapid deep breaths, long hold, inhale, hold. Repeat 3 times',
+    timing: '30 breaths-hold-1-15',
+    description: 'Deep breaths, hold, inhale, hold',
     info: 'Three rounds of 30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.',
     category: 'advanced',
     phases: [
@@ -227,7 +227,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
         resonantOverlaySoundIds: ['breath-hold-from-now-on'],
         resonantDelayedCues: [{ atMs: 2000, soundId: 'relax-your-body-slow-your-heartbeat' }],
       },
-      { name: 'Inhale', durationMs: 3000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
+      { name: 'Inhale', durationMs: 1000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
       { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 3 },
     ],
   },

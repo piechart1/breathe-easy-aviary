@@ -34,10 +34,12 @@ import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  DEFAULT_TUMMO_HOLD_SECONDS,
   type SoundStyle,
   getButeykoHoldSeconds,
   getSoundStyle,
   getTimerSettings,
+  getTummoHoldSeconds,
   getTummoSkipToHold,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
@@ -113,9 +115,16 @@ function formatElapsed(totalSeconds: number) {
 // Buteyko's timing string has a literal "hold" placeholder since its hold
 // duration is user-configurable (Settings) rather than fixed like every
 // other pattern - swap in the actual duration wherever timing is shown.
-function getPatternTiming(pattern: BreathingPattern, buteykoHoldSeconds: number): string | undefined {
+function getPatternTiming(
+  pattern: BreathingPattern,
+  buteykoHoldSeconds: number,
+  tummoHoldSeconds: number,
+): string | undefined {
   if (pattern.id === 'buteyko' && pattern.timing) {
     return pattern.timing.replace('hold', `${buteykoHoldSeconds}`);
+  }
+  if (pattern.id === 'tummo' && pattern.timing) {
+    return pattern.timing.replace('hold', `${tummoHoldSeconds}`);
   }
   return pattern.timing;
 }
@@ -275,6 +284,7 @@ export function BreathingScreen() {
   const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHold] = useState(false);
+  const [tummoHoldSeconds, setTummoHoldSeconds] = useState(DEFAULT_TUMMO_HOLD_SECONDS);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
 
   const selectedPattern =
@@ -282,11 +292,13 @@ export function BreathingScreen() {
   const guidedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'guided');
   const advancedPatterns = BREATHING_PATTERNS.filter((pattern) => pattern.category === 'advanced');
 
-  // Buteyko's Hold duration and Tummo's "skip to hold" are both
-  // user-configurable (Settings), unlike every other pattern's fixed phase
-  // list - swap them in here rather than in the shared BREATHING_PATTERNS
-  // constant so runPhase/the timing-segment tracker below both see the
-  // current value without extra plumbing.
+  // Buteyko's Hold duration and Tummo's retention-hold duration/"skip to
+  // hold" are all user-configurable (Settings), unlike every other
+  // pattern's fixed phase list - swap them in here rather than in the
+  // shared BREATHING_PATTERNS constant so runPhase/the timing-segment
+  // tracker below both see the current value without extra plumbing. The
+  // retention hold is identified by timingSegmentIndex 1 rather than by
+  // name, since Tummo has a second, unrelated Hold phase at the end.
   const activePattern =
     selectedPattern.id === 'buteyko'
       ? {
@@ -295,11 +307,19 @@ export function BreathingScreen() {
             phase.name === 'Hold' ? { ...phase, durationMs: buteykoHoldSeconds * 1000 } : phase,
           ),
         }
-      : selectedPattern.id === 'tummo' && tummoSkipToHold
-        ? { ...selectedPattern, phases: selectedPattern.phases.slice(TUMMO_RAPID_PHASE_COUNT) }
+      : selectedPattern.id === 'tummo'
+        ? {
+            ...selectedPattern,
+            phases: (tummoSkipToHold
+              ? selectedPattern.phases.slice(TUMMO_RAPID_PHASE_COUNT)
+              : selectedPattern.phases
+            ).map((phase) =>
+              phase.timingSegmentIndex === 1 ? { ...phase, durationMs: tummoHoldSeconds * 1000 } : phase,
+            ),
+          }
         : selectedPattern;
 
-  const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds);
+  const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds, tummoHoldSeconds);
   const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
   const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
@@ -319,6 +339,7 @@ export function BreathingScreen() {
       });
       getButeykoHoldSeconds().then(setButeykoHoldSeconds);
       getTummoSkipToHold().then(setTummoSkipToHold);
+      getTummoHoldSeconds().then(setTummoHoldSeconds);
       getSoundStyle().then(setSoundStyle);
     }, []),
   );
@@ -606,7 +627,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                timing={getPatternTiming(pattern, buteykoHoldSeconds)}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
@@ -624,7 +645,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                timing={getPatternTiming(pattern, buteykoHoldSeconds)}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}

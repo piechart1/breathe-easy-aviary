@@ -6,6 +6,7 @@ const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
 const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
 const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
+const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 
@@ -85,6 +86,24 @@ export async function getTummoSkipToHold(): Promise<boolean> {
 
 export async function setTummoSkipToHold(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(TUMMO_SKIP_TO_HOLD_KEY, String(enabled));
+}
+
+export const DEFAULT_TUMMO_HOLD_SECONDS = 60;
+export const MIN_TUMMO_HOLD_SECONDS = 1;
+export const MAX_TUMMO_HOLD_SECONDS = 300;
+
+export async function getTummoHoldSeconds(): Promise<number> {
+  const raw = await AsyncStorage.getItem(TUMMO_HOLD_SECONDS_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_TUMMO_HOLD_SECONDS;
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_TUMMO_HOLD_SECONDS;
+  }
+  return Math.min(MAX_TUMMO_HOLD_SECONDS, Math.max(MIN_TUMMO_HOLD_SECONDS, Math.round(parsed)));
+}
+
+export async function setTummoHoldSeconds(seconds: number): Promise<void> {
+  const clamped = Math.min(MAX_TUMMO_HOLD_SECONDS, Math.max(MIN_TUMMO_HOLD_SECONDS, Math.round(seconds)));
+  await AsyncStorage.setItem(TUMMO_HOLD_SECONDS_KEY, String(clamped));
 }
 
 export type ReminderSettings = { enabled: boolean; hour: number; minute: number };

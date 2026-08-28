@@ -13,6 +13,7 @@ import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  DEFAULT_TUMMO_HOLD_SECONDS,
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
@@ -23,6 +24,7 @@ import {
   getDailyNudgeSettings,
   getSoundStyle,
   getTimerSettings,
+  getTummoHoldSeconds,
   getTummoSkipToHold,
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
@@ -31,6 +33,7 @@ import {
   setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
+  setTummoHoldSeconds as persistTummoHoldSeconds,
   setTummoSkipToHold as persistTummoSkipToHold,
   setWindDownSettings as persistWindDownSettings,
 } from '@/lib/settings';
@@ -71,6 +74,7 @@ export function SettingsScreen() {
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoRounds, setTummoRounds] = useState<number>(DEFAULT_TUMMO_ROUNDS);
+  const [tummoHoldSeconds, setTummoHoldSecondsState] = useState<number>(DEFAULT_TUMMO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
@@ -85,6 +89,7 @@ export function SettingsScreen() {
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
       getTummoSkipToHold().then(setTummoSkipToHoldState);
+      getTummoHoldSeconds().then(setTummoHoldSecondsState);
       getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
@@ -110,6 +115,11 @@ export function SettingsScreen() {
   const handleToggleTummoSkipToHold = (enabled: boolean) => {
     setTummoSkipToHoldState(enabled);
     persistTummoSkipToHold(enabled);
+  };
+
+  const handleTummoHoldSecondsChange = (seconds: number) => {
+    setTummoHoldSecondsState(seconds);
+    persistTummoHoldSeconds(seconds);
   };
 
   const handleSelectSoundStyle = (style: SoundStyle) => {
@@ -331,6 +341,22 @@ export function SettingsScreen() {
           <ThemedText type="small" style={styles.sectionHint}>
             Number of full rounds
           </ThemedText>
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <ThemedText type="small" style={styles.sectionHint}>
+              Main hold duration
+            </ThemedText>
+
+            <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
+              <Picker selectedValue={tummoHoldSeconds} onValueChange={handleTummoHoldSecondsChange} appearance="menu">
+                {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
+                  <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
+                ))}
+              </Picker>
+            </Host>
+          </View>
 
           <View style={styles.divider} />
 
