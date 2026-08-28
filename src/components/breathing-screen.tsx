@@ -53,19 +53,31 @@ const TICK_ACCENT_VOLUME = 1;
 const TICK_VOLUME = 0.15;
 
 // Resonant sound style: one spoken cue per phase instead of the metronome's
-// repeated ticks. Not offered for Tummo yet - its rapid-breath phases would
-// re-trigger "Breathe in relaxed" dozens of times per round. Keyed by id
-// rather than just phase name so a pattern with more than one phase of the
-// same name can use a different cue for each - e.g. Cyclic Sighing's short
-// second "top-off" inhale (see resonantSoundId in breathing-patterns.ts).
+// repeated ticks. Most of Tummo's phases don't have a resonant cue set up
+// yet - its rapid-breath phases would re-trigger the same cue dozens of
+// times per round, so they use their own dedicated, shorter tummo-inhale/
+// tummo-exhale cues instead of the regular inhale/exhale ones (see the
+// pattern.id === 'tummo' check in runPhase below). Keyed by id rather than
+// just phase name so a pattern with more than one phase of the same name
+// can use a different cue for each - e.g. Cyclic Sighing's short second
+// "top-off" inhale (see resonantSoundId in breathing-patterns.ts).
 const RESONANT_SOUND_SOURCES = {
   inhale: require('../../assets/sounds/breathe-in-relaxed.m4a'),
   'inhale-top-off': require('../../assets/sounds/in-relaxed.m4a'),
   hold: require('../../assets/sounds/hold.m4a'),
   'hold-down-intonation': require('../../assets/sounds/Hold-downintonation.m4a'),
   exhale: require('../../assets/sounds/breathe-out-relaxed.m4a'),
+  'tummo-inhale': require('../../assets/sounds/audible-in-new.m4a'),
+  'tummo-exhale': require('../../assets/sounds/audio-out-4.m4a'),
 } as const;
 const RESONANT_CUE_VOLUME = 1;
+// Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
+// run quieter than the rest of the resonant cues, which only play once per
+// (much longer) phase.
+const RESONANT_CUE_VOLUME_OVERRIDES: Partial<Record<keyof typeof RESONANT_SOUND_SOURCES, number>> = {
+  'tummo-inhale': 0.05,
+  'tummo-exhale': 0.05,
+};
 
 function resonantSoundIdForPhase(phase: BreathingPhase): keyof typeof RESONANT_SOUND_SOURCES {
   if (phase.resonantSoundId && phase.resonantSoundId in RESONANT_SOUND_SOURCES) {
@@ -90,13 +102,24 @@ function getPatternTiming(pattern: BreathingPattern, buteykoHoldSeconds: number)
   return pattern.timing;
 }
 
+// Guards against a slow-resolving seekTo() from an older play request
+// finishing after a newer request for the same player has already started -
+// without this, the stale call's play() can fire after (and stomp on) the
+// newer one, which is audible as a cut-off or dropped cue.
+const playRequestGeneration = new WeakMap<AudioPlayer, number>();
+
 async function playSound(player: AudioPlayer, volume: number) {
   if (!player.isLoaded) {
     return;
   }
+  const generation = (playRequestGeneration.get(player) ?? 0) + 1;
+  playRequestGeneration.set(player, generation);
   try {
     player.volume = volume;
     await player.seekTo(0);
+    if (playRequestGeneration.get(player) !== generation) {
+      return;
+    }
     player.play();
   } catch (error) {
     console.log('[audio] ERROR', error);
@@ -177,6 +200,8 @@ export function BreathingScreen() {
   const resonantHoldPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.hold);
   const resonantHoldDownIntonationPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['hold-down-intonation']);
   const resonantExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.exhale);
+  const resonantTummoInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-inhale']);
+  const resonantTummoExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-exhale']);
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -184,6 +209,8 @@ export function BreathingScreen() {
       hold: resonantHoldPlayer,
       'hold-down-intonation': resonantHoldDownIntonationPlayer,
       exhale: resonantExhalePlayer,
+      'tummo-inhale': resonantTummoInhalePlayer,
+      'tummo-exhale': resonantTummoExhalePlayer,
     }),
     [
       resonantInhalePlayer,
@@ -191,6 +218,8 @@ export function BreathingScreen() {
       resonantHoldPlayer,
       resonantHoldDownIntonationPlayer,
       resonantExhalePlayer,
+      resonantTummoInhalePlayer,
+      resonantTummoExhalePlayer,
     ],
   );
 
@@ -276,12 +305,16 @@ export function BreathingScreen() {
   );
 
   // Resonant style: a single spoken cue at the start of the phase instead of
-  // the metronome's repeated ticks. Stop any cue still playing from the
-  // previous phase first, in case a recording runs longer than its phase.
+  // the metronome's repeated ticks. Only this phase's own cue player is
+  // touched - a still-playing cue from the previous phase (e.g. Tummo's
+  // inhale running slightly long) is left alone and allowed to overlap with
+  // the next one, rather than being cut off by it. seekTo(0)+play() in
+  // playSound is enough to restart this cue cleanly on its own, so there's
+  // no separate pause() call here to race against it.
   const playResonantCue = useCallback(
     (phase: BreathingPhase) => {
-      Object.values(resonantPlayers).forEach((player) => player.pause());
-      playSound(resonantPlayers[resonantSoundIdForPhase(phase)], RESONANT_CUE_VOLUME);
+      const soundId = resonantSoundIdForPhase(phase);
+      playSound(resonantPlayers[soundId], RESONANT_CUE_VOLUME_OVERRIDES[soundId] ?? RESONANT_CUE_VOLUME);
     },
     [resonantPlayers],
   );
@@ -333,7 +366,12 @@ export function BreathingScreen() {
         Haptics.selectionAsync();
       }
 
-      if (soundStyle === 'resonant' && pattern.id !== 'tummo') {
+      // Tummo's later phases (retention hold, recovery breath) don't have a
+      // resonant cue set up yet, so only its phases with an explicit
+      // resonantSoundId (currently just the 30 rapid breaths) opt in -
+      // everything else on Tummo stays on the metronome regardless of style.
+      const supportsResonant = pattern.id !== 'tummo' || phase.resonantSoundId != null;
+      if (soundStyle === 'resonant' && supportsResonant) {
         clearScheduledTicks();
         playResonantCue(phase);
       } else {
