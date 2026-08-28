@@ -73,6 +73,9 @@ const RESONANT_SOUND_SOURCES = {
   'last-one': require('../../assets/sounds/Last-One.m4a'),
   'five-more': require('../../assets/sounds/5-more.m4a'),
   'keep-it-going': require('../../assets/sounds/Keep-it-going.m4a'),
+  'delicate-bells': require('../../assets/sounds/delicate-bells.m4a'),
+  'breath-hold-from-now-on': require('../../assets/sounds/breath-hold-from-now-on.m4a'),
+  'relax-your-body-slow-your-heartbeat': require('../../assets/sounds/relax-your-body-slow-your-heartbeat.m4a'),
 } as const;
 const RESONANT_CUE_VOLUME = 1;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
@@ -206,6 +209,7 @@ export function BreathingScreen() {
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const resonantCueTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
   const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
@@ -219,6 +223,11 @@ export function BreathingScreen() {
   const resonantLastOnePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['last-one']);
   const resonantFiveMorePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['five-more']);
   const resonantKeepItGoingPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['keep-it-going']);
+  const resonantDelicateBellsPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['delicate-bells']);
+  const resonantBreathHoldFromNowOnPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['breath-hold-from-now-on']);
+  const resonantRelaxYourBodyPlayer = useAudioPlayer(
+    RESONANT_SOUND_SOURCES['relax-your-body-slow-your-heartbeat'],
+  );
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -232,6 +241,9 @@ export function BreathingScreen() {
       'last-one': resonantLastOnePlayer,
       'five-more': resonantFiveMorePlayer,
       'keep-it-going': resonantKeepItGoingPlayer,
+      'delicate-bells': resonantDelicateBellsPlayer,
+      'breath-hold-from-now-on': resonantBreathHoldFromNowOnPlayer,
+      'relax-your-body-slow-your-heartbeat': resonantRelaxYourBodyPlayer,
     }),
     [
       resonantInhalePlayer,
@@ -245,6 +257,9 @@ export function BreathingScreen() {
       resonantLastOnePlayer,
       resonantFiveMorePlayer,
       resonantKeepItGoingPlayer,
+      resonantDelicateBellsPlayer,
+      resonantBreathHoldFromNowOnPlayer,
+      resonantRelaxYourBodyPlayer,
     ],
   );
 
@@ -306,6 +321,11 @@ export function BreathingScreen() {
     tickTimeoutsRef.current = [];
   }, []);
 
+  const clearScheduledResonantCues = useCallback(() => {
+    resonantCueTimeoutsRef.current.forEach(clearTimeout);
+    resonantCueTimeoutsRef.current = [];
+  }, []);
+
   // Schedules one tick per second across the phase (rounded so a 1.5s phase
   // gets 2 evenly-spaced ticks rather than 1 long silent gap), with the
   // first tick of the phase - the first beat of that Inhale/Hold/Exhale -
@@ -335,14 +355,30 @@ export function BreathingScreen() {
   // inhale running slightly long) is left alone and allowed to overlap with
   // the next one, rather than being cut off by it. seekTo(0)+play() in
   // playSound is enough to restart this cue cleanly on its own, so there's
-  // no separate pause() call here to race against it.
+  // no separate pause() call here to race against it. resonantDelayedCues
+  // (e.g. a reassurance cue partway through a long hold) are scheduled here
+  // too and cleared whenever a new phase's cue starts or the session stops.
   const playResonantCue = useCallback(
     (phase: BreathingPhase) => {
+      clearScheduledResonantCues();
       for (const soundId of resonantSoundIdsForPhase(phase)) {
         playSound(resonantPlayers[soundId], RESONANT_CUE_VOLUME_OVERRIDES[soundId] ?? RESONANT_CUE_VOLUME);
       }
+      for (const { atMs, soundId } of phase.resonantDelayedCues ?? []) {
+        if (!(soundId in resonantPlayers)) {
+          continue;
+        }
+        const id = soundId as keyof typeof resonantPlayers;
+        const timeoutId = setTimeout(() => {
+          if (!isRunningRef.current) {
+            return;
+          }
+          playSound(resonantPlayers[id], RESONANT_CUE_VOLUME_OVERRIDES[id] ?? RESONANT_CUE_VOLUME);
+        }, atMs);
+        resonantCueTimeoutsRef.current.push(timeoutId);
+      }
     },
-    [resonantPlayers],
+    [resonantPlayers, clearScheduledResonantCues],
   );
 
   const stopBreathing = useCallback(() => {
@@ -353,6 +389,7 @@ export function BreathingScreen() {
       scaleAnim.setValue(MIN_BREATH_SCALE);
     });
     clearScheduledTicks();
+    clearScheduledResonantCues();
     if (phaseTimeoutRef.current) {
       clearTimeout(phaseTimeoutRef.current);
       phaseTimeoutRef.current = null;
@@ -372,7 +409,7 @@ export function BreathingScreen() {
       }
       return 0;
     });
-  }, [scaleAnim, clearScheduledTicks, tickPlayer, resonantPlayers, selectedPatternId]);
+  }, [scaleAnim, clearScheduledTicks, clearScheduledResonantCues, tickPlayer, resonantPlayers, selectedPatternId]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -446,7 +483,12 @@ export function BreathingScreen() {
 
     let secondsElapsed = 1;
     setElapsedSeconds(secondsElapsed);
-    const timerLimitSeconds = timerEnabled ? timerMinutes * 60 : null;
+    // Tummo has a fixed, deliberately-authored sequence (30 breaths, a long
+    // hold, recovery) - the session-length auto-stop is meant for
+    // open-ended guided practice, not a structured exercise with its own
+    // built-in duration, so it never applies here regardless of the
+    // configured minutes.
+    const timerLimitSeconds = timerEnabled && selectedPatternId !== 'tummo' ? timerMinutes * 60 : null;
 
     elapsedIntervalRef.current = setInterval(() => {
       secondsElapsed += 1;
@@ -470,6 +512,7 @@ export function BreathingScreen() {
       activeAnimationRef.current?.stop();
       scaleAnim.stopAnimation();
       tickTimeoutsRef.current.forEach(clearTimeout);
+      resonantCueTimeoutsRef.current.forEach(clearTimeout);
       if (phaseTimeoutRef.current) {
         clearTimeout(phaseTimeoutRef.current);
       }

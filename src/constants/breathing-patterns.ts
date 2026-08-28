@@ -32,6 +32,12 @@ export type BreathingPhase = {
   // cues with the regular breathe-in-relaxed/breathe-out-relaxed cues.
   // Each id is keyed into RESONANT_SOUND_SOURCES in breathing-screen.tsx.
   resonantOverlaySoundIds?: string[];
+  // Voice-style cues that fire partway through this phase rather than at
+  // its start, for long phases like Tummo's retention hold - e.g. a
+  // reassurance cue a few seconds in. atMs is measured from the start of
+  // the phase; each soundId is keyed into RESONANT_SOUND_SOURCES in
+  // breathing-screen.tsx.
+  resonantDelayedCues?: { atMs: number; soundId: string }[];
 };
 
 export type PatternCategory = 'guided' | 'advanced';
@@ -201,13 +207,21 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
   {
     id: 'tummo',
     name: 'Tummo Breathing',
-    timing: '30 breaths-hold(exhaled)-4-15',
+    timing: '30 breaths-hold(exhaled)-3-15',
     description: 'Rapid deep breaths, long hold, inhale, hold. Repeat 3 times',
     info: 'Three rounds of 30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.',
     category: 'advanced',
     phases: [
       ...tummoRapidBreaths,
-      { name: 'Hold', durationMs: 60000, targetScale: MIN_BREATH_SCALE, timingSegmentIndex: 1 },
+      {
+        name: 'Hold',
+        durationMs: 60000,
+        targetScale: MIN_BREATH_SCALE,
+        timingSegmentIndex: 1,
+        resonantSoundId: 'delicate-bells',
+        resonantOverlaySoundIds: ['breath-hold-from-now-on'],
+        resonantDelayedCues: [{ atMs: 2000, soundId: 'relax-your-body-slow-your-heartbeat' }],
+      },
       { name: 'Inhale', durationMs: 3000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
       { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 3 },
     ],
