@@ -35,11 +35,13 @@ import {
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_SECONDS,
+  DEFAULT_TUMMO_ROUNDS,
   type SoundStyle,
   getButeykoHoldSeconds,
   getSoundStyle,
   getTimerSettings,
   getTummoHoldSeconds,
+  getTummoRounds,
   getTummoSkipToHold,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
@@ -145,6 +147,15 @@ function getPatternTiming(
   return pattern.timing;
 }
 
+// Tummo's card name reflects the number of rounds configured in Settings,
+// since that value determines how many times the whole pattern repeats.
+function getPatternDisplayName(pattern: BreathingPattern, tummoRounds: number): string {
+  if (pattern.id === 'tummo') {
+    return `${pattern.name} - ${tummoRounds} round${tummoRounds === 1 ? '' : 's'} selected`;
+  }
+  return pattern.name;
+}
+
 // Reassurance cues for Tummo's retention hold, for as long as the hold
 // actually runs (its duration is user-configurable up to
 // MAX_TUMMO_HOLD_SECONDS). Within one pass through the cycle, cues are 14s
@@ -231,6 +242,7 @@ type Styles = ReturnType<typeof createStyles>;
 
 function PatternCard({
   pattern,
+  displayName,
   timing,
   isSelected,
   isRunning,
@@ -241,6 +253,7 @@ function PatternCard({
   onShowInfo,
 }: {
   pattern: BreathingPattern;
+  displayName?: string;
   timing?: string;
   isSelected: boolean;
   isRunning: boolean;
@@ -250,12 +263,13 @@ function PatternCard({
   onSelect: () => void;
   onShowInfo: () => void;
 }) {
+  const name = displayName ?? pattern.name;
   return (
     <Pressable
       disabled={isRunning}
       onPress={onSelect}
       accessibilityRole="button"
-      accessibilityLabel={`${pattern.name}, ${timing ? `${timing}, ` : ''}${pattern.description}`}
+      accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}`}
       accessibilityState={{ selected: isSelected, disabled: isRunning }}
       style={({ pressed }) => [
         styles.patternCard,
@@ -266,7 +280,7 @@ function PatternCard({
         },
       ]}>
       <View style={styles.patternCardHeader}>
-        <ThemedText type="smallBold" style={styles.patternName}>{pattern.name}</ThemedText>
+        <ThemedText type="smallBold" style={styles.patternName}>{name}</ThemedText>
         <Pressable
           onPress={onShowInfo}
           hitSlop={10}
@@ -296,6 +310,10 @@ export function BreathingScreen() {
   const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const resonantCueTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // How many full cycles through the current pattern's phases have
+  // completed this session - only used to auto-stop Tummo after its
+  // configured number of rounds instead of looping forever.
+  const completedRoundsRef = useRef(0);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
   const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
   const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
@@ -388,6 +406,7 @@ export function BreathingScreen() {
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHold] = useState(false);
   const [tummoHoldSeconds, setTummoHoldSeconds] = useState(DEFAULT_TUMMO_HOLD_SECONDS);
+  const [tummoRounds, setTummoRounds] = useState(DEFAULT_TUMMO_ROUNDS);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
 
   const selectedPattern =
@@ -447,6 +466,7 @@ export function BreathingScreen() {
       getButeykoHoldSeconds().then(setButeykoHoldSeconds);
       getTummoSkipToHold().then(setTummoSkipToHold);
       getTummoHoldSeconds().then(setTummoHoldSeconds);
+      getTummoRounds().then(setTummoRounds);
       getSoundStyle().then(setSoundStyle);
     }, []),
   );
@@ -608,16 +628,29 @@ export function BreathingScreen() {
           return;
         }
         const nextIndex = (phaseIndex + 1) % pattern.phases.length;
+        // Tummo is the only pattern with a configured number of rounds -
+        // every other pattern still loops indefinitely until stopped
+        // manually. A "round" is one full pass through the (possibly
+        // skip-to-hold-shortened) phases array, detected by the wraparound
+        // back to index 0.
+        if (nextIndex === 0 && pattern.id === 'tummo') {
+          completedRoundsRef.current += 1;
+          if (completedRoundsRef.current >= tummoRounds) {
+            stopBreathing();
+            return;
+          }
+        }
         runPhase(pattern, nextIndex);
       }, phase.durationMs);
     },
-    [scaleAnim, scheduleTicksForPhase, clearScheduledTicks, playResonantCue, soundStyle],
+    [scaleAnim, scheduleTicksForPhase, clearScheduledTicks, playResonantCue, soundStyle, tummoRounds, stopBreathing],
   );
 
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
+    completedRoundsRef.current = 0;
     trackPatternStarted(selectedPatternId);
 
     let secondsElapsed = 1;
@@ -738,6 +771,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
+                displayName={getPatternDisplayName(pattern, tummoRounds)}
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
@@ -756,6 +790,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
+                displayName={getPatternDisplayName(pattern, tummoRounds)}
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}

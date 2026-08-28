@@ -14,6 +14,7 @@ import {
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_SECONDS,
+  DEFAULT_TUMMO_ROUNDS,
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
@@ -25,6 +26,7 @@ import {
   getSoundStyle,
   getTimerSettings,
   getTummoHoldSeconds,
+  getTummoRounds,
   getTummoSkipToHold,
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
@@ -34,6 +36,7 @@ import {
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
   setTummoHoldSeconds as persistTummoHoldSeconds,
+  setTummoRounds as persistTummoRounds,
   setTummoSkipToHold as persistTummoSkipToHold,
   setWindDownSettings as persistWindDownSettings,
 } from '@/lib/settings';
@@ -57,9 +60,7 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'metronome', label: 'Metronome' },
 ];
 
-// Not yet wired to the actual Tummo pattern - see BreathingScreen.
 const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
-const DEFAULT_TUMMO_ROUNDS = 3;
 
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
@@ -73,7 +74,7 @@ export function SettingsScreen() {
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
-  const [tummoRounds, setTummoRounds] = useState<number>(DEFAULT_TUMMO_ROUNDS);
+  const [tummoRounds, setTummoRoundsState] = useState<number>(DEFAULT_TUMMO_ROUNDS);
   const [tummoHoldSeconds, setTummoHoldSecondsState] = useState<number>(DEFAULT_TUMMO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
@@ -88,6 +89,7 @@ export function SettingsScreen() {
         setTimerMinutesState(minutes);
       });
       getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
+      getTummoRounds().then(setTummoRoundsState);
       getTummoSkipToHold().then(setTummoSkipToHoldState);
       getTummoHoldSeconds().then(setTummoHoldSecondsState);
       getSoundStyle().then(setSoundStyleState);
@@ -110,6 +112,11 @@ export function SettingsScreen() {
   const handleButeykoHoldChange = (seconds: number) => {
     setButeykoHoldSecondsState(seconds);
     persistButeykoHoldSeconds(seconds);
+  };
+
+  const handleTummoRoundsChange = (rounds: number) => {
+    setTummoRoundsState(rounds);
+    persistTummoRounds(rounds);
   };
 
   const handleToggleTummoSkipToHold = (enabled: boolean) => {
@@ -280,7 +287,7 @@ export function SettingsScreen() {
 
           <ThemedText type="small" style={styles.sectionHint}>
             {timerEnabled
-              ? `Sessions will automatically stop after ${timerMinutes} minutes.`
+              ? `Sessions will automatically stop after ${timerMinutes} minutes with the exception of Tummo which will run until completion of the number of rounds set, unless stopped manually.`
               : 'Sessions run until you stop them manually.'}
           </ThemedText>
         </View>
@@ -313,13 +320,17 @@ export function SettingsScreen() {
             Tummo Breathing
           </ThemedText>
 
+          <ThemedText type="small" style={styles.sectionHint}>
+            Number of rounds
+          </ThemedText>
+
           <View style={styles.minutesRow}>
             {TUMMO_ROUND_OPTIONS.map((rounds) => {
               const isSelected = rounds === tummoRounds;
               return (
                 <Pressable
                   key={rounds}
-                  onPress={() => setTummoRounds(rounds)}
+                  onPress={() => handleTummoRoundsChange(rounds)}
                   accessibilityRole="button"
                   accessibilityLabel={`${rounds} round${rounds > 1 ? 's' : ''}`}
                   accessibilityState={{ selected: isSelected }}
@@ -338,15 +349,11 @@ export function SettingsScreen() {
             })}
           </View>
 
-          <ThemedText type="small" style={styles.sectionHint}>
-            Number of full rounds
-          </ThemedText>
-
           <View style={styles.divider} />
 
           <View style={styles.toggleRow}>
             <ThemedText type="small" style={styles.sectionHint}>
-              Main hold duration
+              Hold Duration
             </ThemedText>
 
             <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
