@@ -13,6 +13,7 @@ import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
   DEFAULT_TUMMO_ROUNDS,
   MAX_BUTEYKO_HOLD_SECONDS,
@@ -20,11 +21,13 @@ import {
   TIMER_MINUTE_OPTIONS,
   type ReminderSettings,
   type SoundStyle,
+  type TummoHoldMode,
   getAnalyticsEnabled,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
   getSoundStyle,
   getTimerSettings,
+  getTummoHoldMode,
   getTummoHoldSeconds,
   getTummoRounds,
   getTummoSkipToHold,
@@ -35,6 +38,7 @@ import {
   setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
+  setTummoHoldMode as persistTummoHoldMode,
   setTummoHoldSeconds as persistTummoHoldSeconds,
   setTummoRounds as persistTummoRounds,
   setTummoSkipToHold as persistTummoSkipToHold,
@@ -62,6 +66,11 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
 
 const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
 
+const TUMMO_HOLD_MODE_OPTIONS: { id: TummoHoldMode; label: string }[] = [
+  { id: 'preset', label: 'Preset' },
+  { id: 'dynamic', label: 'Dynamic' },
+];
+
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
   date.setHours(reminder.hour, reminder.minute, 0, 0);
@@ -76,6 +85,7 @@ export function SettingsScreen() {
   const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoRounds, setTummoRoundsState] = useState<number>(DEFAULT_TUMMO_ROUNDS);
   const [tummoHoldSeconds, setTummoHoldSecondsState] = useState<number>(DEFAULT_TUMMO_HOLD_SECONDS);
+  const [tummoHoldMode, setTummoHoldModeState] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
   const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
@@ -92,6 +102,7 @@ export function SettingsScreen() {
       getTummoRounds().then(setTummoRoundsState);
       getTummoSkipToHold().then(setTummoSkipToHoldState);
       getTummoHoldSeconds().then(setTummoHoldSecondsState);
+      getTummoHoldMode().then(setTummoHoldModeState);
       getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
@@ -117,6 +128,11 @@ export function SettingsScreen() {
   const handleTummoRoundsChange = (rounds: number) => {
     setTummoRoundsState(rounds);
     persistTummoRounds(rounds);
+  };
+
+  const handleSelectTummoHoldMode = (mode: TummoHoldMode) => {
+    setTummoHoldModeState(mode);
+    persistTummoHoldMode(mode);
   };
 
   const handleToggleTummoSkipToHold = (enabled: boolean) => {
@@ -351,19 +367,59 @@ export function SettingsScreen() {
 
           <View style={styles.divider} />
 
-          <View style={styles.toggleRow}>
-            <ThemedText type="small" style={styles.sectionHint}>
-              Hold Duration
-            </ThemedText>
+          <ThemedText type="small" style={styles.sectionHint}>
+            Retention Style
+          </ThemedText>
 
-            <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
-              <Picker selectedValue={tummoHoldSeconds} onValueChange={handleTummoHoldSecondsChange} appearance="menu">
-                {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
-                  <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
-                ))}
-              </Picker>
-            </Host>
+          <View style={styles.segmentedControl}>
+            {TUMMO_HOLD_MODE_OPTIONS.map((option) => {
+              const isSelected = option.id === tummoHoldMode;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => handleSelectTummoHoldMode(option.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
           </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            {tummoHoldMode === 'preset'
+              ? 'Hold for a fixed, configurable duration.'
+              : "Hold until you indicate you're ready to move on."}
+          </ThemedText>
+
+          {tummoHoldMode === 'preset' && (
+            <>
+              <View style={styles.divider} />
+
+              <View style={styles.toggleRow}>
+                <ThemedText type="small" style={styles.sectionHint}>
+                  Hold Duration
+                </ThemedText>
+
+                <Host matchContents style={styles.secondsPickerHost} seedColor={theme.text}>
+                  <Picker
+                    selectedValue={tummoHoldSeconds}
+                    onValueChange={handleTummoHoldSecondsChange}
+                    appearance="menu">
+                    {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
+                      <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
+                    ))}
+                  </Picker>
+                </Host>
+              </View>
+            </>
+          )}
 
           <View style={styles.divider} />
 

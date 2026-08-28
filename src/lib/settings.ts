@@ -8,6 +8,7 @@ const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
 const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
 const TUMMO_ROUNDS_KEY = 'breathe-easy:tummo-rounds';
+const TUMMO_HOLD_MODE_KEY = 'breathe-easy:tummo-hold-mode';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 
@@ -123,6 +124,25 @@ export async function getTummoRounds(): Promise<number> {
 export async function setTummoRounds(rounds: number): Promise<void> {
   const clamped = Math.min(MAX_TUMMO_ROUNDS, Math.max(MIN_TUMMO_ROUNDS, Math.round(rounds)));
   await AsyncStorage.setItem(TUMMO_ROUNDS_KEY, String(clamped));
+}
+
+// 'preset' uses a fixed, configurable hold/retention duration. 'dynamic'
+// instead waits for the user to tap the "Tap to move to Inhale and
+// Retention" button on the Home screen, rather than timing the hold - see
+// handleManualHoldAdvance in breathing-screen.tsx.
+export type TummoHoldMode = 'preset' | 'dynamic';
+export const DEFAULT_TUMMO_HOLD_MODE: TummoHoldMode = 'preset';
+
+export async function getTummoHoldMode(): Promise<TummoHoldMode> {
+  const raw = await AsyncStorage.getItem(TUMMO_HOLD_MODE_KEY);
+  if (raw === 'preset' || raw === 'dynamic') {
+    return raw;
+  }
+  return DEFAULT_TUMMO_HOLD_MODE;
+}
+
+export async function setTummoHoldMode(mode: TummoHoldMode): Promise<void> {
+  await AsyncStorage.setItem(TUMMO_HOLD_MODE_KEY, mode);
 }
 
 export type ReminderSettings = { enabled: boolean; hour: number; minute: number };

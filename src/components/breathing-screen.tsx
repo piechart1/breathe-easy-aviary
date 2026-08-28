@@ -34,12 +34,16 @@ import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
   DEFAULT_TUMMO_ROUNDS,
+  MAX_TUMMO_HOLD_SECONDS,
   type SoundStyle,
+  type TummoHoldMode,
   getButeykoHoldSeconds,
   getSoundStyle,
   getTimerSettings,
+  getTummoHoldMode,
   getTummoHoldSeconds,
   getTummoRounds,
   getTummoSkipToHold,
@@ -137,12 +141,17 @@ function getPatternTiming(
   pattern: BreathingPattern,
   buteykoHoldSeconds: number,
   tummoHoldSeconds: number,
+  tummoHoldMode: TummoHoldMode,
 ): string | undefined {
   if (pattern.id === 'buteyko' && pattern.timing) {
     return pattern.timing.replace('hold', `${buteykoHoldSeconds}`);
   }
   if (pattern.id === 'tummo' && pattern.timing) {
-    return pattern.timing.replace('hold', `${tummoHoldSeconds}`);
+    // Dynamic retention has no fixed length to show - the live elapsed
+    // count while actually in that phase is rendered separately, over top
+    // of this label, in the "Tap to begin" timing segments below.
+    const holdLabel = tummoHoldMode === 'dynamic' ? 'dynamic' : `${tummoHoldSeconds}`;
+    return pattern.timing.replace('hold', holdLabel);
   }
   return pattern.timing;
 }
@@ -314,6 +323,7 @@ export function BreathingScreen() {
   // completed this session - only used to auto-stop Tummo after its
   // configured number of rounds instead of looping forever.
   const completedRoundsRef = useRef(0);
+  const phaseElapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
   const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
   const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
@@ -399,6 +409,10 @@ export function BreathingScreen() {
   const [isRunning, setIsRunning] = useState(false);
   const [phaseName, setPhaseName] = useState<PhaseName | ''>('');
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
+  // Seconds elapsed in the current phase - only actually ticked for
+  // Tummo's Dynamic-mode retention hold, to show a live count in place of
+  // the "dynamic" timing label while that phase runs.
+  const [phaseElapsedSeconds, setPhaseElapsedSeconds] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -406,6 +420,7 @@ export function BreathingScreen() {
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHold] = useState(false);
   const [tummoHoldSeconds, setTummoHoldSeconds] = useState(DEFAULT_TUMMO_HOLD_SECONDS);
+  const [tummoHoldMode, setTummoHoldMode] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
   const [tummoRounds, setTummoRounds] = useState(DEFAULT_TUMMO_ROUNDS);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
 
@@ -439,16 +454,28 @@ export function BreathingScreen() {
               if (phase.timingSegmentIndex !== 1) {
                 return phase;
               }
-              const durationMs = tummoHoldSeconds * 1000;
+              // Dynamic mode has no fixed hold length - runPhase skips its
+              // auto-advance timeout for this phase entirely (see
+              // isManualHold there) and waits for the "Tap to move to
+              // Inhale and Retention" button instead. durationMs here just
+              // sizes the tick/cue schedule generously so ticks and the
+              // reassurance cues still play for a long hold.
+              const durationMs =
+                tummoHoldMode === 'dynamic' ? MAX_TUMMO_HOLD_SECONDS * 1000 : tummoHoldSeconds * 1000;
               return { ...phase, durationMs, resonantDelayedCues: tummoHoldDelayedCues(durationMs) };
             }),
           }
         : selectedPattern;
 
-  const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds, tummoHoldSeconds);
+  const selectedPatternTiming = getPatternTiming(selectedPattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode);
   const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
   const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
+  const showDynamicHoldButton = selectedPattern.id === 'tummo' && tummoHoldMode === 'dynamic';
+  const isDynamicHoldReady = isRunning && activePhase?.timingSegmentIndex === 1;
+  // Once the dynamic hold actually commences, its timing-segment shows a
+  // live elapsed-seconds count in place of the static "dynamic" label.
+  const showLiveDynamicHoldSeconds = showDynamicHoldButton && isDynamicHoldReady;
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true });
@@ -466,6 +493,7 @@ export function BreathingScreen() {
       getButeykoHoldSeconds().then(setButeykoHoldSeconds);
       getTummoSkipToHold().then(setTummoSkipToHold);
       getTummoHoldSeconds().then(setTummoHoldSeconds);
+      getTummoHoldMode().then(setTummoHoldMode);
       getTummoRounds().then(setTummoRounds);
       getSoundStyle().then(setSoundStyle);
     }, []),
@@ -558,6 +586,11 @@ export function BreathingScreen() {
       clearInterval(elapsedIntervalRef.current);
       elapsedIntervalRef.current = null;
     }
+    if (phaseElapsedIntervalRef.current) {
+      clearInterval(phaseElapsedIntervalRef.current);
+      phaseElapsedIntervalRef.current = null;
+    }
+    setPhaseElapsedSeconds(0);
     setIsRunning(false);
     setPhaseName('');
     setElapsedSeconds((secondsPracticed) => {
@@ -578,6 +611,19 @@ export function BreathingScreen() {
       const phase = pattern.phases[phaseIndex];
       setPhaseName(phase.name);
       setCurrentPhaseIndex(phaseIndex);
+
+      if (phaseElapsedIntervalRef.current) {
+        clearInterval(phaseElapsedIntervalRef.current);
+        phaseElapsedIntervalRef.current = null;
+      }
+      setPhaseElapsedSeconds(0);
+      if (pattern.id === 'tummo' && phase.timingSegmentIndex === 1 && tummoHoldMode === 'dynamic') {
+        let secondsInPhase = 0;
+        phaseElapsedIntervalRef.current = setInterval(() => {
+          secondsInPhase += 1;
+          setPhaseElapsedSeconds(secondsInPhase);
+        }, 1000);
+      }
 
       if (phase.name === 'Inhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -623,28 +669,68 @@ export function BreathingScreen() {
         animation.start();
       }
 
-      phaseTimeoutRef.current = setTimeout(() => {
-        if (!isRunningRef.current) {
-          return;
-        }
-        const nextIndex = (phaseIndex + 1) % pattern.phases.length;
-        // Tummo is the only pattern with a configured number of rounds -
-        // every other pattern still loops indefinitely until stopped
-        // manually. A "round" is one full pass through the (possibly
-        // skip-to-hold-shortened) phases array, detected by the wraparound
-        // back to index 0.
-        if (nextIndex === 0 && pattern.id === 'tummo') {
-          completedRoundsRef.current += 1;
-          if (completedRoundsRef.current >= tummoRounds) {
-            stopBreathing();
+      // Tummo's main retention hold, when Settings has Dynamic retention
+      // style selected, has no fixed length - there's no auto-advance timer
+      // for this phase at all. It only moves on when the practitioner taps
+      // the "Tap to move to Inhale and Retention" button (handleManualHoldAdvance
+      // below), which does the exact same round-counting and phase advance
+      // this timeout does for every other phase.
+      const isManualHold = pattern.id === 'tummo' && phase.timingSegmentIndex === 1 && tummoHoldMode === 'dynamic';
+      if (!isManualHold) {
+        phaseTimeoutRef.current = setTimeout(() => {
+          if (!isRunningRef.current) {
             return;
           }
-        }
-        runPhase(pattern, nextIndex);
-      }, phase.durationMs);
+          const nextIndex = (phaseIndex + 1) % pattern.phases.length;
+          // Tummo is the only pattern with a configured number of rounds -
+          // every other pattern still loops indefinitely until stopped
+          // manually. A "round" is one full pass through the (possibly
+          // skip-to-hold-shortened) phases array, detected by the
+          // wraparound back to index 0.
+          if (nextIndex === 0 && pattern.id === 'tummo') {
+            completedRoundsRef.current += 1;
+            if (completedRoundsRef.current >= tummoRounds) {
+              stopBreathing();
+              return;
+            }
+          }
+          runPhase(pattern, nextIndex);
+        }, phase.durationMs);
+      }
     },
-    [scaleAnim, scheduleTicksForPhase, clearScheduledTicks, playResonantCue, soundStyle, tummoRounds, stopBreathing],
+    [
+      scaleAnim,
+      scheduleTicksForPhase,
+      clearScheduledTicks,
+      playResonantCue,
+      soundStyle,
+      tummoRounds,
+      tummoHoldMode,
+      stopBreathing,
+    ],
   );
+
+  // Manual advance for Tummo's Dynamic retention style - mirrors the
+  // round-counting/advance logic in runPhase's own auto-advance timeout
+  // above, since that timeout is deliberately not scheduled for this phase.
+  const handleManualHoldAdvance = useCallback(() => {
+    if (!isRunningRef.current) {
+      return;
+    }
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+    const nextIndex = (currentPhaseIndex + 1) % activePattern.phases.length;
+    if (nextIndex === 0 && activePattern.id === 'tummo') {
+      completedRoundsRef.current += 1;
+      if (completedRoundsRef.current >= tummoRounds) {
+        stopBreathing();
+        return;
+      }
+    }
+    runPhase(activePattern, nextIndex);
+  }, [activePattern, currentPhaseIndex, tummoRounds, stopBreathing, runPhase]);
 
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
@@ -690,6 +776,9 @@ export function BreathingScreen() {
       }
       if (elapsedIntervalRef.current) {
         clearInterval(elapsedIntervalRef.current);
+      }
+      if (phaseElapsedIntervalRef.current) {
+        clearInterval(phaseElapsedIntervalRef.current);
       }
     };
   }, [scaleAnim]);
@@ -751,17 +840,41 @@ export function BreathingScreen() {
                 type="small"
                 style={styles.patternTimingText}
                 accessibilityLabel={`Pattern: ${selectedPatternTiming}`}>
-                {timingSegments.map((segment, index) => (
-                  <Text key={index}>
-                    <Text style={index === activeTimingSegmentIndex ? styles.patternTimingSegmentActive : undefined}>
-                      {segment}
+                {timingSegments.map((segment, index) => {
+                  const displaySegment =
+                    showLiveDynamicHoldSeconds && index === activeTimingSegmentIndex
+                      ? `${phaseElapsedSeconds}`
+                      : segment;
+                  return (
+                    <Text key={index}>
+                      <Text
+                        style={index === activeTimingSegmentIndex ? styles.patternTimingSegmentActive : undefined}>
+                        {displaySegment}
+                      </Text>
+                      {index < timingSegments.length - 1 ? '-' : ''}
                     </Text>
-                    {index < timingSegments.length - 1 ? '-' : ''}
-                  </Text>
-                ))}
+                  );
+                })}
               </ThemedText>
             )}
           </Pressable>
+
+          {showDynamicHoldButton && (
+            <Pressable
+              onPress={handleManualHoldAdvance}
+              disabled={!isDynamicHoldReady}
+              accessibilityRole="button"
+              accessibilityLabel="Tap to move to Inhale and Retention"
+              accessibilityState={{ disabled: !isDynamicHoldReady }}
+              style={({ pressed }) => [
+                styles.dynamicHoldButton,
+                { opacity: !isDynamicHoldReady ? 0.4 : pressed ? 0.85 : 1 },
+              ]}>
+              <ThemedText type="smallBold" style={styles.dynamicHoldButtonText}>
+                Tap to move to Inhale and Retention
+              </ThemedText>
+            </Pressable>
+          )}
 
           <View style={styles.patternList}>
             <ThemedText type="smallBold" style={styles.patternSectionHeader}>
@@ -772,7 +885,7 @@ export function BreathingScreen() {
                 key={pattern.id}
                 pattern={pattern}
                 displayName={getPatternDisplayName(pattern, tummoRounds)}
-                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
@@ -791,7 +904,7 @@ export function BreathingScreen() {
                 key={pattern.id}
                 pattern={pattern}
                 displayName={getPatternDisplayName(pattern, tummoRounds)}
-                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds)}
+                timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
@@ -920,6 +1033,18 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   patternTimingSegmentActive: {
     ...SystemFont.bold,
     color: theme.text,
+  },
+  dynamicHoldButton: {
+    alignSelf: 'center',
+    marginTop: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    borderRadius: 10,
+    backgroundColor: '#152A63',
+  },
+  dynamicHoldButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   patternList: {
     gap: Spacing.three,
