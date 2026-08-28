@@ -69,6 +69,10 @@ const RESONANT_SOUND_SOURCES = {
   exhale: require('../../assets/sounds/breathe-out-relaxed.m4a'),
   'tummo-inhale': require('../../assets/sounds/audible-in-new.m4a'),
   'tummo-exhale': require('../../assets/sounds/audio-out-4.m4a'),
+  'out-relaxed': require('../../assets/sounds/out-relaxed.m4a'),
+  'last-one': require('../../assets/sounds/Last-One.m4a'),
+  'five-more': require('../../assets/sounds/5-more.m4a'),
+  'keep-it-going': require('../../assets/sounds/Keep-it-going.m4a'),
 } as const;
 const RESONANT_CUE_VOLUME = 1;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
@@ -84,6 +88,15 @@ function resonantSoundIdForPhase(phase: BreathingPhase): keyof typeof RESONANT_S
     return phase.resonantSoundId as keyof typeof RESONANT_SOUND_SOURCES;
   }
   return phase.name.toLowerCase() as keyof typeof RESONANT_SOUND_SOURCES;
+}
+
+// The primary cue plus any resonantOverlaySoundIds, all played concurrently
+// on their own player instances - see playResonantCue below.
+function resonantSoundIdsForPhase(phase: BreathingPhase): (keyof typeof RESONANT_SOUND_SOURCES)[] {
+  const overlayIds = (phase.resonantOverlaySoundIds ?? []).filter(
+    (id): id is keyof typeof RESONANT_SOUND_SOURCES => id in RESONANT_SOUND_SOURCES,
+  );
+  return [resonantSoundIdForPhase(phase), ...overlayIds];
 }
 
 function formatElapsed(totalSeconds: number) {
@@ -202,6 +215,10 @@ export function BreathingScreen() {
   const resonantExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.exhale);
   const resonantTummoInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-inhale']);
   const resonantTummoExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-exhale']);
+  const resonantOutRelaxedPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['out-relaxed']);
+  const resonantLastOnePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['last-one']);
+  const resonantFiveMorePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['five-more']);
+  const resonantKeepItGoingPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['keep-it-going']);
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -211,6 +228,10 @@ export function BreathingScreen() {
       exhale: resonantExhalePlayer,
       'tummo-inhale': resonantTummoInhalePlayer,
       'tummo-exhale': resonantTummoExhalePlayer,
+      'out-relaxed': resonantOutRelaxedPlayer,
+      'last-one': resonantLastOnePlayer,
+      'five-more': resonantFiveMorePlayer,
+      'keep-it-going': resonantKeepItGoingPlayer,
     }),
     [
       resonantInhalePlayer,
@@ -220,6 +241,10 @@ export function BreathingScreen() {
       resonantExhalePlayer,
       resonantTummoInhalePlayer,
       resonantTummoExhalePlayer,
+      resonantOutRelaxedPlayer,
+      resonantLastOnePlayer,
+      resonantFiveMorePlayer,
+      resonantKeepItGoingPlayer,
     ],
   );
 
@@ -313,8 +338,9 @@ export function BreathingScreen() {
   // no separate pause() call here to race against it.
   const playResonantCue = useCallback(
     (phase: BreathingPhase) => {
-      const soundId = resonantSoundIdForPhase(phase);
-      playSound(resonantPlayers[soundId], RESONANT_CUE_VOLUME_OVERRIDES[soundId] ?? RESONANT_CUE_VOLUME);
+      for (const soundId of resonantSoundIdsForPhase(phase)) {
+        playSound(resonantPlayers[soundId], RESONANT_CUE_VOLUME_OVERRIDES[soundId] ?? RESONANT_CUE_VOLUME);
+      }
     },
     [resonantPlayers],
   );

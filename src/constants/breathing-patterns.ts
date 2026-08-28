@@ -26,6 +26,12 @@ export type BreathingPhase = {
   // Keyed into RESONANT_SOUND_SOURCES in breathing-screen.tsx; defaults to
   // the phase's name (lowercased) when omitted.
   resonantSoundId?: string;
+  // Additional voice-style cues layered concurrently on top of the main
+  // resonantSoundId cue for this phase, rather than replacing it - e.g.
+  // Tummo's first two breaths pairing their quiet tummo-inhale/tummo-exhale
+  // cues with the regular breathe-in-relaxed/breathe-out-relaxed cues.
+  // Each id is keyed into RESONANT_SOUND_SOURCES in breathing-screen.tsx.
+  resonantOverlaySoundIds?: string[];
 };
 
 export type PatternCategory = 'guided' | 'advanced';
@@ -53,24 +59,63 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
   tummo: BreathingColors.polarBlue,
 };
 
+// This single 30-breath block, plus the hold/recovery phases that follow it
+// in the Tummo pattern below, is what repeats when the whole exercise loops
+// ("Repeat 3 times" in its description) - there's only one round of 30
+// breaths in the data itself, clustered into thirds by the two breath-number
+// sets below.
 const TUMMO_RAPID_BREATH_COUNT = 30;
+// Breath numbers (1-indexed) that layer the regular breathe-in-relaxed/
+// breathe-out-relaxed cues on top of the quiet tummo-inhale/tummo-exhale
+// ones - the first two breaths of each third of the 30.
+const TUMMO_RELAXED_LAYERED_BREATH_NUMBERS = new Set([1, 2, 11, 12, 21, 22]);
+// Breath numbers (1-indexed) that layer a second "in relaxed"/"out relaxed"
+// cue partway through each third of the 30. Breath 26 is a "5 more" callout
+// instead - see TUMMO_FIVE_MORE_BREATH_NUMBERS.
+const TUMMO_MID_LAYERED_BREATH_NUMBERS = new Set([6, 7, 8, 16, 17, 18, 27, 28]);
+// Breath numbers (1-indexed) whose Inhale layers a "5 more" callout instead
+// of the regular mid-round cue.
+const TUMMO_FIVE_MORE_BREATH_NUMBERS = new Set([26]);
+// Breath numbers (1-indexed) whose Inhale layers a "keep it going" callout.
+const TUMMO_KEEP_IT_GOING_BREATH_NUMBERS = new Set([14, 24]);
 const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BREATH_COUNT }).flatMap(
-  () => [
-    {
-      name: 'Inhale' as const,
-      durationMs: 1499,
-      targetScale: MAX_BREATH_SCALE,
-      timingSegmentIndex: 0,
-      resonantSoundId: 'tummo-inhale',
-    },
-    {
-      name: 'Exhale' as const,
-      durationMs: 1499,
-      targetScale: MIN_BREATH_SCALE,
-      timingSegmentIndex: 0,
-      resonantSoundId: 'tummo-exhale',
-    },
-  ],
+  (_, breathIndex) => {
+    const breathNumber = breathIndex + 1;
+    const isRelaxedLayeredBreath = TUMMO_RELAXED_LAYERED_BREATH_NUMBERS.has(breathNumber);
+    const isMidLayeredBreath = TUMMO_MID_LAYERED_BREATH_NUMBERS.has(breathNumber);
+    const isLastBreath = breathNumber === TUMMO_RAPID_BREATH_COUNT;
+    const isFiveMoreBreath = TUMMO_FIVE_MORE_BREATH_NUMBERS.has(breathNumber);
+    const isKeepItGoingBreath = TUMMO_KEEP_IT_GOING_BREATH_NUMBERS.has(breathNumber);
+    const inhaleOverlays = [
+      ...(isRelaxedLayeredBreath ? ['inhale'] : []),
+      ...(isMidLayeredBreath ? ['inhale-top-off'] : []),
+      ...(isLastBreath ? ['last-one'] : []),
+      ...(isFiveMoreBreath ? ['five-more'] : []),
+      ...(isKeepItGoingBreath ? ['keep-it-going'] : []),
+    ];
+    const exhaleOverlays = [
+      ...(isRelaxedLayeredBreath ? ['exhale'] : []),
+      ...(isMidLayeredBreath ? ['out-relaxed'] : []),
+    ];
+    return [
+      {
+        name: 'Inhale' as const,
+        durationMs: 1499,
+        targetScale: MAX_BREATH_SCALE,
+        timingSegmentIndex: 0,
+        resonantSoundId: 'tummo-inhale',
+        ...(inhaleOverlays.length > 0 ? { resonantOverlaySoundIds: inhaleOverlays } : {}),
+      },
+      {
+        name: 'Exhale' as const,
+        durationMs: 1499,
+        targetScale: MIN_BREATH_SCALE,
+        timingSegmentIndex: 0,
+        resonantSoundId: 'tummo-exhale',
+        ...(exhaleOverlays.length > 0 ? { resonantOverlaySoundIds: exhaleOverlays } : {}),
+      },
+    ];
+  },
 );
 
 export const BREATHING_PATTERNS: BreathingPattern[] = [
