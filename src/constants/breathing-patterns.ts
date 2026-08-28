@@ -225,7 +225,10 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
         timingSegmentIndex: 1,
         resonantSoundId: 'delicate-bells',
         resonantOverlaySoundIds: ['breath-hold-from-now-on'],
-        resonantDelayedCues: [{ atMs: 2000, soundId: 'relax-your-body-slow-your-heartbeat' }],
+        // resonantDelayedCues is generated at runtime in breathing-screen.tsx
+        // instead of listed here statically, since it needs to cycle for the
+        // hold's actual (user-configurable) duration - see
+        // tummoHoldDelayedCues/TUMMO_HOLD_CUE_CYCLE.
       },
       { name: 'Inhale', durationMs: 1000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 2 },
       { name: 'Hold', durationMs: 15000, targetScale: MAX_BREATH_SCALE, timingSegmentIndex: 3 },

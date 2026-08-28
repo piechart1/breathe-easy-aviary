@@ -80,6 +80,9 @@ const RESONANT_SOUND_SOURCES = {
   'delicate-bells': require('../../assets/sounds/delicate-bells.m4a'),
   'breath-hold-from-now-on': require('../../assets/sounds/breath-hold-from-now-on.m4a'),
   'relax-your-body-slow-your-heartbeat': require('../../assets/sounds/relax-your-body-slow-your-heartbeat.m4a'),
+  'relax-your-shoulders': require('../../assets/sounds/relax-your-shoulders-00.m4a'),
+  'relax-your-body': require('../../assets/sounds/relax-your-body-00.m4a'),
+  'be-aware-of-the-energy-in-your-body': require('../../assets/sounds/be-aware-of-the-energy-in-your-body-00.m4a'),
 } as const;
 const RESONANT_CUE_VOLUME = 1;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
@@ -127,6 +130,39 @@ function getPatternTiming(
     return pattern.timing.replace('hold', `${tummoHoldSeconds}`);
   }
   return pattern.timing;
+}
+
+// Reassurance cues for Tummo's retention hold, for as long as the hold
+// actually runs (its duration is user-configurable up to
+// MAX_TUMMO_HOLD_SECONDS). Within one pass through the cycle, cues are 14s
+// apart; once the cycle finishes, the next pass starts 18s after the last
+// cue rather than 14s - e.g. 2s, 16s, 30s, 44s, then 62s, 76s, 90s, 104s...
+const TUMMO_HOLD_CUE_CYCLE = [
+  'relax-your-body-slow-your-heartbeat',
+  'relax-your-shoulders',
+  'relax-your-body',
+  'be-aware-of-the-energy-in-your-body',
+] as const;
+const TUMMO_HOLD_CUE_START_MS = 2000;
+const TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS = 14000;
+const TUMMO_HOLD_CUE_CYCLE_RESTART_GAP_MS = 18000;
+
+function tummoHoldDelayedCues(durationMs: number): { atMs: number; soundId: string }[] {
+  const cues: { atMs: number; soundId: string }[] = [];
+  const cycleLength = TUMMO_HOLD_CUE_CYCLE.length;
+  const cyclePeriodMs =
+    (cycleLength - 1) * TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS + TUMMO_HOLD_CUE_CYCLE_RESTART_GAP_MS;
+
+  for (let cycleStartMs = TUMMO_HOLD_CUE_START_MS; cycleStartMs < durationMs; cycleStartMs += cyclePeriodMs) {
+    for (let i = 0; i < cycleLength; i += 1) {
+      const atMs = cycleStartMs + i * TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS;
+      if (atMs >= durationMs) {
+        break;
+      }
+      cues.push({ atMs, soundId: TUMMO_HOLD_CUE_CYCLE[i] });
+    }
+  }
+  return cues;
 }
 
 // Guards against a slow-resolving seekTo() from an older play request
@@ -239,6 +275,11 @@ export function BreathingScreen() {
   const resonantRelaxYourBodyPlayer = useAudioPlayer(
     RESONANT_SOUND_SOURCES['relax-your-body-slow-your-heartbeat'],
   );
+  const resonantRelaxYourShouldersCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-shoulders']);
+  const resonantRelaxYourBodyCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-body']);
+  const resonantBeAwareOfEnergyPlayer = useAudioPlayer(
+    RESONANT_SOUND_SOURCES['be-aware-of-the-energy-in-your-body'],
+  );
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -255,6 +296,9 @@ export function BreathingScreen() {
       'delicate-bells': resonantDelicateBellsPlayer,
       'breath-hold-from-now-on': resonantBreathHoldFromNowOnPlayer,
       'relax-your-body-slow-your-heartbeat': resonantRelaxYourBodyPlayer,
+      'relax-your-shoulders': resonantRelaxYourShouldersCuePlayer,
+      'relax-your-body': resonantRelaxYourBodyCuePlayer,
+      'be-aware-of-the-energy-in-your-body': resonantBeAwareOfEnergyPlayer,
     }),
     [
       resonantInhalePlayer,
@@ -271,6 +315,9 @@ export function BreathingScreen() {
       resonantDelicateBellsPlayer,
       resonantBreathHoldFromNowOnPlayer,
       resonantRelaxYourBodyPlayer,
+      resonantRelaxYourShouldersCuePlayer,
+      resonantRelaxYourBodyCuePlayer,
+      resonantBeAwareOfEnergyPlayer,
     ],
   );
 
@@ -313,9 +360,13 @@ export function BreathingScreen() {
             phases: (tummoSkipToHold
               ? selectedPattern.phases.slice(TUMMO_RAPID_PHASE_COUNT)
               : selectedPattern.phases
-            ).map((phase) =>
-              phase.timingSegmentIndex === 1 ? { ...phase, durationMs: tummoHoldSeconds * 1000 } : phase,
-            ),
+            ).map((phase) => {
+              if (phase.timingSegmentIndex !== 1) {
+                return phase;
+              }
+              const durationMs = tummoHoldSeconds * 1000;
+              return { ...phase, durationMs, resonantDelayedCues: tummoHoldDelayedCues(durationMs) };
+            }),
           }
         : selectedPattern;
 
@@ -385,7 +436,10 @@ export function BreathingScreen() {
   // playSound is enough to restart this cue cleanly on its own, so there's
   // no separate pause() call here to race against it. resonantDelayedCues
   // (e.g. a reassurance cue partway through a long hold) are scheduled here
-  // too and cleared whenever a new phase's cue starts or the session stops.
+  // too and cleared whenever a new phase's cue starts or the session stops -
+  // any cue whose atMs falls at or beyond the phase's actual duration (e.g.
+  // Tummo's hold shortened in Settings) is skipped rather than firing late
+  // into whatever phase comes next.
   const playResonantCue = useCallback(
     (phase: BreathingPhase) => {
       clearScheduledResonantCues();
@@ -393,7 +447,7 @@ export function BreathingScreen() {
         playSound(resonantPlayers[soundId], RESONANT_CUE_VOLUME_OVERRIDES[soundId] ?? RESONANT_CUE_VOLUME);
       }
       for (const { atMs, soundId } of phase.resonantDelayedCues ?? []) {
-        if (!(soundId in resonantPlayers)) {
+        if (atMs >= phase.durationMs || !(soundId in resonantPlayers)) {
           continue;
         }
         const id = soundId as keyof typeof resonantPlayers;
