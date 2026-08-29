@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
@@ -25,6 +25,7 @@ import {
   getAnalyticsEnabled,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
+  getHealthSyncEnabled,
   getSoundStyle,
   getTimerSettings,
   getTummoHoldMode,
@@ -35,6 +36,7 @@ import {
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setDailyNudgeSettings as persistDailyNudgeSettings,
+  setHealthSyncEnabled as persistHealthSyncEnabled,
   setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
@@ -46,6 +48,7 @@ import {
 } from '@/lib/settings';
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
+import { requestHealthKitPermission } from '@/lib/healthkit';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
@@ -65,6 +68,9 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
 ];
 
 const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
+
+// See the comment above the "Log Sessions to Apple Health" row below.
+const HEALTHKIT_AVAILABLE = false;
 
 const TUMMO_HOLD_MODE_OPTIONS: { id: TummoHoldMode; label: string }[] = [
   { id: 'preset', label: 'Preset' },
@@ -89,6 +95,7 @@ export function SettingsScreen() {
   const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
+  const [healthSyncEnabled, setHealthSyncEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
   const [windDown, setWindDown] = useState<ReminderSettings>({ enabled: false, hour: 21, minute: 0 });
 
@@ -105,6 +112,7 @@ export function SettingsScreen() {
       getTummoHoldMode().then(setTummoHoldModeState);
       getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
+      getHealthSyncEnabled().then(setHealthSyncEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
       getWindDownSettings().then(setWindDown);
     }, []),
@@ -157,6 +165,14 @@ export function SettingsScreen() {
       initTelemetry();
     } else {
       disableTelemetry();
+    }
+  };
+
+  const handleToggleHealthSync = (enabled: boolean) => {
+    setHealthSyncEnabledState(enabled);
+    persistHealthSyncEnabled(enabled);
+    if (enabled) {
+      requestHealthKitPermission();
     }
   };
 
@@ -523,6 +539,32 @@ export function SettingsScreen() {
           <ThemedText type="small" style={styles.sectionHint}>
             Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
           </ThemedText>
+
+          {/* Hidden until Breathe Easy is signed with a paid Apple Developer
+              Program team - a free/personal team cannot be granted the
+              HealthKit entitlement at all, so requestHealthKitPermission()
+              would crash immediately. The rest of the integration
+              (src/lib/healthkit.ts, breathing-screen.tsx's session logging)
+              is left in place, just unreachable while this stays false. */}
+          {HEALTHKIT_AVAILABLE && Platform.OS === 'ios' && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.toggleRow}>
+                <ThemedText type="smallBold" style={styles.sectionLabel}>
+                  Log Sessions to Apple Health
+                </ThemedText>
+                <Switch
+                  value={healthSyncEnabled}
+                  onValueChange={handleToggleHealthSync}
+                  accessibilityLabel="Log sessions to Apple Health"
+                />
+              </View>
+
+              <ThemedText type="small" style={styles.sectionHint}>
+                Completed sessions are logged to Health as Mindful Minutes.
+              </ThemedText>
+            </>
+          )}
         </View>
         </ScrollView>
       </SafeAreaView>

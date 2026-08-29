@@ -45,7 +45,9 @@
           "recordAudioAndroid": false
         }
       ],
+      "./plugins/withSentryUploadDisabled",
       "@sentry/react-native",
+      "./plugins/withoutPushEntitlement",
       "expo-notifications"
     ],
     "experiments": {

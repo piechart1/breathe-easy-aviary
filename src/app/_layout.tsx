@@ -4,7 +4,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { getAnalyticsEnabled } from '@/lib/settings';
+import { scheduleDailyNudge } from '@/lib/notifications';
+import { initPurchases } from '@/lib/purchases';
+import { getAnalyticsEnabled, getDailyNudgeSettings } from '@/lib/settings';
 import { initTelemetry } from '@/lib/telemetry';
 
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +18,16 @@ export default function RootLayout() {
     getAnalyticsEnabled().then((enabled) => {
       if (enabled) {
         initTelemetry();
+      }
+    });
+    initPurchases();
+    // Re-arms the daily nudge's Wednesday-rotation notification against
+    // today's date - see the comment on WEDNESDAY_ROTATION_BODIES in
+    // notifications.ts for why this needs to happen somewhere that runs
+    // periodically rather than just once when the reminder is turned on.
+    getDailyNudgeSettings().then(({ enabled, hour, minute }) => {
+      if (enabled) {
+        scheduleDailyNudge(hour, minute);
       }
     });
   }, []);

@@ -29,6 +29,7 @@ import {
 } from '@/constants/breathing-patterns';
 import { SystemFont, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { logMindfulSession } from '@/lib/healthkit';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
   DEFAULT_BUTEYKO_HOLD_SECONDS,
@@ -41,6 +42,7 @@ import {
   type SoundStyle,
   type TummoHoldMode,
   getButeykoHoldSeconds,
+  getHealthSyncEnabled,
   getSoundStyle,
   getTimerSettings,
   getTummoHoldMode,
@@ -324,6 +326,7 @@ export function BreathingScreen() {
   // configured number of rounds instead of looping forever.
   const completedRoundsRef = useRef(0);
   const phaseElapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartRef = useRef<Date | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
   const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
   const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
@@ -423,6 +426,7 @@ export function BreathingScreen() {
   const [tummoHoldMode, setTummoHoldMode] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
   const [tummoRounds, setTummoRounds] = useState(DEFAULT_TUMMO_ROUNDS);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
+  const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -496,6 +500,7 @@ export function BreathingScreen() {
       getTummoHoldMode().then(setTummoHoldMode);
       getTummoRounds().then(setTummoRounds);
       getSoundStyle().then(setSoundStyle);
+      getHealthSyncEnabled().then(setHealthSyncEnabled);
     }, []),
   );
 
@@ -593,14 +598,27 @@ export function BreathingScreen() {
     setPhaseElapsedSeconds(0);
     setIsRunning(false);
     setPhaseName('');
+    const sessionStart = sessionStartRef.current;
+    sessionStartRef.current = null;
     setElapsedSeconds((secondsPracticed) => {
       recordSessionSeconds(secondsPracticed);
       if (secondsPracticed > 0) {
         trackSessionCompleted(selectedPatternId, secondsPracticed);
+        if (healthSyncEnabled && sessionStart) {
+          logMindfulSession(sessionStart, new Date());
+        }
       }
       return 0;
     });
-  }, [scaleAnim, clearScheduledTicks, clearScheduledResonantCues, tickPlayer, resonantPlayers, selectedPatternId]);
+  }, [
+    scaleAnim,
+    clearScheduledTicks,
+    clearScheduledResonantCues,
+    tickPlayer,
+    resonantPlayers,
+    selectedPatternId,
+    healthSyncEnabled,
+  ]);
 
   const runPhase = useCallback(
     (pattern: BreathingPattern, phaseIndex: number) => {
@@ -737,6 +755,7 @@ export function BreathingScreen() {
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
     completedRoundsRef.current = 0;
+    sessionStartRef.current = new Date();
     trackPatternStarted(selectedPatternId);
 
     let secondsElapsed = 1;

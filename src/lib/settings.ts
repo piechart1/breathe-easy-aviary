@@ -4,6 +4,7 @@ const TIMER_ENABLED_KEY = 'breathe-easy:timer-enabled';
 const TIMER_MINUTES_KEY = 'breathe-easy:timer-minutes';
 const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
+const HEALTH_SYNC_ENABLED_KEY = 'breathe-easy:health-sync-enabled';
 const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
 const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
@@ -64,6 +65,17 @@ export async function getAnalyticsEnabled(): Promise<boolean> {
 
 export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(ANALYTICS_ENABLED_KEY, String(enabled));
+}
+
+// Logs completed sessions to Apple Health as Mindful Minutes - off by
+// default, iOS only. See src/lib/healthkit.ts.
+export async function getHealthSyncEnabled(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(HEALTH_SYNC_ENABLED_KEY);
+  return raw === 'true';
+}
+
+export async function setHealthSyncEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(HEALTH_SYNC_ENABLED_KEY, String(enabled));
 }
 
 export type SoundStyle = 'metronome' | 'resonant';
