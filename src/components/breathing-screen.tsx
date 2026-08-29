@@ -37,16 +37,20 @@ import {
   DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
+  DEFAULT_TUMMO_INTEGRATION_MINUTES,
   DEFAULT_TUMMO_ROUNDS,
   MAX_TUMMO_HOLD_SECONDS,
   type SoundStyle,
   type TummoHoldMode,
+  type TummoIntegrationMinutes,
   getButeykoHoldSeconds,
   getHealthSyncEnabled,
   getSoundStyle,
   getTimerSettings,
   getTummoHoldMode,
   getTummoHoldSeconds,
+  getTummoIntegrationEnabled,
+  getTummoIntegrationMinutes,
   getTummoRounds,
   getTummoSkipToHold,
 } from '@/lib/settings';
@@ -158,11 +162,20 @@ function getPatternTiming(
   return pattern.timing;
 }
 
-// Tummo's card name reflects the number of rounds configured in Settings,
-// since that value determines how many times the whole pattern repeats.
-function getPatternDisplayName(pattern: BreathingPattern, tummoRounds: number): string {
+// Tummo's card name reflects the number of rounds and (when Settings'
+// Integration toggle is on) the integration period that follows the final
+// round, since together those determine how the whole session plays out.
+function getPatternDisplayName(
+  pattern: BreathingPattern,
+  tummoRounds: number,
+  tummoIntegrationEnabled: boolean,
+  tummoIntegrationMinutes: number,
+): string {
   if (pattern.id === 'tummo') {
-    return `${pattern.name} - ${tummoRounds} round${tummoRounds === 1 ? '' : 's'} selected`;
+    const roundsLabel = `${tummoRounds} round${tummoRounds === 1 ? '' : 's'}`;
+    return tummoIntegrationEnabled
+      ? `${pattern.name} - ${roundsLabel} then ${tummoIntegrationMinutes} minutes integration`
+      : `${pattern.name} - ${roundsLabel}`;
   }
   return pattern.name;
 }
@@ -181,6 +194,15 @@ const TUMMO_HOLD_CUE_CYCLE = [
 const TUMMO_HOLD_CUE_START_MS = 2000;
 const TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS = 14000;
 const TUMMO_HOLD_CUE_CYCLE_RESTART_GAP_MS = 18000;
+
+// Sentinel phaseIndex for Tummo's Integration phase - it's appended once
+// after the final round rather than living in the pattern's own repeating
+// phases array, so it can't be reached by the normal (phaseIndex + 1) %
+// phases.length advance. runPhase resolves it to a synthetic BreathingPhase
+// built from Settings' integration-minutes value instead of indexing into
+// pattern.phases. No audio cues yet - resonant/tick scheduling is skipped
+// for it entirely, since real cues are still to come as audio files.
+const INTEGRATION_PHASE_INDEX = -1;
 
 // Fixed minute-mark callouts, layered on top of the reassurance cycle above:
 // a bell chime exactly on each round minute, then the spoken minute count a
@@ -425,6 +447,10 @@ export function BreathingScreen() {
   const [tummoHoldSeconds, setTummoHoldSeconds] = useState(DEFAULT_TUMMO_HOLD_SECONDS);
   const [tummoHoldMode, setTummoHoldMode] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
   const [tummoRounds, setTummoRounds] = useState(DEFAULT_TUMMO_ROUNDS);
+  const [tummoIntegrationEnabled, setTummoIntegrationEnabled] = useState(true);
+  const [tummoIntegrationMinutes, setTummoIntegrationMinutes] = useState<TummoIntegrationMinutes>(
+    DEFAULT_TUMMO_INTEGRATION_MINUTES,
+  );
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
 
@@ -499,6 +525,8 @@ export function BreathingScreen() {
       getTummoHoldSeconds().then(setTummoHoldSeconds);
       getTummoHoldMode().then(setTummoHoldMode);
       getTummoRounds().then(setTummoRounds);
+      getTummoIntegrationEnabled().then(setTummoIntegrationEnabled);
+      getTummoIntegrationMinutes().then(setTummoIntegrationMinutes);
       getSoundStyle().then(setSoundStyle);
       getHealthSyncEnabled().then(setHealthSyncEnabled);
     }, []),
@@ -626,7 +654,10 @@ export function BreathingScreen() {
         return;
       }
 
-      const phase = pattern.phases[phaseIndex];
+      const phase: BreathingPhase =
+        phaseIndex === INTEGRATION_PHASE_INDEX
+          ? { name: 'Integration', durationMs: tummoIntegrationMinutes * 60 * 1000, targetScale: MIN_BREATH_SCALE }
+          : pattern.phases[phaseIndex];
       setPhaseName(phase.name);
       setCurrentPhaseIndex(phaseIndex);
 
@@ -651,17 +682,20 @@ export function BreathingScreen() {
         Haptics.selectionAsync();
       }
 
-      // Only Tummo phases explicitly configured with a resonant cue - a
-      // resonantSoundId, or (for the final hold's countdown) just a
-      // resonantDelayedCues entry - opt into Voice; everything else on
-      // Tummo stays on the metronome regardless of style.
-      const supportsResonant =
-        pattern.id !== 'tummo' || phase.resonantSoundId != null || (phase.resonantDelayedCues?.length ?? 0) > 0;
-      if (soundStyle === 'resonant' && supportsResonant) {
-        clearScheduledTicks();
-        playResonantCue(phase);
-      } else {
-        scheduleTicksForPhase(phase.durationMs);
+      // No audio cues for Integration yet - see INTEGRATION_PHASE_INDEX.
+      if (phase.name !== 'Integration') {
+        // Only Tummo phases explicitly configured with a resonant cue - a
+        // resonantSoundId, or (for the final hold's countdown) just a
+        // resonantDelayedCues entry - opt into Voice; everything else on
+        // Tummo stays on the metronome regardless of style.
+        const supportsResonant =
+          pattern.id !== 'tummo' || phase.resonantSoundId != null || (phase.resonantDelayedCues?.length ?? 0) > 0;
+        if (soundStyle === 'resonant' && supportsResonant) {
+          clearScheduledTicks();
+          playResonantCue(phase);
+        } else {
+          scheduleTicksForPhase(phase.durationMs);
+        }
       }
 
       // The visual animation is fire-and-forget here - phase advancement is
@@ -674,7 +708,7 @@ export function BreathingScreen() {
       // which was audible as a gap against the metronome ticks (which run
       // on their own setTimeout clock). A single JS timer keeps every
       // transition - and therefore every tick schedule - equally precise.
-      if (phase.name === 'Hold') {
+      if (phase.name === 'Hold' || phase.name === 'Integration') {
         activeAnimationRef.current = null;
       } else {
         const animation = Animated.timing(scaleAnim, {
@@ -699,6 +733,12 @@ export function BreathingScreen() {
           if (!isRunningRef.current) {
             return;
           }
+          // Integration only ever runs once, after the final round - once
+          // its own timer is up, the session is over regardless.
+          if (phaseIndex === INTEGRATION_PHASE_INDEX) {
+            stopBreathing();
+            return;
+          }
           const nextIndex = (phaseIndex + 1) % pattern.phases.length;
           // Tummo is the only pattern with a configured number of rounds -
           // every other pattern still loops indefinitely until stopped
@@ -708,6 +748,10 @@ export function BreathingScreen() {
           if (nextIndex === 0 && pattern.id === 'tummo') {
             completedRoundsRef.current += 1;
             if (completedRoundsRef.current >= tummoRounds) {
+              if (tummoIntegrationEnabled) {
+                runPhase(pattern, INTEGRATION_PHASE_INDEX);
+                return;
+              }
               stopBreathing();
               return;
             }
@@ -724,6 +768,8 @@ export function BreathingScreen() {
       soundStyle,
       tummoRounds,
       tummoHoldMode,
+      tummoIntegrationEnabled,
+      tummoIntegrationMinutes,
       stopBreathing,
     ],
   );
@@ -743,12 +789,16 @@ export function BreathingScreen() {
     if (nextIndex === 0 && activePattern.id === 'tummo') {
       completedRoundsRef.current += 1;
       if (completedRoundsRef.current >= tummoRounds) {
+        if (tummoIntegrationEnabled) {
+          runPhase(activePattern, INTEGRATION_PHASE_INDEX);
+          return;
+        }
         stopBreathing();
         return;
       }
     }
     runPhase(activePattern, nextIndex);
-  }, [activePattern, currentPhaseIndex, tummoRounds, stopBreathing, runPhase]);
+  }, [activePattern, currentPhaseIndex, tummoRounds, tummoIntegrationEnabled, stopBreathing, runPhase]);
 
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
@@ -903,7 +953,12 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                displayName={getPatternDisplayName(pattern, tummoRounds)}
+                displayName={getPatternDisplayName(
+                  pattern,
+                  tummoRounds,
+                  tummoIntegrationEnabled,
+                  tummoIntegrationMinutes,
+                )}
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
@@ -922,7 +977,12 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                displayName={getPatternDisplayName(pattern, tummoRounds)}
+                displayName={getPatternDisplayName(
+                  pattern,
+                  tummoRounds,
+                  tummoIntegrationEnabled,
+                  tummoIntegrationMinutes,
+                )}
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
@@ -1091,8 +1151,10 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
   },
   patternName: {
+    flexShrink: 1,
     color: theme.text,
   },
   patternDescription: {

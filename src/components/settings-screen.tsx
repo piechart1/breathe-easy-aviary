@@ -15,13 +15,16 @@ import {
   DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
+  DEFAULT_TUMMO_INTEGRATION_MINUTES,
   DEFAULT_TUMMO_ROUNDS,
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
+  TUMMO_INTEGRATION_MINUTE_OPTIONS,
   type ReminderSettings,
   type SoundStyle,
   type TummoHoldMode,
+  type TummoIntegrationMinutes,
   getAnalyticsEnabled,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
@@ -30,6 +33,8 @@ import {
   getTimerSettings,
   getTummoHoldMode,
   getTummoHoldSeconds,
+  getTummoIntegrationEnabled,
+  getTummoIntegrationMinutes,
   getTummoRounds,
   getTummoSkipToHold,
   getWindDownSettings,
@@ -42,6 +47,8 @@ import {
   setTimerMinutes as persistTimerMinutes,
   setTummoHoldMode as persistTummoHoldMode,
   setTummoHoldSeconds as persistTummoHoldSeconds,
+  setTummoIntegrationEnabled as persistTummoIntegrationEnabled,
+  setTummoIntegrationMinutes as persistTummoIntegrationMinutes,
   setTummoRounds as persistTummoRounds,
   setTummoSkipToHold as persistTummoSkipToHold,
   setWindDownSettings as persistWindDownSettings,
@@ -51,11 +58,11 @@ import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown 
 import { requestHealthKitPermission } from '@/lib/healthkit';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
-const BG_EMU_SIZE = 320;
-const BG_EMU_OPACITY = 0.2;
-const BG_EMU_LIFT = 20;
-const BG_EMU_SHIFT_LEFT = 10;
+const BG_FINCH_SOURCE = require('../../assets/images/bg-finch.png');
+const BG_FINCH_SIZE = 320;
+const BG_FINCH_OPACITY = 0.2;
+const BG_FINCH_LIFT = 20;
+const BG_FINCH_SHIFT_LEFT = 10;
 
 const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
   { length: MAX_BUTEYKO_HOLD_SECONDS - MIN_BUTEYKO_HOLD_SECONDS + 1 },
@@ -73,8 +80,8 @@ const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
 const HEALTHKIT_AVAILABLE = false;
 
 const TUMMO_HOLD_MODE_OPTIONS: { id: TummoHoldMode; label: string }[] = [
-  { id: 'preset', label: 'Preset' },
   { id: 'dynamic', label: 'Dynamic' },
+  { id: 'preset', label: 'Preset' },
 ];
 
 function reminderToDate(reminder: ReminderSettings): Date {
@@ -92,6 +99,9 @@ export function SettingsScreen() {
   const [tummoRounds, setTummoRoundsState] = useState<number>(DEFAULT_TUMMO_ROUNDS);
   const [tummoHoldSeconds, setTummoHoldSecondsState] = useState<number>(DEFAULT_TUMMO_HOLD_SECONDS);
   const [tummoHoldMode, setTummoHoldModeState] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
+  const [tummoIntegrationEnabled, setTummoIntegrationEnabledState] = useState(true);
+  const [tummoIntegrationMinutes, setTummoIntegrationMinutesState] =
+    useState<TummoIntegrationMinutes>(DEFAULT_TUMMO_INTEGRATION_MINUTES);
   const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
@@ -110,6 +120,8 @@ export function SettingsScreen() {
       getTummoSkipToHold().then(setTummoSkipToHoldState);
       getTummoHoldSeconds().then(setTummoHoldSecondsState);
       getTummoHoldMode().then(setTummoHoldModeState);
+      getTummoIntegrationEnabled().then(setTummoIntegrationEnabledState);
+      getTummoIntegrationMinutes().then(setTummoIntegrationMinutesState);
       getSoundStyle().then(setSoundStyleState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getHealthSyncEnabled().then(setHealthSyncEnabledState);
@@ -146,6 +158,16 @@ export function SettingsScreen() {
   const handleToggleTummoSkipToHold = (enabled: boolean) => {
     setTummoSkipToHoldState(enabled);
     persistTummoSkipToHold(enabled);
+  };
+
+  const handleToggleTummoIntegration = (enabled: boolean) => {
+    setTummoIntegrationEnabledState(enabled);
+    persistTummoIntegrationEnabled(enabled);
+  };
+
+  const handleTummoIntegrationMinutesChange = (minutes: TummoIntegrationMinutes) => {
+    setTummoIntegrationMinutesState(minutes);
+    persistTummoIntegrationMinutes(minutes);
   };
 
   const handleTummoHoldSecondsChange = (seconds: number) => {
@@ -234,7 +256,7 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
+      <Image source={BG_FINCH_SOURCE} style={styles.bgImage} pointerEvents="none" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
@@ -244,7 +266,7 @@ export function SettingsScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText type="smallBold" style={styles.subHeading}>
-          Breathwork
+          General
         </ThemedText>
 
         <View style={styles.section}>
@@ -323,6 +345,10 @@ export function SettingsScreen() {
               : 'Sessions run until you stop them manually.'}
           </ThemedText>
         </View>
+
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Patterns
+        </ThemedText>
 
         <View style={styles.section}>
           <ThemedText type="smallBold" style={styles.cardTitle}>
@@ -435,6 +461,51 @@ export function SettingsScreen() {
                 </Host>
               </View>
             </>
+          )}
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Integration
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                Add a quiet integration period after your final round
+              </ThemedText>
+            </View>
+            <Switch
+              value={tummoIntegrationEnabled}
+              onValueChange={handleToggleTummoIntegration}
+              accessibilityLabel="Integration"
+            />
+          </View>
+
+          {tummoIntegrationEnabled && (
+            <View style={styles.minutesRow}>
+              {TUMMO_INTEGRATION_MINUTE_OPTIONS.map((minutes) => {
+                const isSelected = minutes === tummoIntegrationMinutes;
+                return (
+                  <Pressable
+                    key={minutes}
+                    onPress={() => handleTummoIntegrationMinutesChange(minutes)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${minutes} minutes`}
+                    accessibilityState={{ selected: isSelected }}
+                    style={[
+                      styles.minutePill,
+                      { borderColor: isSelected ? theme.accent : theme.border },
+                      isSelected && { backgroundColor: theme.backgroundSelected },
+                    ]}>
+                    <ThemedText
+                      type="smallBold"
+                      style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                      {minutes}m
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
           )}
 
           <View style={styles.divider} />
@@ -580,11 +651,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     bgImage: {
       position: 'absolute',
-      width: BG_EMU_SIZE,
-      height: BG_EMU_SIZE,
-      right: -BG_EMU_SIZE * 0.22 + BG_EMU_SHIFT_LEFT,
-      bottom: -BG_EMU_SIZE * 0.06 + BG_EMU_LIFT,
-      opacity: BG_EMU_OPACITY,
+      width: BG_FINCH_SIZE,
+      height: BG_FINCH_SIZE,
+      right: -BG_FINCH_SIZE * 0.22 + BG_FINCH_SHIFT_LEFT,
+      bottom: -BG_FINCH_SIZE * 0.06 + BG_FINCH_LIFT,
+      opacity: BG_FINCH_OPACITY,
     },
     safeArea: {
       flex: 1,

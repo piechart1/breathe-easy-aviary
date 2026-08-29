@@ -10,6 +10,8 @@ const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
 const TUMMO_ROUNDS_KEY = 'breathe-easy:tummo-rounds';
 const TUMMO_HOLD_MODE_KEY = 'breathe-easy:tummo-hold-mode';
+const TUMMO_INTEGRATION_ENABLED_KEY = 'breathe-easy:tummo-integration-enabled';
+const TUMMO_INTEGRATION_MINUTES_KEY = 'breathe-easy:tummo-integration-minutes';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 
@@ -143,7 +145,7 @@ export async function setTummoRounds(rounds: number): Promise<void> {
 // Retention" button on the Home screen, rather than timing the hold - see
 // handleManualHoldAdvance in breathing-screen.tsx.
 export type TummoHoldMode = 'preset' | 'dynamic';
-export const DEFAULT_TUMMO_HOLD_MODE: TummoHoldMode = 'preset';
+export const DEFAULT_TUMMO_HOLD_MODE: TummoHoldMode = 'dynamic';
 
 export async function getTummoHoldMode(): Promise<TummoHoldMode> {
   const raw = await AsyncStorage.getItem(TUMMO_HOLD_MODE_KEY);
@@ -155,6 +157,37 @@ export async function getTummoHoldMode(): Promise<TummoHoldMode> {
 
 export async function setTummoHoldMode(mode: TummoHoldMode): Promise<void> {
   await AsyncStorage.setItem(TUMMO_HOLD_MODE_KEY, mode);
+}
+
+export async function getTummoIntegrationEnabled(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(TUMMO_INTEGRATION_ENABLED_KEY);
+  // Defaults to on the first time this is read (nothing persisted yet) -
+  // unlike this app's other opt-in toggles, Integration should be on out
+  // of the box.
+  if (raw === null) {
+    return true;
+  }
+  return raw === 'true';
+}
+
+export async function setTummoIntegrationEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(TUMMO_INTEGRATION_ENABLED_KEY, String(enabled));
+}
+
+export const TUMMO_INTEGRATION_MINUTE_OPTIONS = [3, 6, 9] as const;
+export type TummoIntegrationMinutes = (typeof TUMMO_INTEGRATION_MINUTE_OPTIONS)[number];
+export const DEFAULT_TUMMO_INTEGRATION_MINUTES: TummoIntegrationMinutes = 3;
+
+export async function getTummoIntegrationMinutes(): Promise<TummoIntegrationMinutes> {
+  const raw = await AsyncStorage.getItem(TUMMO_INTEGRATION_MINUTES_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_TUMMO_INTEGRATION_MINUTES;
+  return TUMMO_INTEGRATION_MINUTE_OPTIONS.includes(parsed as TummoIntegrationMinutes)
+    ? (parsed as TummoIntegrationMinutes)
+    : DEFAULT_TUMMO_INTEGRATION_MINUTES;
+}
+
+export async function setTummoIntegrationMinutes(minutes: TummoIntegrationMinutes): Promise<void> {
+  await AsyncStorage.setItem(TUMMO_INTEGRATION_MINUTES_KEY, String(minutes));
 }
 
 export type ReminderSettings = { enabled: boolean; hour: number; minute: number };

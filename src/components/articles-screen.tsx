@@ -7,24 +7,26 @@ import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { ARTICLES } from '@/constants/articles';
+import { todaysQuote } from '@/constants/quotes';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_COCKATOO_SOURCE = require('../../assets/images/bg-cockatoo.png');
-const BG_COCKATOO_SIZE = 380;
-const BG_COCKATOO_OPACITY = 0.2;
-const BG_COCKATOO_LIFT = 20;
-const BG_COCKATOO_SHIFT_LEFT = 10;
+const BG_EMU_SOURCE = require('../../assets/images/bg-emu.png');
+const BG_EMU_SIZE = 380;
+const BG_EMU_OPACITY = 0.2;
+const BG_EMU_LIFT = 20;
+const BG_EMU_SHIFT_LEFT = -40;
 
 export function ArticlesScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const quote = useMemo(() => todaysQuote(), []);
 
   return (
     <View style={styles.container}>
-      <Image source={BG_COCKATOO_SOURCE} style={styles.bgImage} pointerEvents="none" />
+      <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
@@ -35,6 +37,15 @@ export function ArticlesScreen() {
         <ScrollView
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}>
+          <View style={styles.quoteContainer}>
+            <ThemedText type="small" style={styles.quoteText}>
+              &ldquo;{quote.text}&rdquo;
+            </ThemedText>
+            <ThemedText type="small" style={styles.quoteAuthor}>
+              — {quote.author}
+            </ThemedText>
+          </View>
+
           {ARTICLES.map((article) => (
             <Pressable
               key={article.slug}
@@ -67,11 +78,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     bgImage: {
       position: 'absolute',
-      width: BG_COCKATOO_SIZE,
-      height: BG_COCKATOO_SIZE,
-      right: -BG_COCKATOO_SIZE * 0.22 + BG_COCKATOO_SHIFT_LEFT,
-      bottom: -BG_COCKATOO_SIZE * 0.06 + BG_COCKATOO_LIFT,
-      opacity: BG_COCKATOO_OPACITY,
+      width: BG_EMU_SIZE,
+      height: BG_EMU_SIZE,
+      right: -BG_EMU_SIZE * 0.22 + BG_EMU_SHIFT_LEFT,
+      bottom: -BG_EMU_SIZE * 0.06 + BG_EMU_LIFT,
+      opacity: BG_EMU_OPACITY,
     },
     safeArea: {
       flex: 1,
@@ -89,6 +100,23 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       gap: Spacing.three,
       paddingTop: Spacing.four,
       paddingBottom: Spacing.five,
+    },
+    quoteContainer: {
+      alignItems: 'center',
+      gap: Spacing.two,
+      paddingVertical: Spacing.two,
+    },
+    quoteText: {
+      color: theme.text,
+      fontStyle: 'italic',
+      fontSize: 22,
+      lineHeight: 30,
+      textAlign: 'center',
+    },
+    quoteAuthor: {
+      alignSelf: 'stretch',
+      color: theme.textSecondary,
+      textAlign: 'right',
     },
     articleCard: {
       flexDirection: 'row',
