@@ -59,6 +59,17 @@ import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
 const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
 const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
+
+// Home circle-only accent overrides, keyed by pattern id - the glow/circle
+// opacities (0.12/0.22/0.92, see the "circle"/"glowInner"/"glowOuter"
+// styles) already lighten a single base color outward, so overriding just
+// this base color reproduces the same lighten-outward effect at a
+// different hue without touching PATTERN_ACCENT_COLORS (which also drives
+// the pattern list card's selected-border color, left as-is here). Tummo's
+// is Pantone 17-1230 TCX "Mocha Mousse".
+const CIRCLE_ACCENT_COLOR_OVERRIDES: Record<string, string> = {
+  tummo: '#A47864',
+};
 const BG_MAGPIE_SOURCE = require('../../assets/images/bg-magpie.png');
 const BG_MAGPIE_SIZE = 380;
 const BG_MAGPIE_OPACITY = 0.2;
@@ -852,7 +863,10 @@ export function BreathingScreen() {
     };
   }, [scaleAnim]);
 
-  const activeAccentColor = PATTERN_ACCENT_COLORS[selectedPatternId] ?? BreathingColors.saltwaterSlide;
+  const activeAccentColor =
+    CIRCLE_ACCENT_COLOR_OVERRIDES[selectedPatternId] ??
+    PATTERN_ACCENT_COLORS[selectedPatternId] ??
+    BreathingColors.saltwaterSlide;
   const infoPattern = BREATHING_PATTERNS.find((pattern) => pattern.id === infoPatternId) ?? null;
 
   return (

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1600" height="1600"><title>variegated-wren</title>
+<path d="M48 42 C62 42 72 54 72 67 C72 80 62 88 50 88 C38 88 28 80 28 67 C28 54 34 42 48 42 Z" fill="#a89c86"></path>
+        <ellipse cx="48" cy="72" rx="15" ry="14" fill="#f4f2ea"></ellipse>
+        <path d="M40 52 C48 48 58 50 64 56 C56 60 46 60 40 58 Z" fill="#a8452c"></path>
+        <path d="M42 54 C48 58 54 60 58 60 C52 63 45 61 41 58 Z" fill="#16233a"></path>
+        <path d="M64 64 C72 50 80 32 86 10 C82 32 78 52 72 70 Z" fill="#4a7fb8"></path>
+        <path d="M50 24 C60 24 66 31 66 39 C66 47 59 51 50 51 C41 51 35 46 35 38 C35 30 40 24 50 24 Z" fill="#3d8fe0"></path>
+        <circle cx="43" cy="36" r="2.8" fill="#0b1018"></circle>
+        <path d="M35 35 L23 32.5 L35 39.5 Z" fill="#1b1a18"></path>
+        <g stroke="#8a5a3c" stroke-width="2.6" stroke-linecap="round" fill="none">
+          <path d="M46 86 L42 96"></path>
+          <path d="M56 86 L58 96"></path>
+          <path d="M36 96.6 L46 95.6"></path>
+          <path d="M54 96.4 L64 95.4"></path>
+        </g>
+</svg>
