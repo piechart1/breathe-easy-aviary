@@ -29,6 +29,7 @@ import {
 } from '@/constants/breathing-patterns';
 import { SystemFont, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { BACKING_MUSIC_ROTATION_SOURCES, getNextBackingMusicTrackIndex, TUMMO_SOUNDTRACK_SOURCES } from '@/lib/backing-music';
 import { logMindfulSession } from '@/lib/healthkit';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
@@ -39,10 +40,13 @@ import {
   DEFAULT_TUMMO_HOLD_SECONDS,
   DEFAULT_TUMMO_INTEGRATION_MINUTES,
   DEFAULT_TUMMO_ROUNDS,
+  DEFAULT_TUMMO_SOUNDTRACK,
   MAX_TUMMO_HOLD_SECONDS,
   type SoundStyle,
   type TummoHoldMode,
   type TummoIntegrationMinutes,
+  type TummoSoundtrack,
+  getBackingMusicEnabled,
   getButeykoHoldSeconds,
   getHealthSyncEnabled,
   getSoundStyle,
@@ -53,6 +57,7 @@ import {
   getTummoIntegrationMinutes,
   getTummoRounds,
   getTummoSkipToHold,
+  getTummoSoundtrack,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
 
@@ -77,6 +82,10 @@ const BG_MAGPIE_SHIFT_LEFT = 10;
 const TICK_SOURCE = require('../../assets/sounds/tick.wav');
 const TICK_ACCENT_VOLUME = 1;
 const TICK_VOLUME = 0.15;
+// Kept low relative to the ticks/voice cues (TICK_VOLUME just above,
+// RESONANT_CUE_VOLUME below) since it's meant to sit underneath them, not
+// compete with them.
+const BACKING_MUSIC_VOLUME = 0.35;
 
 // Resonant sound style: one spoken cue per phase instead of the metronome's
 // repeated ticks. Most of Tummo's phases don't have a resonant cue set up
@@ -263,6 +272,38 @@ function tummoHoldDelayedCues(durationMs: number): { atMs: number; soundId: stri
 // newer one, which is audible as a cut-off or dropped cue.
 const playRequestGeneration = new WeakMap<AudioPlayer, number>();
 
+// Retries a stalled backing-music .play() call by fully resetting the
+// player (pause + seek to 0 + play) rather than just calling play() again,
+// which is a no-op if the player is already stuck in AVPlayer's
+// "evaluatingBufferingRate" wait state - a real, if intermittent, native
+// buffering race observed switching into Tummo's Integration track (isLoaded
+// true, not erroring, just never flipping to playing). Bails out early if
+// the session has since stopped, so a late retry can't resurrect audio
+// after the user has already stopped the session.
+async function ensureBackingMusicPlaying(player: AudioPlayer, label: string, isRunningRef: { current: boolean }) {
+  const retryDelaysMs = [300, 800, 1500];
+  for (const delayMs of retryDelaysMs) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    if (!isRunningRef.current || player.playing) {
+      return;
+    }
+    console.log(`[backing-music] ${label}: not playing after ${delayMs}ms, resetting and retrying`);
+    player.pause();
+    try {
+      await player.seekTo(0);
+    } catch (error) {
+      console.log('[backing-music] seekTo failed during retry', error);
+    }
+    if (!isRunningRef.current) {
+      return;
+    }
+    player.play();
+  }
+  if (!player.playing) {
+    console.log(`[backing-music] ${label}: still not playing after all retries`);
+  }
+}
+
 async function playSound(player: AudioPlayer, volume: number) {
   if (!player.isLoaded) {
     return;
@@ -360,6 +401,41 @@ export function BreathingScreen() {
   const phaseElapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
+  // One player per possible backing track, pre-loaded from mount - matches
+  // every other sound in this file (each resonant cue below is its own
+  // useAudioPlayer(SOURCE) too) rather than one shared player whose source
+  // gets swapped with .replace() at session-start time. These are .m4a
+  // (like every other sound here) rather than the .mp3 originals - mp3
+  // hit a documented expo-audio/iOS AVPlayer bug where content-type
+  // inference fails and the asset never finishes loading; converting to
+  // .m4a sidesteps that class of bug entirely rather than working around it.
+  const rotationPlayer0 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[0]);
+  const rotationPlayer1 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[1]);
+  const rotationPlayer2 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[2]);
+  const rotationPlayer3 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[3]);
+  const rotationPlayer4 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[4]);
+  const rotationPlayer5 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[5]);
+  const rotationPlayer6 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[6]);
+  const rotationPlayers = useMemo(
+    () => [
+      rotationPlayer0,
+      rotationPlayer1,
+      rotationPlayer2,
+      rotationPlayer3,
+      rotationPlayer4,
+      rotationPlayer5,
+      rotationPlayer6,
+    ],
+    [rotationPlayer0, rotationPlayer1, rotationPlayer2, rotationPlayer3, rotationPlayer4, rotationPlayer5, rotationPlayer6],
+  );
+  const tummoSet1MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.main);
+  const tummoSet1IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.integration);
+  const tummoSet2MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.main);
+  const tummoSet2IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.integration);
+  const allBackingMusicPlayers = useMemo(
+    () => [...rotationPlayers, tummoSet1MainPlayer, tummoSet1IntegrationPlayer, tummoSet2MainPlayer, tummoSet2IntegrationPlayer],
+    [rotationPlayers, tummoSet1MainPlayer, tummoSet1IntegrationPlayer, tummoSet2MainPlayer, tummoSet2IntegrationPlayer],
+  );
   const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
   const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
   const resonantHoldPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.hold);
@@ -461,8 +537,10 @@ export function BreathingScreen() {
   const [tummoIntegrationMinutes, setTummoIntegrationMinutes] = useState<TummoIntegrationMinutes>(
     DEFAULT_TUMMO_INTEGRATION_MINUTES,
   );
+  const [tummoSoundtrack, setTummoSoundtrack] = useState<TummoSoundtrack>(DEFAULT_TUMMO_SOUNDTRACK);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
+  const [backingMusicEnabled, setBackingMusicEnabled] = useState(false);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -537,8 +615,10 @@ export function BreathingScreen() {
       getTummoRounds().then(setTummoRounds);
       getTummoIntegrationEnabled().then(setTummoIntegrationEnabled);
       getTummoIntegrationMinutes().then(setTummoIntegrationMinutes);
+      getTummoSoundtrack().then(setTummoSoundtrack);
       getSoundStyle().then(setSoundStyle);
       getHealthSyncEnabled().then(setHealthSyncEnabled);
+      getBackingMusicEnabled().then(setBackingMusicEnabled);
     }, []),
   );
 
@@ -624,6 +704,7 @@ export function BreathingScreen() {
       phaseTimeoutRef.current = null;
     }
     tickPlayer.pause();
+    allBackingMusicPlayers.forEach((player) => player.pause());
     Object.values(resonantPlayers).forEach((player) => player.pause());
     if (elapsedIntervalRef.current) {
       clearInterval(elapsedIntervalRef.current);
@@ -653,6 +734,7 @@ export function BreathingScreen() {
     clearScheduledTicks,
     clearScheduledResonantCues,
     tickPlayer,
+    allBackingMusicPlayers,
     resonantPlayers,
     selectedPatternId,
     healthSyncEnabled,
@@ -690,6 +772,26 @@ export function BreathingScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } else {
         Haptics.selectionAsync();
+      }
+
+      // Tummo's two backing-track sets each have a dedicated Integration
+      // track, distinct from the one that plays through the rest of the
+      // session - switch to it the moment Integration begins.
+      if (phase.name === 'Integration' && pattern.id === 'tummo' && tummoSoundtrack !== 'off') {
+        const mainPlayer = tummoSoundtrack === 'set1' ? tummoSet1MainPlayer : tummoSet2MainPlayer;
+        const integrationPlayer = tummoSoundtrack === 'set1' ? tummoSet1IntegrationPlayer : tummoSet2IntegrationPlayer;
+        // Start the integration track before pausing the main one, rather
+        // than the reverse - pausing the only currently-active player and
+        // starting a different one in the same instant left a brief window
+        // on-device where iOS's shared audio session was momentarily
+        // inactive, and the new player's .play() lost that race (silently -
+        // isLoaded/isBuffering both looked fine, playing just never flipped
+        // true). Never letting both players be inactive at once avoids it.
+        integrationPlayer.loop = true;
+        integrationPlayer.volume = BACKING_MUSIC_VOLUME;
+        integrationPlayer.play();
+        mainPlayer.pause();
+        ensureBackingMusicPlaying(integrationPlayer, 'Integration', isRunningRef);
       }
 
       // No audio cues for Integration yet - see INTEGRATION_PHASE_INDEX.
@@ -780,6 +882,11 @@ export function BreathingScreen() {
       tummoHoldMode,
       tummoIntegrationEnabled,
       tummoIntegrationMinutes,
+      tummoSoundtrack,
+      tummoSet1MainPlayer,
+      tummoSet1IntegrationPlayer,
+      tummoSet2MainPlayer,
+      tummoSet2IntegrationPlayer,
       stopBreathing,
     ],
   );
@@ -810,6 +917,32 @@ export function BreathingScreen() {
     runPhase(activePattern, nextIndex);
   }, [activePattern, currentPhaseIndex, tummoRounds, tummoIntegrationEnabled, stopBreathing, runPhase]);
 
+  // Tummo ignores the Backing Music toggle entirely and instead plays
+  // whichever track set is chosen under Settings' Soundtrack Selection (see
+  // TUMMO_SOUNDTRACK_SOURCES); every other pattern advances one track
+  // through the shared 7-song rotation, but only when Backing Music is on.
+  const startBackingMusic = useCallback(async () => {
+    try {
+      let player: AudioPlayer | null = null;
+      if (selectedPatternId === 'tummo') {
+        if (tummoSoundtrack !== 'off') {
+          player = tummoSoundtrack === 'set1' ? tummoSet1MainPlayer : tummoSet2MainPlayer;
+        }
+      } else if (backingMusicEnabled) {
+        player = rotationPlayers[await getNextBackingMusicTrackIndex()];
+      }
+      if (!player) {
+        return;
+      }
+      player.loop = true;
+      player.volume = BACKING_MUSIC_VOLUME;
+      player.play();
+      ensureBackingMusicPlaying(player, 'startBackingMusic', isRunningRef);
+    } catch (error) {
+      console.error('[backing-music] startBackingMusic failed', error);
+    }
+  }, [selectedPatternId, tummoSoundtrack, backingMusicEnabled, tummoSet1MainPlayer, tummoSet2MainPlayer, rotationPlayers]);
+
   const startBreathing = useCallback(() => {
     isRunningRef.current = true;
     setIsRunning(true);
@@ -817,6 +950,7 @@ export function BreathingScreen() {
     completedRoundsRef.current = 0;
     sessionStartRef.current = new Date();
     trackPatternStarted(selectedPatternId);
+    startBackingMusic();
 
     let secondsElapsed = 1;
     setElapsedSeconds(secondsElapsed);
@@ -835,7 +969,16 @@ export function BreathingScreen() {
       }
     }, 1000);
     runPhase(activePattern, 0);
-  }, [runPhase, scaleAnim, activePattern, timerEnabled, timerMinutes, stopBreathing, selectedPatternId]);
+  }, [
+    runPhase,
+    scaleAnim,
+    activePattern,
+    timerEnabled,
+    timerMinutes,
+    stopBreathing,
+    selectedPatternId,
+    startBackingMusic,
+  ]);
 
   useEffect(() => {
     if (isRunningRef.current) {
