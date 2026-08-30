@@ -272,36 +272,66 @@ function tummoHoldDelayedCues(durationMs: number): { atMs: number; soundId: stri
 // newer one, which is audible as a cut-off or dropped cue.
 const playRequestGeneration = new WeakMap<AudioPlayer, number>();
 
-// Retries a stalled backing-music .play() call by fully resetting the
-// player (pause + seek to 0 + play) rather than just calling play() again,
-// which is a no-op if the player is already stuck in AVPlayer's
-// "evaluatingBufferingRate" wait state - a real, if intermittent, native
-// buffering race observed switching into Tummo's Integration track (isLoaded
-// true, not erroring, just never flipping to playing). Bails out early if
-// the session has since stopped, so a late retry can't resurrect audio
-// after the user has already stopped the session.
-async function ensureBackingMusicPlaying(player: AudioPlayer, label: string, isRunningRef: { current: boolean }) {
-  const retryDelaysMs = [300, 800, 1500];
-  for (const delayMs of retryDelaysMs) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    if (!isRunningRef.current || player.playing) {
-      return;
-    }
-    console.log(`[backing-music] ${label}: not playing after ${delayMs}ms, resetting and retrying`);
-    player.pause();
-    try {
-      await player.seekTo(0);
-    } catch (error) {
-      console.log('[backing-music] seekTo failed during retry', error);
-    }
+// Keeps `player` playing for as long as it's the currently-active backing
+// track, reacting to *any* playbackStatusUpdate that reports it's stopped -
+// not just a one-off delayed check - since on-device this can fail two
+// different ways: never starting at all (stuck in AVPlayer's
+// "evaluatingBufferingRate" wait state right after play()), or starting
+// fine and then stalling a moment later (the initial primed buffer running
+// out before more has downloaded). A single delayed check only ever caught
+// the first case; the second one showed no logs at all because by the time
+// it stalled, that one-shot check had already seen "playing" once and
+// stopped looking.
+//
+// Resets (pause + seek to 0 + play) rather than just calling play() again,
+// since that's a no-op on a player already stuck "waiting". Ignores
+// updates in the first GRACE_PERIOD_MS after being attached (normal
+// startup briefly reports not-playing) and rate-limits recovery attempts
+// so a genuinely broken source can't spin in a tight loop.
+//
+// Caller owns the returned subscription's lifetime: remove() it as soon as
+// this player stops being the one that's supposed to be playing (swapping
+// to a different track, or the session stopping) - otherwise it will "helpfully"
+// resume a deliberate pause.
+function watchAndKeepBackingMusicPlaying(
+  player: AudioPlayer,
+  label: string,
+  isRunningRef: { current: boolean },
+): { remove: () => void } {
+  const GRACE_PERIOD_MS = 500;
+  const MIN_RECOVERY_INTERVAL_MS = 800;
+  const attachedAt = Date.now();
+  let lastRecoveryAt = 0;
+  let recovering = false;
+
+  const subscription = player.addListener('playbackStatusUpdate', (status) => {
     if (!isRunningRef.current) {
+      subscription.remove();
       return;
     }
-    player.play();
-  }
-  if (!player.playing) {
-    console.log(`[backing-music] ${label}: still not playing after all retries`);
-  }
+    if (status.playing || recovering) {
+      return;
+    }
+    const now = Date.now();
+    if (now - attachedAt < GRACE_PERIOD_MS || now - lastRecoveryAt < MIN_RECOVERY_INTERVAL_MS) {
+      return;
+    }
+    recovering = true;
+    lastRecoveryAt = now;
+    console.log(`[backing-music] ${label}: stopped unexpectedly, resetting and retrying`);
+    player.pause();
+    player
+      .seekTo(0)
+      .catch((error) => console.log('[backing-music] seekTo failed during recovery', error))
+      .finally(() => {
+        if (isRunningRef.current) {
+          player.play();
+        }
+        recovering = false;
+      });
+  });
+
+  return subscription;
 }
 
 async function playSound(player: AudioPlayer, volume: number) {
@@ -400,6 +430,11 @@ export function BreathingScreen() {
   const completedRoundsRef = useRef(0);
   const phaseElapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
+  // Whichever backing-music player is currently supposed to be playing -
+  // see watchAndKeepBackingMusicPlaying above. Reassigned (with the
+  // previous one removed first) at every point where "the active track"
+  // changes: session start and the Tummo Integration swap.
+  const backingMusicWatcherRef = useRef<{ remove: () => void } | null>(null);
   const tickPlayer = useAudioPlayer(TICK_SOURCE);
   // One player per possible backing track, pre-loaded from mount - matches
   // every other sound in this file (each resonant cue below is its own
@@ -704,6 +739,8 @@ export function BreathingScreen() {
       phaseTimeoutRef.current = null;
     }
     tickPlayer.pause();
+    backingMusicWatcherRef.current?.remove();
+    backingMusicWatcherRef.current = null;
     allBackingMusicPlayers.forEach((player) => player.pause());
     Object.values(resonantPlayers).forEach((player) => player.pause());
     if (elapsedIntervalRef.current) {
@@ -791,7 +828,8 @@ export function BreathingScreen() {
         integrationPlayer.volume = BACKING_MUSIC_VOLUME;
         integrationPlayer.play();
         mainPlayer.pause();
-        ensureBackingMusicPlaying(integrationPlayer, 'Integration', isRunningRef);
+        backingMusicWatcherRef.current?.remove();
+        backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(integrationPlayer, 'Integration', isRunningRef);
       }
 
       // No audio cues for Integration yet - see INTEGRATION_PHASE_INDEX.
@@ -937,7 +975,8 @@ export function BreathingScreen() {
       player.loop = true;
       player.volume = BACKING_MUSIC_VOLUME;
       player.play();
-      ensureBackingMusicPlaying(player, 'startBackingMusic', isRunningRef);
+      backingMusicWatcherRef.current?.remove();
+      backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(player, 'startBackingMusic', isRunningRef);
     } catch (error) {
       console.error('[backing-music] startBackingMusic failed', error);
     }
