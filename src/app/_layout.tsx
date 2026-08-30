@@ -38,8 +38,6 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="articles/[slug]" />
-        <Stack.Screen name="settings/buteyko" />
-        <Stack.Screen name="settings/tummo" />
       </Stack>
     </ThemeProvider>
   );

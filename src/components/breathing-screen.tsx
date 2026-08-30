@@ -33,6 +33,7 @@ import { BACKING_MUSIC_ROTATION_SOURCES, getNextBackingMusicTrackIndex, TUMMO_SO
 import { logMindfulSession } from '@/lib/healthkit';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
+  DEFAULT_BACKING_MUSIC_ENABLED,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
@@ -566,7 +567,7 @@ export function BreathingScreen() {
   const [tummoSoundtrack, setTummoSoundtrack] = useState<TummoSoundtrack>(DEFAULT_TUMMO_SOUNDTRACK);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
-  const [backingMusicEnabled, setBackingMusicEnabled] = useState(false);
+  const [backingMusicEnabled, setBackingMusicEnabled] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];

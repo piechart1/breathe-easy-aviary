@@ -82,11 +82,13 @@ export async function setHealthSyncEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(HEALTH_SYNC_ENABLED_KEY, String(enabled));
 }
 
-// Whether a backing music track plays under breathing exercises - off by
-// default. Track selection/playback wiring lands separately.
+// Whether a backing music track plays under breathing exercises - on by
+// default.
+export const DEFAULT_BACKING_MUSIC_ENABLED = true;
+
 export async function getBackingMusicEnabled(): Promise<boolean> {
   const raw = await AsyncStorage.getItem(BACKING_MUSIC_ENABLED_KEY);
-  return raw === 'true';
+  return raw === null ? DEFAULT_BACKING_MUSIC_ENABLED : raw === 'true';
 }
 
 export async function setBackingMusicEnabled(enabled: boolean): Promise<void> {
@@ -172,10 +174,9 @@ export async function setTummoHoldMode(mode: TummoHoldMode): Promise<void> {
   await AsyncStorage.setItem(TUMMO_HOLD_MODE_KEY, mode);
 }
 
-// Which backing track set (if any) plays during Tummo sessions. Track
-// selection/playback wiring lands separately.
+// Which backing track set (if any) plays during Tummo sessions.
 export type TummoSoundtrack = 'set1' | 'set2' | 'off';
-export const DEFAULT_TUMMO_SOUNDTRACK: TummoSoundtrack = 'off';
+export const DEFAULT_TUMMO_SOUNDTRACK: TummoSoundtrack = 'set1';
 
 export async function getTummoSoundtrack(): Promise<TummoSoundtrack> {
   const raw = await AsyncStorage.getItem(TUMMO_SOUNDTRACK_KEY);

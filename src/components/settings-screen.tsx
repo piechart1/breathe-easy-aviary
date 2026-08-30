@@ -1,34 +1,63 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
+import { Host, Picker } from '@expo/ui';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
+  DEFAULT_BACKING_MUSIC_ENABLED,
+  DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
+  DEFAULT_TUMMO_HOLD_MODE,
+  DEFAULT_TUMMO_HOLD_SECONDS,
+  DEFAULT_TUMMO_INTEGRATION_MINUTES,
+  DEFAULT_TUMMO_ROUNDS,
+  DEFAULT_TUMMO_SOUNDTRACK,
+  MAX_BUTEYKO_HOLD_SECONDS,
+  MIN_BUTEYKO_HOLD_SECONDS,
   TIMER_MINUTE_OPTIONS,
+  TUMMO_INTEGRATION_MINUTE_OPTIONS,
   type ReminderSettings,
   type SoundStyle,
+  type TummoHoldMode,
+  type TummoIntegrationMinutes,
+  type TummoSoundtrack,
   getAnalyticsEnabled,
   getBackingMusicEnabled,
+  getButeykoHoldSeconds,
   getDailyNudgeSettings,
   getHealthSyncEnabled,
   getSoundStyle,
   getTimerSettings,
+  getTummoHoldMode,
+  getTummoHoldSeconds,
+  getTummoIntegrationEnabled,
+  getTummoIntegrationMinutes,
+  getTummoRounds,
+  getTummoSkipToHold,
+  getTummoSoundtrack,
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setBackingMusicEnabled as persistBackingMusicEnabled,
+  setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setDailyNudgeSettings as persistDailyNudgeSettings,
   setHealthSyncEnabled as persistHealthSyncEnabled,
   setSoundStyle as persistSoundStyle,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
+  setTummoHoldMode as persistTummoHoldMode,
+  setTummoHoldSeconds as persistTummoHoldSeconds,
+  setTummoIntegrationEnabled as persistTummoIntegrationEnabled,
+  setTummoIntegrationMinutes as persistTummoIntegrationMinutes,
+  setTummoRounds as persistTummoRounds,
+  setTummoSkipToHold as persistTummoSkipToHold,
+  setTummoSoundtrack as persistTummoSoundtrack,
   setWindDownSettings as persistWindDownSettings,
 } from '@/lib/settings';
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
@@ -47,6 +76,24 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'metronome', label: 'Metronome' },
 ];
 
+const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
+  { length: MAX_BUTEYKO_HOLD_SECONDS - MIN_BUTEYKO_HOLD_SECONDS + 1 },
+  (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
+);
+
+const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
+
+const TUMMO_HOLD_MODE_OPTIONS: { id: TummoHoldMode; label: string }[] = [
+  { id: 'dynamic', label: 'Dynamic' },
+  { id: 'preset', label: 'Preset' },
+];
+
+const TUMMO_SOUNDTRACK_OPTIONS: { id: TummoSoundtrack; label: string }[] = [
+  { id: 'off', label: 'Off' },
+  { id: 'set1', label: 'Track Set 1' },
+  { id: 'set2', label: 'Track Set 2' },
+];
+
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
   date.setHours(reminder.hour, reminder.minute, 0, 0);
@@ -54,17 +101,26 @@ function reminderToDate(reminder: ReminderSettings): Date {
 }
 
 export function SettingsScreen() {
-  const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
-  const [backingMusicEnabled, setBackingMusicEnabledState] = useState(false);
+  const [backingMusicEnabled, setBackingMusicEnabledState] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [healthSyncEnabled, setHealthSyncEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
   const [windDown, setWindDown] = useState<ReminderSettings>({ enabled: false, hour: 21, minute: 0 });
+  const [buteykoHoldSeconds, setButeykoHoldSecondsState] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
+  const [tummoRounds, setTummoRoundsState] = useState<number>(DEFAULT_TUMMO_ROUNDS);
+  const [tummoHoldSeconds, setTummoHoldSecondsState] = useState<number>(DEFAULT_TUMMO_HOLD_SECONDS);
+  const [tummoHoldMode, setTummoHoldModeState] = useState<TummoHoldMode>(DEFAULT_TUMMO_HOLD_MODE);
+  const [tummoSoundtrack, setTummoSoundtrackState] = useState<TummoSoundtrack>(DEFAULT_TUMMO_SOUNDTRACK);
+  const [tummoIntegrationEnabled, setTummoIntegrationEnabledState] = useState(true);
+  const [tummoIntegrationMinutes, setTummoIntegrationMinutesState] = useState<TummoIntegrationMinutes>(
+    DEFAULT_TUMMO_INTEGRATION_MINUTES,
+  );
+  const [tummoSkipToHold, setTummoSkipToHoldState] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,6 +134,14 @@ export function SettingsScreen() {
       getHealthSyncEnabled().then(setHealthSyncEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
       getWindDownSettings().then(setWindDown);
+      getButeykoHoldSeconds().then(setButeykoHoldSecondsState);
+      getTummoRounds().then(setTummoRoundsState);
+      getTummoSkipToHold().then(setTummoSkipToHoldState);
+      getTummoHoldSeconds().then(setTummoHoldSecondsState);
+      getTummoHoldMode().then(setTummoHoldModeState);
+      getTummoSoundtrack().then(setTummoSoundtrackState);
+      getTummoIntegrationEnabled().then(setTummoIntegrationEnabledState);
+      getTummoIntegrationMinutes().then(setTummoIntegrationMinutesState);
     }, []),
   );
 
@@ -175,6 +239,46 @@ export function SettingsScreen() {
     }
   };
 
+  const handleButeykoHoldChange = (seconds: number) => {
+    setButeykoHoldSecondsState(seconds);
+    persistButeykoHoldSeconds(seconds);
+  };
+
+  const handleTummoRoundsChange = (rounds: number) => {
+    setTummoRoundsState(rounds);
+    persistTummoRounds(rounds);
+  };
+
+  const handleSelectTummoSoundtrack = (soundtrack: TummoSoundtrack) => {
+    setTummoSoundtrackState(soundtrack);
+    persistTummoSoundtrack(soundtrack);
+  };
+
+  const handleSelectTummoHoldMode = (mode: TummoHoldMode) => {
+    setTummoHoldModeState(mode);
+    persistTummoHoldMode(mode);
+  };
+
+  const handleTummoHoldSecondsChange = (seconds: number) => {
+    setTummoHoldSecondsState(seconds);
+    persistTummoHoldSeconds(seconds);
+  };
+
+  const handleToggleTummoIntegration = (enabled: boolean) => {
+    setTummoIntegrationEnabledState(enabled);
+    persistTummoIntegrationEnabled(enabled);
+  };
+
+  const handleTummoIntegrationMinutesChange = (minutes: TummoIntegrationMinutes) => {
+    setTummoIntegrationMinutesState(minutes);
+    persistTummoIntegrationMinutes(minutes);
+  };
+
+  const handleToggleTummoSkipToHold = (enabled: boolean) => {
+    setTummoSkipToHoldState(enabled);
+    persistTummoSkipToHold(enabled);
+  };
+
   return (
     <View style={styles.container}>
       <Image source={BG_FINCH_SOURCE} style={styles.bgImage} pointerEvents="none" />
@@ -219,9 +323,9 @@ export function SettingsScreen() {
           <ThemedText type="small" style={styles.sectionHint}>
             Choose the audio cue style played during breathing exercises.
           </ThemedText>
-        </View>
 
-        <View style={styles.section}>
+          <View style={styles.divider} />
+
           <View style={styles.toggleRow}>
             <ThemedText type="smallBold" style={styles.sectionLabel}>
               Backing Music
@@ -236,9 +340,9 @@ export function SettingsScreen() {
           <ThemedText type="small" style={styles.sectionHint}>
             Play a music track underneath breathing exercises.
           </ThemedText>
-        </View>
 
-        <View style={styles.section}>
+          <View style={styles.divider} />
+
           <View style={styles.toggleRow}>
             <ThemedText type="smallBold" style={styles.sectionLabel}>
               Auto Stop
@@ -285,42 +389,214 @@ export function SettingsScreen() {
         </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
-          Patterns
+          Buteyko
         </ThemedText>
 
-        <Pressable
-          onPress={() => router.push('/settings/buteyko')}
-          accessibilityRole="button"
-          accessibilityLabel="Buteyko settings"
-          style={({ pressed }) => [styles.section, { opacity: pressed ? 0.7 : 1 }]}>
-          <View style={styles.toggleRow}>
-            <ThemedText type="smallBold" style={styles.cardTitle}>
-              Buteyko
-            </ThemedText>
-            <SymbolView
-              name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-              size={16}
-              tintColor={theme.textSecondary}
-            />
-          </View>
-        </Pressable>
+        <View style={styles.section}>
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Hold Duration
+          </ThemedText>
 
-        <Pressable
-          onPress={() => router.push('/settings/tummo')}
-          accessibilityRole="button"
-          accessibilityLabel="Tummo settings"
-          style={({ pressed }) => [styles.section, { opacity: pressed ? 0.7 : 1 }]}>
+          <Host matchContents={{ vertical: true }} style={styles.secondsPickerHost} seedColor={theme.text}>
+            <Picker
+              selectedValue={buteykoHoldSeconds}
+              onValueChange={handleButeykoHoldChange}
+              appearance="menu">
+              {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
+                <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
+              ))}
+            </Picker>
+          </Host>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Sustainable breath hold duration. You may notice you can increase this value over time as your practice develops.
+          </ThemedText>
+        </View>
+
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Tummo
+        </ThemedText>
+
+        <View style={styles.section}>
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Number of Rounds
+          </ThemedText>
+
+          <View style={styles.minutesRow}>
+            {TUMMO_ROUND_OPTIONS.map((rounds) => {
+              const isSelected = rounds === tummoRounds;
+              return (
+                <Pressable
+                  key={rounds}
+                  onPress={() => handleTummoRoundsChange(rounds)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${rounds} round${rounds > 1 ? 's' : ''}`}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[
+                    styles.minutePill,
+                    { borderColor: isSelected ? theme.accent : theme.border },
+                    isSelected && { backgroundColor: theme.backgroundSelected },
+                  ]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {rounds}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            Recommend starting with 1 and building up to 2 or 3 over time as your body adapts.
+          </ThemedText>
+
+          <View style={styles.divider} />
+
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Soundtrack Selection
+          </ThemedText>
+
+          <View style={styles.segmentedControl}>
+            {TUMMO_SOUNDTRACK_OPTIONS.map((option) => {
+              const isSelected = option.id === tummoSoundtrack;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => handleSelectTummoSoundtrack(option.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.divider} />
+
+          <ThemedText type="smallBold" style={styles.cardTitle}>
+            Retention duration
+          </ThemedText>
+
+          <View style={styles.segmentedControl}>
+            {TUMMO_HOLD_MODE_OPTIONS.map((option) => {
+              const isSelected = option.id === tummoHoldMode;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => handleSelectTummoHoldMode(option.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: isSelected }}
+                  style={[styles.segment, isSelected && { backgroundColor: theme.background }]}>
+                  <ThemedText
+                    type="smallBold"
+                    style={[styles.segmentText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            {tummoHoldMode === 'preset'
+              ? 'Hold for a fixed, configurable duration.'
+              : "Hold until you indicate you're ready to move on."}
+          </ThemedText>
+
+          {tummoHoldMode === 'preset' && (
+            <>
+              <View style={styles.divider} />
+
+              <View style={styles.toggleRow}>
+                <ThemedText type="small" style={styles.sectionHint}>
+                  Hold Duration
+                </ThemedText>
+
+                <Host matchContents={{ vertical: true }} style={styles.secondsPickerHost} seedColor={theme.text}>
+                  <Picker
+                    selectedValue={tummoHoldSeconds}
+                    onValueChange={handleTummoHoldSecondsChange}
+                    appearance="menu">
+                    {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
+                      <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
+                    ))}
+                  </Picker>
+                </Host>
+              </View>
+            </>
+          )}
+
+          <View style={styles.divider} />
+
           <View style={styles.toggleRow}>
-            <ThemedText type="smallBold" style={styles.cardTitle}>
-              Tummo
-            </ThemedText>
-            <SymbolView
-              name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-              size={16}
-              tintColor={theme.textSecondary}
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Integration
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                A quiet integration period after the final round
+              </ThemedText>
+            </View>
+            <Switch
+              value={tummoIntegrationEnabled}
+              onValueChange={handleToggleTummoIntegration}
+              accessibilityLabel="Integration"
             />
           </View>
-        </Pressable>
+
+          {tummoIntegrationEnabled && (
+            <View style={styles.minutesRow}>
+              {TUMMO_INTEGRATION_MINUTE_OPTIONS.map((minutes) => {
+                const isSelected = minutes === tummoIntegrationMinutes;
+                return (
+                  <Pressable
+                    key={minutes}
+                    onPress={() => handleTummoIntegrationMinutesChange(minutes)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${minutes} minutes`}
+                    accessibilityState={{ selected: isSelected }}
+                    style={[
+                      styles.minutePill,
+                      { borderColor: isSelected ? theme.accent : theme.border },
+                      isSelected && { backgroundColor: theme.backgroundSelected },
+                    ]}>
+                    <ThemedText
+                      type="smallBold"
+                      style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                      {minutes}m
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.reminderLabel}>
+              <ThemedText type="smallBold" style={styles.sectionLabel}>
+                Skip to Hold
+              </ThemedText>
+              <ThemedText type="small" style={styles.sectionHint}>
+                Go straight to the retention hold, skipping the 30 breaths
+              </ThemedText>
+            </View>
+            <Switch
+              value={tummoSkipToHold}
+              onValueChange={handleToggleTummoSkipToHold}
+              accessibilityLabel="Skip to Hold"
+            />
+          </View>
+        </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
           Reminders
@@ -525,6 +801,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     minutePillText: {
       fontSize: 14,
+    },
+    secondsPickerHost: {
+      alignSelf: 'flex-start',
+      // Width is fixed rather than left to matchContents' horizontal mode:
+      // that mode locks its measurement at mount, but selectedValue (loaded
+      // from storage a moment after mount) can render a much wider label
+      // than the default one it mounted with - e.g. "300s" vs "15s" - and
+      // the stale, too-narrow box then lets the wider SwiftUI label overflow
+      // and wrap outside the card. A fixed width sized for the widest
+      // possible label (up to MAX_BUTEYKO_HOLD_SECONDS = 300) avoids that.
+      minWidth: 72,
     },
     reminderLabel: {
       flex: 1,
