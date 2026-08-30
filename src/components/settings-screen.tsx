@@ -47,9 +47,6 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'metronome', label: 'Metronome' },
 ];
 
-// See the comment above the "Log Sessions to Apple Health" row below.
-const HEALTHKIT_AVAILABLE = false;
-
 function reminderToDate(reminder: ReminderSettings): Date {
   const date = new Date();
   date.setHours(reminder.hour, reminder.minute, 0, 0);
@@ -409,13 +406,7 @@ export function SettingsScreen() {
             Helps catch bugs and shows which patterns get used - never anything that identifies you, and nothing is sent unless this is on.
           </ThemedText>
 
-          {/* Hidden until Breathe Easy is signed with a paid Apple Developer
-              Program team - a free/personal team cannot be granted the
-              HealthKit entitlement at all, so requestHealthKitPermission()
-              would crash immediately. The rest of the integration
-              (src/lib/healthkit.ts, breathing-screen.tsx's session logging)
-              is left in place, just unreachable while this stays false. */}
-          {HEALTHKIT_AVAILABLE && Platform.OS === 'ios' && (
+          {Platform.OS === 'ios' && (
             <>
               <View style={styles.divider} />
               <View style={styles.toggleRow}>

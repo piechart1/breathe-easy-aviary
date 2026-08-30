@@ -48,7 +48,15 @@
       "./plugins/withSentryUploadDisabled",
       "@sentry/react-native",
       "./plugins/withoutPushEntitlement",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Breathe Easy does not read your Health data.",
+          "NSHealthUpdateUsageDescription": "Breathe Easy saves completed breathing sessions to Health as Mindful Minutes.",
+          "background": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
