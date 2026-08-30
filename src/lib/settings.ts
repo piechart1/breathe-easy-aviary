@@ -5,11 +5,13 @@ const TIMER_MINUTES_KEY = 'breathe-easy:timer-minutes';
 const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
 const HEALTH_SYNC_ENABLED_KEY = 'breathe-easy:health-sync-enabled';
+const BACKING_MUSIC_ENABLED_KEY = 'breathe-easy:backing-music-enabled';
 const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
 const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
 const TUMMO_ROUNDS_KEY = 'breathe-easy:tummo-rounds';
 const TUMMO_HOLD_MODE_KEY = 'breathe-easy:tummo-hold-mode';
+const TUMMO_SOUNDTRACK_KEY = 'breathe-easy:tummo-soundtrack';
 const TUMMO_INTEGRATION_ENABLED_KEY = 'breathe-easy:tummo-integration-enabled';
 const TUMMO_INTEGRATION_MINUTES_KEY = 'breathe-easy:tummo-integration-minutes';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
@@ -78,6 +80,17 @@ export async function getHealthSyncEnabled(): Promise<boolean> {
 
 export async function setHealthSyncEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(HEALTH_SYNC_ENABLED_KEY, String(enabled));
+}
+
+// Whether a backing music track plays under breathing exercises - off by
+// default. Track selection/playback wiring lands separately.
+export async function getBackingMusicEnabled(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(BACKING_MUSIC_ENABLED_KEY);
+  return raw === 'true';
+}
+
+export async function setBackingMusicEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(BACKING_MUSIC_ENABLED_KEY, String(enabled));
 }
 
 export type SoundStyle = 'metronome' | 'resonant';
@@ -157,6 +170,23 @@ export async function getTummoHoldMode(): Promise<TummoHoldMode> {
 
 export async function setTummoHoldMode(mode: TummoHoldMode): Promise<void> {
   await AsyncStorage.setItem(TUMMO_HOLD_MODE_KEY, mode);
+}
+
+// Which backing track set (if any) plays during Tummo sessions. Track
+// selection/playback wiring lands separately.
+export type TummoSoundtrack = 'set1' | 'set2' | 'off';
+export const DEFAULT_TUMMO_SOUNDTRACK: TummoSoundtrack = 'off';
+
+export async function getTummoSoundtrack(): Promise<TummoSoundtrack> {
+  const raw = await AsyncStorage.getItem(TUMMO_SOUNDTRACK_KEY);
+  if (raw === 'set1' || raw === 'set2' || raw === 'off') {
+    return raw;
+  }
+  return DEFAULT_TUMMO_SOUNDTRACK;
+}
+
+export async function setTummoSoundtrack(soundtrack: TummoSoundtrack): Promise<void> {
+  await AsyncStorage.setItem(TUMMO_SOUNDTRACK_KEY, soundtrack);
 }
 
 export async function getTummoIntegrationEnabled(): Promise<boolean> {

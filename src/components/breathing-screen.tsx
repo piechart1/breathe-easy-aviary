@@ -65,10 +65,9 @@ const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
 // styles) already lighten a single base color outward, so overriding just
 // this base color reproduces the same lighten-outward effect at a
 // different hue without touching PATTERN_ACCENT_COLORS (which also drives
-// the pattern list card's selected-border color, left as-is here). Tummo's
-// is Pantone 17-1230 TCX "Mocha Mousse".
+// the pattern list card's selected-border color, left as-is here).
 const CIRCLE_ACCENT_COLOR_OVERRIDES: Record<string, string> = {
-  tummo: '#A47864',
+  tummo: '#FE5000',
 };
 const BG_MAGPIE_SOURCE = require('../../assets/images/bg-magpie.png');
 const BG_MAGPIE_SIZE = 380;
