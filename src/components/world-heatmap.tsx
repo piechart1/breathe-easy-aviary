@@ -35,30 +35,32 @@ function hexPolygonPoints(cx: number, cy: number, radius: number): string {
   return vertices.join(' ');
 }
 
-// Placeholder "activity" hotspots, in the same reference coordinate space
-// as the hex grid (0,0 at top-left, refWidth x refHeight) - stands in for
-// real per-location user counts until this is wired to actual PostHog data.
-// Roughly: US, Western Europe, India, Southeast Asia/Australia. Scaled to
-// spread across all three user-count tiers (0, 1-4, 5+) for a
-// representative-looking sample.
-const SAMPLE_HOTSPOTS: { x: number; y: number; weight: number; radius: number }[] = [
-  { x: 190, y: 110, weight: 14, radius: 35 },
-  { x: 470, y: 90, weight: 10, radius: 28 },
-  { x: 650, y: 155, weight: 6, radius: 22 },
-  { x: 740, y: 175, weight: 4, radius: 28 },
-  { x: 800, y: 330, weight: 3, radius: 22 },
-];
+// Placeholder "activity" point, in the same reference coordinate space as
+// the hex grid (0,0 at top-left, refWidth x refHeight) - stands in for real
+// per-location user counts until this is wired to actual PostHog data.
+// Melbourne, identified by eye against the rendered grid (hex coordinates
+// aren't derivable from lat/long here - see the comment on
+// SAMPLE_HOTSPOTS' predecessor in git history for why). Matched to the
+// nearest actual grid point below rather than compared for exact equality,
+// since (799, 338) was read off a screenshot, not copied from the source data.
+const SAMPLE_HOTSPOT_REFERENCE_POINT: [number, number] = [799, 338];
 
-function sampleUserCount(x: number, y: number): number {
-  let value = 0;
-  for (const hotspot of SAMPLE_HOTSPOTS) {
-    const dx = x - hotspot.x;
-    const dy = y - hotspot.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    value += hotspot.weight * Math.exp(-(distance * distance) / (2 * hotspot.radius * hotspot.radius));
-  }
-  return Math.round(value);
+function findNearestPointIndex([targetX, targetY]: [number, number]): number {
+  let nearestIndex = 0;
+  let nearestDistanceSquared = Infinity;
+  points.forEach(([x, y], index) => {
+    const dx = x - targetX;
+    const dy = y - targetY;
+    const distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared < nearestDistanceSquared) {
+      nearestDistanceSquared = distanceSquared;
+      nearestIndex = index;
+    }
+  });
+  return nearestIndex;
 }
+
+const SAMPLE_HOTSPOT_POINT_INDEX = findNearestPointIndex(SAMPLE_HOTSPOT_REFERENCE_POINT);
 
 export function WorldHeatmap({
   width,
@@ -67,7 +69,7 @@ export function WorldHeatmap({
   width: number;
   // Optional per-point user count, same order/length as the bundled hex
   // grid's points - pass this once real location data is wired in. Falls
-  // back to a fixed set of sample hotspots for now.
+  // back to a single sample hotspot for now.
   counts?: number[];
 }) {
   const height = width * (refHeight / refWidth);
@@ -76,7 +78,7 @@ export function WorldHeatmap({
   const hexes = useMemo(
     () =>
       points.map(([x, y], index) => {
-        const count = counts ? (counts[index] ?? 0) : sampleUserCount(x, y);
+        const count = counts ? (counts[index] ?? 0) : index === SAMPLE_HOTSPOT_POINT_INDEX ? 1 : 0;
         return { x, y, color: colorForUserCount(count) };
       }),
     [counts],

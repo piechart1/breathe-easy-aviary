@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
@@ -14,6 +14,18 @@ const BG_WREN_SIZE = 380;
 const BG_WREN_OPACITY = 0.2;
 const BG_WREN_LIFT = 20;
 const BG_WREN_SHIFT_LEFT = 10;
+
+// Required attribution for the licensed backing-music tracks - see
+// src/lib/backing-music.ts for where each track is actually used.
+const MUSIC_CREDITS = [
+  'Music track: A Sweet Story by Guillermo Guareschi',
+  'Music track: Enlivening by Pufino',
+  'Music track: City Life by Spiring',
+  'Music track: Thoughtful by Pufino',
+  'Music track: Freedom Motivation by Walen',
+  'Music track: Careful by Pufino',
+  'Music track: Dark Heart by Walen',
+];
 
 export function AboutScreen() {
   const theme = useTheme();
@@ -30,16 +42,29 @@ export function AboutScreen() {
           </ThemedText>
         </View>
 
-        <ThemedText type="smallBold" style={styles.mapTitle}>
-          Around the World
-        </ThemedText>
-        <ThemedText type="small" style={styles.subtitle}>
-          Where the Breathe Easy community is practicing right now.
-        </ThemedText>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ThemedText type="smallBold" style={styles.mapTitle}>
+            Around the World
+          </ThemedText>
+          <ThemedText type="small" style={styles.subtitle}>
+            Where the Breathe Easy community is practicing.
+          </ThemedText>
 
-        <View style={styles.mapContainer} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
-          {mapWidth > 0 && <WorldHeatmap width={mapWidth} />}
-        </View>
+          <View style={styles.mapContainer} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
+            {mapWidth > 0 && <WorldHeatmap width={mapWidth} />}
+          </View>
+
+          <ThemedText type="smallBold" style={styles.mapTitle}>
+            Music Credits
+          </ThemedText>
+          <View style={styles.creditsList}>
+            {MUSIC_CREDITS.map((credit) => (
+              <ThemedText key={credit} type="small" style={styles.creditLine}>
+                {credit}
+              </ThemedText>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -81,6 +106,16 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     mapContainer: {
       marginTop: Spacing.four,
+    },
+    scrollContent: {
+      paddingBottom: Spacing.five,
+    },
+    creditsList: {
+      marginTop: Spacing.two,
+      gap: Spacing.half,
+    },
+    creditLine: {
+      color: theme.textSecondary,
     },
   });
 }
