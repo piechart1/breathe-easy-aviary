@@ -5,7 +5,7 @@ export const BreathingColors = {
   meadowMist: '#A8D5BA',
   oceanWhisper: '#8FC1D4',
   duskLavender: '#B8AED4',
-  polarBlue: '#6FAFDB',
+  emberOrange: '#FE5000',
 } as const;
 
 // 'Integration' is Tummo-only: a still, silent period appended after the
@@ -68,7 +68,7 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
   cyclicSighing: BreathingColors.meadowMist,
   ujjayi: BreathingColors.oceanWhisper,
   buteyko: BreathingColors.duskLavender,
-  tummo: BreathingColors.polarBlue,
+  tummo: BreathingColors.emberOrange,
 };
 
 // This single 30-breath block, plus the hold/recovery phases that follow it
