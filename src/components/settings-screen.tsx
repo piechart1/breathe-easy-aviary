@@ -326,8 +326,8 @@ export function SettingsScreen() {
             </ThemedText>
             <ThemedText type="small" style={styles.sectionHint}>
               {isPlus
-                ? 'You have full access to every pattern and the complete soundtrack.'
-                : 'Unlock Buteyko, Cyclic Hyperventilation, and the full soundtrack.'}
+                ? 'You have access to every breathing pattern and the complete soundtrack.'
+                : 'Unlock all breathing patterns and the full soundtrack.'}
             </ThemedText>
           </View>
 
