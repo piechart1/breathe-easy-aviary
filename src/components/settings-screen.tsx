@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
@@ -63,6 +63,7 @@ import {
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
 import { requestHealthKitPermission } from '@/lib/healthkit';
+import { presentPlusPaywall, restorePurchases, useIsPlus } from '@/lib/purchases';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_FINCH_SOURCE = require('../../assets/images/bg-finch.png');
@@ -103,6 +104,7 @@ function reminderToDate(reminder: ReminderSettings): Date {
 export function SettingsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const isPlus = useIsPlus() === true;
   const [timerEnabled, setTimerEnabledState] = useState(false);
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
@@ -163,6 +165,25 @@ export function SettingsScreen() {
   const handleToggleBackingMusic = (enabled: boolean) => {
     setBackingMusicEnabledState(enabled);
     persistBackingMusicEnabled(enabled);
+  };
+
+  const handleUpgrade = () => {
+    presentPlusPaywall();
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const restored = await restorePurchases();
+      Alert.alert(
+        restored ? 'Restored' : 'Nothing to restore',
+        restored
+          ? 'Your Plus subscription has been restored.'
+          : "We couldn't find a previous Plus purchase for this account.",
+      );
+    } catch (error) {
+      console.log('[settings] restorePurchases ERROR', error);
+      Alert.alert('Restore failed', 'Something went wrong restoring your purchase. Please try again.');
+    }
   };
 
   const handleToggleAnalytics = (enabled: boolean) => {
@@ -291,6 +312,45 @@ export function SettingsScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText type="smallBold" style={styles.subHeading}>
+          Plus
+        </ThemedText>
+
+        <View style={styles.section}>
+          <View style={styles.reminderLabel}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>
+              {isPlus ? 'Breathe Easy Plus' : 'Free Plan'}
+            </ThemedText>
+            <ThemedText type="small" style={styles.sectionHint}>
+              {isPlus
+                ? 'You have full access to every pattern and the complete soundtrack.'
+                : 'Unlock Buteyko, Cyclic Hyperventilation, and the full soundtrack.'}
+            </ThemedText>
+          </View>
+
+          {!isPlus && (
+            <Pressable
+              onPress={handleUpgrade}
+              accessibilityRole="button"
+              accessibilityLabel="Upgrade to Plus"
+              style={({ pressed }) => [styles.upgradeButton, { opacity: pressed ? 0.85 : 1 }]}>
+              <ThemedText type="smallBold" style={styles.upgradeButtonText}>
+                Upgrade to Plus
+              </ThemedText>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={handleRestorePurchases}
+            accessibilityRole="button"
+            accessibilityLabel="Restore purchases"
+            style={({ pressed }) => [styles.restoreRow, { opacity: pressed ? 0.7 : 1 }]}>
+            <ThemedText type="small" style={styles.restoreText}>
+              Restore Purchases
+            </ThemedText>
+          </Pressable>
+        </View>
+
+        <ThemedText type="smallBold" style={styles.subHeading}>
           General
         </ThemedText>
 
@@ -383,7 +443,7 @@ export function SettingsScreen() {
 
           <ThemedText type="small" style={styles.sectionHint}>
             {timerEnabled
-              ? `Sessions will automatically stop after ${timerMinutes} minutes with the exception of Tummo which will run until completion of the number of rounds set, unless stopped manually.`
+              ? `Sessions will automatically stop after ${timerMinutes} minutes with the exception of Cyclic Hyperventilation which will run until completion of the number of rounds set, unless stopped manually.`
               : 'Sessions run until you stop them manually.'}
           </ThemedText>
         </View>
@@ -414,7 +474,7 @@ export function SettingsScreen() {
         </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
-          Tummo
+          Cyclic Hyperventilation
         </ThemedText>
 
         <View style={styles.section}>
@@ -817,6 +877,21 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       flexShrink: 1,
       gap: Spacing.half,
+    },
+    upgradeButton: {
+      backgroundColor: theme.accent,
+      borderRadius: 10,
+      paddingVertical: Spacing.two,
+      alignItems: 'center',
+    },
+    upgradeButtonText: {
+      color: '#FFFFFF',
+    },
+    restoreRow: {
+      alignItems: 'center',
+    },
+    restoreText: {
+      color: theme.textSecondary,
     },
     timePickerRow: {
       flexDirection: 'row',

@@ -34,6 +34,12 @@ export const BACKING_MUSIC_ROTATION_SOURCES: AudioSource[] = [
   require('../../assets/sounds/bgm-walen-freedom-motivation.m4a'),
 ];
 
+// The only track free (non-Plus) users get - "Pufino - Enlivening". Free
+// users skip getNextBackingMusicTrackIndex() entirely and always play this
+// index instead, so they never advance through (or persist a position in)
+// the shared rotation counter.
+export const FREE_TIER_BACKING_MUSIC_INDEX = 2;
+
 // Advances the persisted rotation index by one (wrapping around) and
 // returns its position in BACKING_MUSIC_ROTATION_SOURCES - called once per
 // session start for every pattern except Tummo, which uses

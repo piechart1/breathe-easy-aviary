@@ -217,10 +217,10 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
   },
   {
     id: 'tummo',
-    name: 'Tummo Breathing',
+    name: 'Cyclic Hyperventilation',
     timing: '30 breaths-hold-1-15',
     description: 'Deep breaths, hold, inhale, hold',
-    info: '30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.\n\nPerform up to 3 rounds, this can be configured in the Settings page.\n\nThe integration phase allows you to transition into a slow, gently nasal breath and rest. This duration can be configured in the Settings page.',
+    info: '30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold - a pattern of rapid breathing and breath-holding known as cyclic hyperventilation. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.\n\nPerform up to 3 rounds, this can be configured in the Settings page.\n\nThe integration phase allows you to transition into a slow, gently nasal breath and rest. This duration can be configured in the Settings page.',
     category: 'advanced',
     phases: [
       ...tummoRapidBreaths,

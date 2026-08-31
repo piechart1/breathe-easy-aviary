@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import Purchases, { type CustomerInfo } from 'react-native-purchases';
+import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 
 const IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
 // The entitlement identifier configured in the RevenueCat dashboard for
-// paid features (advanced patterns, Voice cues, reminders, etc. - exact
-// boundaries not yet decided).
-export const PRO_ENTITLEMENT_ID = 'pro';
+// Plus (advanced patterns, full backing-music rotation).
+export const PLUS_ENTITLEMENT_ID = 'plus';
 
 let initialized = false;
 
-function hasProEntitlement(info: CustomerInfo): boolean {
-  return info.entitlements.active[PRO_ENTITLEMENT_ID] != null;
+function hasPlusEntitlement(info: CustomerInfo): boolean {
+  return info.entitlements.active[PLUS_ENTITLEMENT_ID] != null;
 }
 
 // Configures the RevenueCat SDK once per app launch. Safe to call even
 // without API keys set (e.g. before the RevenueCat project/products are
-// set up) - it just no-ops, so getIsPro() always resolves false and no
+// set up) - it just no-ops, so getIsPlus() always resolves false and no
 // feature ends up gated on a purchases call that can't succeed.
 export function initPurchases(): void {
   if (initialized) {
@@ -32,48 +32,48 @@ export function initPurchases(): void {
   initialized = true;
 }
 
-export async function getIsPro(): Promise<boolean> {
+export async function getIsPlus(): Promise<boolean> {
   if (!initialized) {
     return false;
   }
   try {
     const info = await Purchases.getCustomerInfo();
-    return hasProEntitlement(info);
+    return hasPlusEntitlement(info);
   } catch (error) {
     console.log('[purchases] getCustomerInfo ERROR', error);
     return false;
   }
 }
 
-// Resolves the up-to-date Pro status; throws on failure so a paywall
+// Resolves the up-to-date Plus status; throws on failure so a paywall
 // screen can distinguish "restore found nothing" from "restore failed".
 export async function restorePurchases(): Promise<boolean> {
   const info = await Purchases.restorePurchases();
-  return hasProEntitlement(info);
+  return hasPlusEntitlement(info);
 }
 
-// Reactive Pro-entitlement check for gating UI - starts as `null` (unknown)
+// Reactive Plus-entitlement check for gating UI - starts as `null` (unknown)
 // until the first CustomerInfo resolves, so callers can distinguish
-// "still loading" from "confirmed not Pro" and avoid a flash of gated UI.
-export function useIsPro(): boolean | null {
-  const [isPro, setIsPro] = useState<boolean | null>(null);
+// "still loading" from "confirmed not Plus" and avoid a flash of gated UI.
+export function useIsPlus(): boolean | null {
+  const [isPlus, setIsPlus] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!initialized) {
-      setIsPro(false);
+      setIsPlus(false);
       return;
     }
 
     let cancelled = false;
-    getIsPro().then((value) => {
+    getIsPlus().then((value) => {
       if (!cancelled) {
-        setIsPro(value);
+        setIsPlus(value);
       }
     });
 
     const listener = (info: CustomerInfo) => {
       if (!cancelled) {
-        setIsPro(hasProEntitlement(info));
+        setIsPlus(hasPlusEntitlement(info));
       }
     };
     Purchases.addCustomerInfoUpdateListener(listener);
@@ -84,5 +84,23 @@ export function useIsPro(): boolean | null {
     };
   }, []);
 
-  return isPro;
+  return isPlus;
+}
+
+// Single call site for every "Upgrade to Plus" trigger in the app - shows
+// RevenueCat's dashboard-configured paywall (a no-op if the user is already
+// entitled) and reports back whether they ended up with Plus access, so
+// callers can e.g. immediately let a just-purchased action proceed.
+export async function presentPlusPaywall(): Promise<boolean> {
+  try {
+    const result = await RevenueCatUI.presentPaywallIfNeeded({
+      requiredEntitlementIdentifier: PLUS_ENTITLEMENT_ID,
+    });
+    return result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED;
+  } catch (error) {
+    // e.g. no native paywall module on this platform/build (web preview),
+    // or no offering configured yet in the RevenueCat dashboard.
+    console.log('[purchases] presentPaywallIfNeeded ERROR', error);
+    return false;
+  }
 }

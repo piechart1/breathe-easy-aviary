@@ -29,8 +29,14 @@ import {
 } from '@/constants/breathing-patterns';
 import { SystemFont, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { BACKING_MUSIC_ROTATION_SOURCES, getNextBackingMusicTrackIndex, TUMMO_SOUNDTRACK_SOURCES } from '@/lib/backing-music';
+import {
+  BACKING_MUSIC_ROTATION_SOURCES,
+  FREE_TIER_BACKING_MUSIC_INDEX,
+  getNextBackingMusicTrackIndex,
+  TUMMO_SOUNDTRACK_SOURCES,
+} from '@/lib/backing-music';
 import { logMindfulSession } from '@/lib/healthkit';
+import { presentPlusPaywall, useIsPlus } from '@/lib/purchases';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
   DEFAULT_BACKING_MUSIC_ENABLED,
@@ -352,6 +358,7 @@ function PatternCard({
   timing,
   isSelected,
   isRunning,
+  isLocked,
   accentColor,
   theme,
   styles,
@@ -363,6 +370,7 @@ function PatternCard({
   timing?: string;
   isSelected: boolean;
   isRunning: boolean;
+  isLocked: boolean;
   accentColor: string;
   theme: ReturnType<typeof useTheme>;
   styles: Styles;
@@ -375,7 +383,7 @@ function PatternCard({
       disabled={isRunning}
       onPress={onSelect}
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}`}
+      accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}${isLocked ? ', Plus' : ''}`}
       accessibilityState={{ selected: isSelected, disabled: isRunning }}
       style={({ pressed }) => [
         styles.patternCard,
@@ -387,17 +395,26 @@ function PatternCard({
       ]}>
       <View style={styles.patternCardHeader}>
         <ThemedText type="smallBold" style={styles.patternName}>{name}</ThemedText>
-        <Pressable
-          onPress={onShowInfo}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={`About ${pattern.name}`}>
-          <SymbolView
-            name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-            size={18}
-            tintColor={theme.textSecondary}
-          />
-        </Pressable>
+        <View style={styles.patternCardHeaderIcons}>
+          {isLocked && (
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              size={16}
+              tintColor={theme.textSecondary}
+            />
+          )}
+          <Pressable
+            onPress={onShowInfo}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`About ${pattern.name}`}>
+            <SymbolView
+              name={{ ios: 'info.circle', android: 'info', web: 'info' }}
+              size={18}
+              tintColor={theme.textSecondary}
+            />
+          </Pressable>
+        </View>
       </View>
       <ThemedText type="small" style={styles.patternDescription}>
         {timing ? `${timing} | ${pattern.description}` : pattern.description}
@@ -568,6 +585,10 @@ export function BreathingScreen() {
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
   const [backingMusicEnabled, setBackingMusicEnabled] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
+  // Treat the brief `null` ("still loading") window the same as `false` -
+  // otherwise a free user could see a locked pattern flash unlocked for a
+  // moment before flipping locked again once entitlement status resolves.
+  const isPlus = useIsPlus() === true;
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -616,6 +637,7 @@ export function BreathingScreen() {
   const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
   const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
+  const isSelectedPatternLocked = selectedPattern.category === 'advanced' && !isPlus;
   const showDynamicHoldButton = selectedPattern.id === 'tummo' && tummoHoldMode === 'dynamic';
   const isDynamicHoldReady = isRunning && activePhase?.timingSegmentIndex === 1;
   // Once the dynamic hold actually commences, its timing-segment shows a
@@ -959,7 +981,11 @@ export function BreathingScreen() {
           player = tummoSoundtrack === 'set1' ? tummoSet1MainPlayer : tummoSet2MainPlayer;
         }
       } else if (backingMusicEnabled) {
-        player = rotationPlayers[await getNextBackingMusicTrackIndex()];
+        // Free users always get the one free track rather than advancing
+        // through (or persisting a position in) the full rotation.
+        player = isPlus
+          ? rotationPlayers[await getNextBackingMusicTrackIndex()]
+          : rotationPlayers[FREE_TIER_BACKING_MUSIC_INDEX];
       }
       if (!player) {
         return;
@@ -972,9 +998,21 @@ export function BreathingScreen() {
     } catch (error) {
       console.error('[backing-music] startBackingMusic failed', error);
     }
-  }, [selectedPatternId, tummoSoundtrack, backingMusicEnabled, tummoSet1MainPlayer, tummoSet2MainPlayer, rotationPlayers]);
+  }, [
+    selectedPatternId,
+    tummoSoundtrack,
+    backingMusicEnabled,
+    isPlus,
+    tummoSet1MainPlayer,
+    tummoSet2MainPlayer,
+    rotationPlayers,
+  ]);
 
   const startBreathing = useCallback(() => {
+    if (activePattern.category === 'advanced' && !isPlus) {
+      presentPlusPaywall();
+      return;
+    }
     isRunningRef.current = true;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
@@ -1004,6 +1042,7 @@ export function BreathingScreen() {
     runPhase,
     scaleAnim,
     activePattern,
+    isPlus,
     timerEnabled,
     timerMinutes,
     stopBreathing,
@@ -1055,7 +1094,13 @@ export function BreathingScreen() {
           <Pressable
             onPress={isRunning ? stopBreathing : startBreathing}
             accessibilityRole="button"
-            accessibilityLabel={isRunning ? 'Stop breathing exercise' : 'Begin breathing exercise'}
+            accessibilityLabel={
+              isRunning
+                ? 'Stop breathing exercise'
+                : isSelectedPatternLocked
+                  ? 'Upgrade to Plus to Unlock'
+                  : 'Begin breathing exercise'
+            }
             style={({ pressed }) => [styles.circleSection, { opacity: pressed ? 0.85 : 1 }]}>
             <View style={styles.circleWrapper}>
               <View style={[styles.glowOuter, { backgroundColor: activeAccentColor }]} />
@@ -1076,8 +1121,8 @@ export function BreathingScreen() {
                 type="default"
                 style={styles.phaseText}
                 accessibilityLiveRegion="polite"
-                accessibilityLabel={`Breathing status: ${phaseName || 'Tap the circle to begin'}`}>
-                {phaseName || 'Tap to begin'}
+                accessibilityLabel={`Breathing status: ${phaseName || (isSelectedPatternLocked ? 'Upgrade to Plus to Unlock' : 'Tap the circle to begin')}`}>
+                {phaseName || (isSelectedPatternLocked ? 'Upgrade to Plus to Unlock' : 'Tap to begin')}
               </ThemedText>
               {isRunning && (
                 <ThemedText
@@ -1146,6 +1191,7 @@ export function BreathingScreen() {
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
+                isLocked={false}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
                 theme={theme}
                 styles={styles}
@@ -1170,6 +1216,7 @@ export function BreathingScreen() {
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
+                isLocked={!isPlus}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
                 theme={theme}
                 styles={styles}
@@ -1335,6 +1382,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  patternCardHeaderIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
   },
   patternName: {
