@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Purchases, { type CustomerInfo } from 'react-native-purchases';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 
@@ -11,6 +12,35 @@ const ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 export const PLUS_ENTITLEMENT_ID = 'plus';
 
 let initialized = false;
+
+// Dev-only Plus override, used by a Settings toggle so gating (locked
+// patterns, backing-music tier, paywall trigger) can be tested without a
+// real purchase. `null` means "no override, use the real entitlement" -
+// every reference to this is gated on `__DEV__`, so it's dead code in a
+// release build and can never let a real user bypass paying.
+const DEV_PLUS_OVERRIDE_KEY = 'breathe-easy:dev-plus-override';
+let devPlusOverride: boolean | null = null;
+let devOverrideLoaded = false;
+const devOverrideListeners = new Set<(value: boolean | null) => void>();
+
+async function loadDevPlusOverride(): Promise<boolean | null> {
+  if (!devOverrideLoaded) {
+    devOverrideLoaded = true;
+    const raw = await AsyncStorage.getItem(DEV_PLUS_OVERRIDE_KEY);
+    devPlusOverride = raw === null ? null : raw === 'true';
+  }
+  return devPlusOverride;
+}
+
+export async function setDevPlusOverride(value: boolean | null): Promise<void> {
+  devPlusOverride = value;
+  devOverrideListeners.forEach((listener) => listener(value));
+  if (value === null) {
+    await AsyncStorage.removeItem(DEV_PLUS_OVERRIDE_KEY);
+  } else {
+    await AsyncStorage.setItem(DEV_PLUS_OVERRIDE_KEY, String(value));
+  }
+}
 
 function hasPlusEntitlement(info: CustomerInfo): boolean {
   return info.entitlements.active[PLUS_ENTITLEMENT_ID] != null;
@@ -57,6 +87,25 @@ export async function restorePurchases(): Promise<boolean> {
 // "still loading" from "confirmed not Plus" and avoid a flash of gated UI.
 export function useIsPlus(): boolean | null {
   const [isPlus, setIsPlus] = useState<boolean | null>(null);
+  const [devOverride, setDevOverride] = useState<boolean | null>(devPlusOverride);
+
+  useEffect(() => {
+    if (!__DEV__) {
+      return;
+    }
+    let cancelled = false;
+    loadDevPlusOverride().then((value) => {
+      if (!cancelled) {
+        setDevOverride(value);
+      }
+    });
+    const listener = (value: boolean | null) => setDevOverride(value);
+    devOverrideListeners.add(listener);
+    return () => {
+      cancelled = true;
+      devOverrideListeners.delete(listener);
+    };
+  }, []);
 
   useEffect(() => {
     if (!initialized) {
@@ -84,6 +133,9 @@ export function useIsPlus(): boolean | null {
     };
   }, []);
 
+  if (__DEV__ && devOverride !== null) {
+    return devOverride;
+  }
   return isPlus;
 }
 

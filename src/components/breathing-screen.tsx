@@ -974,8 +974,8 @@ export function BreathingScreen() {
   // TUMMO_SOUNDTRACK_SOURCES); every other pattern advances one track
   // through the shared 7-song rotation, but only when Backing Music is on.
   const startBackingMusic = useCallback(async () => {
+    let player: AudioPlayer | null = null;
     try {
-      let player: AudioPlayer | null = null;
       if (selectedPatternId === 'tummo') {
         if (tummoSoundtrack !== 'off') {
           player = tummoSoundtrack === 'set1' ? tummoSet1MainPlayer : tummoSet2MainPlayer;
@@ -992,11 +992,53 @@ export function BreathingScreen() {
       }
       player.loop = true;
       player.volume = BACKING_MUSIC_VOLUME;
-      player.play();
+      // play() can intermittently throw "Server was dead when activation
+      // request was made" - iOS's mediaserverd daemon not yet ready to
+      // activate an audio session, seen on any player, not just at cold
+      // launch. Apple's own guidance for this error is simply to retry, so
+      // back off and try a few times rather than dropping the music.
+      const retryDelaysMs = [300, 800, 1500];
+      for (let attempt = 0; ; attempt++) {
+        try {
+          player.play();
+          break;
+        } catch (playError) {
+          if (attempt >= retryDelaysMs.length) {
+            throw playError;
+          }
+          console.warn(`[backing-music] play() failed, retrying in ${retryDelaysMs[attempt]}ms`, playError);
+          await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
+        }
+      }
       backingMusicWatcherRef.current?.remove();
       backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(player, 'startBackingMusic', isRunningRef);
     } catch (error) {
       console.error('[backing-music] startBackingMusic failed', error);
+      // mediaserverd can occasionally stay down longer than the retries
+      // above wait for - fall back to one more attempt a few seconds later,
+      // off the critical path, rather than leaving the session silent for
+      // the rest of a session over a daemon hiccup that usually clears up.
+      if (player && isRunningRef.current) {
+        const delayedPlayer = player;
+        setTimeout(() => {
+          if (!isRunningRef.current) {
+            return;
+          }
+          try {
+            delayedPlayer.loop = true;
+            delayedPlayer.volume = BACKING_MUSIC_VOLUME;
+            delayedPlayer.play();
+            backingMusicWatcherRef.current?.remove();
+            backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(
+              delayedPlayer,
+              'startBackingMusic delayed retry',
+              isRunningRef,
+            );
+          } catch (retryError) {
+            console.error('[backing-music] delayed retry failed', retryError);
+          }
+        }, 5000);
+      }
     }
   }, [
     selectedPatternId,
@@ -1019,7 +1061,17 @@ export function BreathingScreen() {
     completedRoundsRef.current = 0;
     sessionStartRef.current = new Date();
     trackPatternStarted(selectedPatternId);
-    startBackingMusic();
+    // Staggered rather than called inline: firing this in the same tick as
+    // runPhase's own first-phase resonant cue(s) below stacks multiple
+    // simultaneous native play() calls right at session start - Tummo's
+    // first breath alone fires two cues at once - which is the likeliest
+    // cause of the intermittent "server was dead"/"session lookup failed"
+    // errors seen there. A short delay spreads the activations out instead.
+    setTimeout(() => {
+      if (isRunningRef.current) {
+        startBackingMusic();
+      }
+    }, 200);
 
     let secondsElapsed = 1;
     setElapsedSeconds(secondsElapsed);

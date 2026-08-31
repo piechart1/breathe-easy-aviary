@@ -63,7 +63,7 @@ import {
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
 import { requestHealthKitPermission } from '@/lib/healthkit';
-import { presentPlusPaywall, restorePurchases, useIsPlus } from '@/lib/purchases';
+import { presentPlusPaywall, restorePurchases, setDevPlusOverride, useIsPlus } from '@/lib/purchases';
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_FINCH_SOURCE = require('../../assets/images/bg-finch.png');
@@ -298,6 +298,10 @@ export function SettingsScreen() {
   const handleToggleTummoSkipToHold = (enabled: boolean) => {
     setTummoSkipToHoldState(enabled);
     persistTummoSkipToHold(enabled);
+  };
+
+  const handleToggleDevPlusOverride = (enabled: boolean) => {
+    setDevPlusOverride(enabled);
   };
 
   return (
@@ -762,6 +766,31 @@ export function SettingsScreen() {
             </>
           )}
         </View>
+
+        {__DEV__ && (
+          <>
+            <ThemedText type="smallBold" style={styles.subHeading}>
+              Developer
+            </ThemedText>
+
+            <View style={styles.section}>
+              <View style={styles.toggleRow}>
+                <ThemedText type="smallBold" style={styles.sectionLabel}>
+                  Force Plus
+                </ThemedText>
+                <Switch
+                  value={isPlus}
+                  onValueChange={handleToggleDevPlusOverride}
+                  accessibilityLabel="Force Plus entitlement"
+                />
+              </View>
+
+              <ThemedText type="small" style={styles.sectionHint}>
+                Overrides Plus status locally for testing gated features. Dev builds only - never appears in a release build.
+              </ThemedText>
+            </View>
+          </>
+        )}
         </ScrollView>
       </SafeAreaView>
     </View>
