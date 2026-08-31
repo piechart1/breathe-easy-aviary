@@ -111,14 +111,24 @@ const RESONANT_SOUND_SOURCES = {
   'relax-your-body-slow-your-heartbeat': require('../../assets/sounds/relax-your-body-slow-your-heartbeat.m4a'),
   'relax-your-shoulders': require('../../assets/sounds/relax-your-shoulders-00.m4a'),
   'relax-your-body': require('../../assets/sounds/relax-your-body-00.m4a'),
-  'be-aware-of-the-energy-in-your-body': require('../../assets/sounds/be-aware-of-the-energy-in-your-body-00.m4a'),
+  'feel-the-weight-of-your-body-resting': require('../../assets/sounds/feel-the-weight-of-your-body-resting.m4a'),
+  'youre-doing-great': require('../../assets/sounds/youre-doing-great.m4a'),
   'minute-1': require('../../assets/sounds/1-minute.m4a'),
   'minute-2': require('../../assets/sounds/2-minutes.m4a'),
   'minute-3': require('../../assets/sounds/3-minutes.m4a'),
   'minute-4': require('../../assets/sounds/4-minutes.m4a'),
   'take-a-deep-breath-in-and-hold': require('../../assets/sounds/Take-a-deep-breath-in-and-hold-00.m4a'),
   '5-4-3-2-1-let-go': require('../../assets/sounds/5-4-3-2-1-let-go.m4a'),
+  'nothing-more-to-do': require('../../assets/sounds/there-is-nothing-more-to-do.m4a'),
+  'blink-your-eyes': require('../../assets/sounds/whenever-you-feel-ready-blink-your-eyes.m4a'),
 } as const;
+// Integration's own two spoken cues (see the Integration branch in runPhase
+// below) - hardcoded to the source files' actual lengths rather than read
+// from the player at schedule time, matching this file's existing style of
+// precomputed cue-timing constants (e.g. TUMMO_HOLD_CUE_* above).
+const INTEGRATION_BLINK_CUE_DURATION_MS = 7190;
+const INTEGRATION_FADE_DURATION_MS = 10000;
+const INTEGRATION_FADE_STEP_MS = 100;
 const RESONANT_CUE_VOLUME = 1;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
 // run quieter than the rest of the resonant cues, which only play once per
@@ -206,7 +216,7 @@ const TUMMO_HOLD_CUE_CYCLE = [
   'relax-your-body-slow-your-heartbeat',
   'relax-your-shoulders',
   'relax-your-body',
-  'be-aware-of-the-energy-in-your-body',
+  'feel-the-weight-of-your-body-resting',
 ] as const;
 const TUMMO_HOLD_CUE_START_MS = 2000;
 const TUMMO_HOLD_CUE_WITHIN_CYCLE_INTERVAL_MS = 14000;
@@ -498,15 +508,18 @@ export function BreathingScreen() {
   );
   const resonantRelaxYourShouldersCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-shoulders']);
   const resonantRelaxYourBodyCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-body']);
-  const resonantBeAwareOfEnergyPlayer = useAudioPlayer(
-    RESONANT_SOUND_SOURCES['be-aware-of-the-energy-in-your-body'],
+  const resonantFeelTheWeightPlayer = useAudioPlayer(
+    RESONANT_SOUND_SOURCES['feel-the-weight-of-your-body-resting'],
   );
+  const resonantDoingGreatPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['youre-doing-great']);
   const resonantMinute1Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-1']);
   const resonantMinute2Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-2']);
   const resonantMinute3Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-3']);
   const resonantMinute4Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-4']);
   const resonantTakeADeepBreathPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['take-a-deep-breath-in-and-hold']);
   const resonantLetGoCountdownPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['5-4-3-2-1-let-go']);
+  const resonantNothingMoreToDoPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['nothing-more-to-do']);
+  const resonantBlinkYourEyesPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['blink-your-eyes']);
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -525,13 +538,16 @@ export function BreathingScreen() {
       'relax-your-body-slow-your-heartbeat': resonantRelaxYourBodyPlayer,
       'relax-your-shoulders': resonantRelaxYourShouldersCuePlayer,
       'relax-your-body': resonantRelaxYourBodyCuePlayer,
-      'be-aware-of-the-energy-in-your-body': resonantBeAwareOfEnergyPlayer,
+      'feel-the-weight-of-your-body-resting': resonantFeelTheWeightPlayer,
+      'youre-doing-great': resonantDoingGreatPlayer,
       'minute-1': resonantMinute1Player,
       'minute-2': resonantMinute2Player,
       'minute-3': resonantMinute3Player,
       'minute-4': resonantMinute4Player,
       'take-a-deep-breath-in-and-hold': resonantTakeADeepBreathPlayer,
       '5-4-3-2-1-let-go': resonantLetGoCountdownPlayer,
+      'nothing-more-to-do': resonantNothingMoreToDoPlayer,
+      'blink-your-eyes': resonantBlinkYourEyesPlayer,
     }),
     [
       resonantInhalePlayer,
@@ -550,13 +566,16 @@ export function BreathingScreen() {
       resonantRelaxYourBodyPlayer,
       resonantRelaxYourShouldersCuePlayer,
       resonantRelaxYourBodyCuePlayer,
-      resonantBeAwareOfEnergyPlayer,
+      resonantFeelTheWeightPlayer,
+      resonantDoingGreatPlayer,
       resonantMinute1Player,
       resonantMinute2Player,
       resonantMinute3Player,
       resonantMinute4Player,
       resonantTakeADeepBreathPlayer,
       resonantLetGoCountdownPlayer,
+      resonantNothingMoreToDoPlayer,
+      resonantBlinkYourEyesPlayer,
     ],
   );
 
@@ -840,14 +859,55 @@ export function BreathingScreen() {
         // true). Never letting both players be inactive at once avoids it.
         integrationPlayer.loop = true;
         integrationPlayer.volume = BACKING_MUSIC_VOLUME;
+        // Not awaited - snaps the position back to the start shortly after
+        // playback begins rather than before, so a previous session's
+        // paused-mid-track position doesn't carry over without delaying
+        // play() (see the ordering comment above this block).
+        integrationPlayer.seekTo(0).catch((error) => console.log('[backing-music] Integration seekTo failed', error));
         integrationPlayer.play();
         mainPlayer.pause();
         backingMusicWatcherRef.current?.remove();
         backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(integrationPlayer, 'Integration', isRunningRef);
+
+        // Gradually fade the integration track to silence over its last
+        // INTEGRATION_FADE_DURATION_MS rather than letting it cut off
+        // abruptly when the phase (and the session) ends.
+        const fadeDelayMs = Math.max(0, phase.durationMs - INTEGRATION_FADE_DURATION_MS);
+        const fadeStartTimeoutId = setTimeout(() => {
+          if (!isRunningRef.current) {
+            return;
+          }
+          const fadeStartedAt = Date.now();
+          const fadeIntervalId = setInterval(() => {
+            const progress = Math.min(1, (Date.now() - fadeStartedAt) / INTEGRATION_FADE_DURATION_MS);
+            integrationPlayer.volume = BACKING_MUSIC_VOLUME * (1 - progress);
+            if (progress >= 1) {
+              clearInterval(fadeIntervalId);
+            }
+          }, INTEGRATION_FADE_STEP_MS);
+          resonantCueTimeoutsRef.current.push(fadeIntervalId);
+        }, fadeDelayMs);
+        resonantCueTimeoutsRef.current.push(fadeStartTimeoutId);
       }
 
-      // No audio cues for Integration yet - see INTEGRATION_PHASE_INDEX.
-      if (phase.name !== 'Integration') {
+      // Integration's own two spoken cues - "nothing more to do" at the
+      // start, "blink your eyes" timed to finish 3s before the phase (and
+      // therefore the session) ends - independent of Voice/Tick style and
+      // of whether a soundtrack is selected, unlike every other cue below.
+      // No metronome on Tick style either - this phase is deliberately
+      // free of any pacing cue, since it's meant for the user to rest and
+      // breathe at their own cadence rather than follow along with one.
+      if (phase.name === 'Integration') {
+        playSound(resonantPlayers['nothing-more-to-do'], RESONANT_CUE_VOLUME_OVERRIDES['nothing-more-to-do'] ?? RESONANT_CUE_VOLUME);
+        const blinkCueDelayMs = Math.max(0, phase.durationMs - 3000 - INTEGRATION_BLINK_CUE_DURATION_MS);
+        const blinkCueTimeoutId = setTimeout(() => {
+          if (!isRunningRef.current) {
+            return;
+          }
+          playSound(resonantPlayers['blink-your-eyes'], RESONANT_CUE_VOLUME_OVERRIDES['blink-your-eyes'] ?? RESONANT_CUE_VOLUME);
+        }, blinkCueDelayMs);
+        resonantCueTimeoutsRef.current.push(blinkCueTimeoutId);
+      } else {
         // Only Tummo phases explicitly configured with a resonant cue - a
         // resonantSoundId, or (for the final hold's countdown) just a
         // resonantDelayedCues entry - opt into Voice; everything else on
@@ -929,6 +989,7 @@ export function BreathingScreen() {
       scheduleTicksForPhase,
       clearScheduledTicks,
       playResonantCue,
+      resonantPlayers,
       soundStyle,
       tummoRounds,
       tummoHoldMode,
@@ -992,6 +1053,13 @@ export function BreathingScreen() {
       }
       player.loop = true;
       player.volume = BACKING_MUSIC_VOLUME;
+      // A player that was paused mid-track (stopping a session) resumes
+      // from that same position on the next play() rather than restarting -
+      // most noticeable on the two advanced patterns, whose dedicated
+      // tracks are otherwise reused as-is across repeated sessions. Seek
+      // back to the start before every play() so a new session always
+      // starts the track fresh.
+      await player.seekTo(0);
       // play() can intermittently throw "Server was dead when activation
       // request was made" - iOS's mediaserverd daemon not yet ready to
       // activate an audio session, seen on any player, not just at cold

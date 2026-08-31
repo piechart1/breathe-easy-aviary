@@ -90,6 +90,11 @@ const TUMMO_MID_LAYERED_BREATH_NUMBERS = new Set([6, 7, 8, 16, 17, 18, 27, 28]);
 const TUMMO_FIVE_MORE_BREATH_NUMBERS = new Set([26]);
 // Breath numbers (1-indexed) whose Inhale layers a "keep it going" callout.
 const TUMMO_KEEP_IT_GOING_BREATH_NUMBERS = new Set([14, 24]);
+// Breath number whose Exhale layers a "you're doing great" callout - breath
+// 19's Exhale starts at ~55.46s, the closest grid point to the requested 55s
+// mark (breaths are locked to a fixed 2998ms cadence, so exact timing isn't
+// reachable) and wasn't already claimed by another overlay.
+const TUMMO_DOING_GREAT_BREATH_NUMBERS = new Set([19]);
 const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BREATH_COUNT }).flatMap(
   (_, breathIndex) => {
     const breathNumber = breathIndex + 1;
@@ -98,6 +103,7 @@ const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BRE
     const isLastBreath = breathNumber === TUMMO_RAPID_BREATH_COUNT;
     const isFiveMoreBreath = TUMMO_FIVE_MORE_BREATH_NUMBERS.has(breathNumber);
     const isKeepItGoingBreath = TUMMO_KEEP_IT_GOING_BREATH_NUMBERS.has(breathNumber);
+    const isDoingGreatBreath = TUMMO_DOING_GREAT_BREATH_NUMBERS.has(breathNumber);
     const inhaleOverlays = [
       ...(isRelaxedLayeredBreath ? ['inhale'] : []),
       ...(isMidLayeredBreath ? ['inhale-top-off'] : []),
@@ -108,6 +114,7 @@ const tummoRapidBreaths: BreathingPhase[] = Array.from({ length: TUMMO_RAPID_BRE
     const exhaleOverlays = [
       ...(isRelaxedLayeredBreath ? ['exhale'] : []),
       ...(isMidLayeredBreath ? ['out-relaxed'] : []),
+      ...(isDoingGreatBreath ? ['youre-doing-great'] : []),
     ];
     return [
       {
