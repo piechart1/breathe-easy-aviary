@@ -13,7 +13,8 @@
 //   POSTHOG_HOST             - defaults to PostHog's US cloud, matching the
 //                              app's own default in src/lib/telemetry.ts
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { projectLonLat } from './lib/world-projection.mjs';
 
@@ -96,6 +97,7 @@ async function main() {
 
   const output = { generatedAt: new Date().toISOString(), counts };
   const outputPath = fileURLToPath(new URL('../data/community-map-counts.json', import.meta.url));
+  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, JSON.stringify(output));
 
   console.log(`Queried ${rows.length} cities from PostHog, wrote counts for ${counts.filter((c) => c > 0).length} hexes to ${outputPath}.`);
