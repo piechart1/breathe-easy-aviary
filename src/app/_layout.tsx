@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { SafetyDisclaimerGate } from '@/components/safety-disclaimer-gate';
 import { scheduleDailyNudge } from '@/lib/notifications';
 import { initPurchases } from '@/lib/purchases';
 import { getAnalyticsEnabled, getDailyNudgeSettings } from '@/lib/settings';
@@ -35,6 +36,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
+      <SafetyDisclaimerGate />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="articles/[slug]" />

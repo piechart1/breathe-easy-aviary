@@ -16,6 +16,7 @@ const TUMMO_INTEGRATION_ENABLED_KEY = 'breathe-easy:tummo-integration-enabled';
 const TUMMO_INTEGRATION_MINUTES_KEY = 'breathe-easy:tummo-integration-minutes';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
+const HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY = 'breathe-easy:has-accepted-safety-disclaimer';
 
 export const DEFAULT_TIMER_MINUTES = 10;
 export const TIMER_MINUTE_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30] as const;
@@ -263,4 +264,16 @@ export async function getWindDownSettings(): Promise<ReminderSettings> {
 
 export async function setWindDownSettings(settings: ReminderSettings): Promise<void> {
   await setReminderSettings(WIND_DOWN_KEY, settings);
+}
+
+// Whether the user has acknowledged the first-launch safety disclaimer -
+// gates the SafetyDisclaimerGate overlay in the root layout. Defaults to
+// false (not yet accepted) so the gate shows on first launch.
+export async function getHasAcceptedSafetyDisclaimer(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY);
+  return raw === 'true';
+}
+
+export async function setHasAcceptedSafetyDisclaimer(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY, String(enabled));
 }

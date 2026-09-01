@@ -64,6 +64,12 @@ import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
 import { requestHealthKitPermission } from '@/lib/healthkit';
 import { presentPlusPaywall, restorePurchases, setDevPlusOverride, useIsPlus } from '@/lib/purchases';
+import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
+import { PRIVACY_POLICY_URL, SAFETY_DISCLAIMER_URL, TERMS_OF_USE_URL } from '@/constants/legal';
+
+function openLegalUrl(url: string) {
+  openBrowserAsync(url, { presentationStyle: WebBrowserPresentationStyle.AUTOMATIC });
+}
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_FINCH_SOURCE = require('../../assets/images/bg-finch.png');
@@ -776,6 +782,34 @@ export function SettingsScreen() {
           )}
         </View>
 
+        <ThemedText type="smallBold" style={styles.subHeading}>
+          Legal
+        </ThemedText>
+
+        <View style={styles.section}>
+          <Pressable style={styles.legalRow} onPress={() => openLegalUrl(PRIVACY_POLICY_URL)}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>
+              Privacy Policy
+            </ThemedText>
+          </Pressable>
+
+          <View style={styles.divider} />
+
+          <Pressable style={styles.legalRow} onPress={() => openLegalUrl(TERMS_OF_USE_URL)}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>
+              Terms of Use
+            </ThemedText>
+          </Pressable>
+
+          <View style={styles.divider} />
+
+          <Pressable style={styles.legalRow} onPress={() => openLegalUrl(SAFETY_DISCLAIMER_URL)}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>
+              Safety Disclaimer
+            </ThemedText>
+          </Pressable>
+        </View>
+
         {__DEV__ && (
           <>
             <ThemedText type="smallBold" style={styles.subHeading}>
@@ -932,6 +966,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     restoreRow: {
       alignItems: 'center',
+    },
+    legalRow: {
+      paddingVertical: Spacing.one,
     },
     restoreText: {
       color: theme.textSecondary,
