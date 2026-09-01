@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  AppState,
   Easing,
   Pressable,
   ScrollView,
@@ -316,27 +317,27 @@ function watchAndKeepBackingMusicPlaying(
   player: AudioPlayer,
   label: string,
   isRunningRef: { current: boolean },
+  onExternalInterruption: () => void,
 ): { remove: () => void } {
   const GRACE_PERIOD_MS = 500;
   const MIN_RECOVERY_INTERVAL_MS = 800;
+  // How long a in-background pause has to persist before it's treated as a
+  // genuine external interruption (another app taking audio focus, e.g.
+  // starting a Spotify track) worth ending the session over, rather than a
+  // brief, self-resolving blip like a notification sound.
+  const INTERRUPTION_CONFIRM_DELAY_MS = 3000;
   const attachedAt = Date.now();
   let lastRecoveryAt = 0;
   let recovering = false;
+  let interruptionCheckTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let interruptionHandled = false;
 
-  const subscription = player.addListener('playbackStatusUpdate', (status) => {
-    if (!isRunningRef.current) {
-      subscription.remove();
-      return;
-    }
-    if (status.playing || recovering) {
-      return;
-    }
-    const now = Date.now();
-    if (now - attachedAt < GRACE_PERIOD_MS || now - lastRecoveryAt < MIN_RECOVERY_INTERVAL_MS) {
+  const attemptRecovery = () => {
+    if (recovering) {
       return;
     }
     recovering = true;
-    lastRecoveryAt = now;
+    lastRecoveryAt = Date.now();
     console.log(`[backing-music] ${label}: stopped unexpectedly, resetting and retrying`);
     player.pause();
     player
@@ -348,9 +349,59 @@ function watchAndKeepBackingMusicPlaying(
         }
         recovering = false;
       });
+  };
+
+  const cleanup = () => {
+    playbackSubscription.remove();
+    if (interruptionCheckTimeoutId) {
+      clearTimeout(interruptionCheckTimeoutId);
+      interruptionCheckTimeoutId = null;
+    }
+  };
+
+  const playbackSubscription = player.addListener('playbackStatusUpdate', (status) => {
+    if (!isRunningRef.current) {
+      cleanup();
+      return;
+    }
+    if (status.playing) {
+      if (interruptionCheckTimeoutId) {
+        clearTimeout(interruptionCheckTimeoutId);
+        interruptionCheckTimeoutId = null;
+      }
+      return;
+    }
+    if (recovering) {
+      return;
+    }
+    // Once interruptionMode is 'doNotMix', another app legitimately taking
+    // audio focus (Spotify, a phone call) also reports playing: false here,
+    // and reaching that state requires this app to be backgrounded. Rather
+    // than fight that with a resume attempt, end the session once the pause
+    // has persisted long enough to look like a real interruption rather
+    // than a brief blip - completing it now so progress still gets logged,
+    // instead of leaving it dangling until the user manually returns.
+    if (AppState.currentState !== 'active') {
+      if (!interruptionCheckTimeoutId && !interruptionHandled) {
+        interruptionCheckTimeoutId = setTimeout(() => {
+          interruptionCheckTimeoutId = null;
+          if (isRunningRef.current && !player.playing && AppState.currentState !== 'active') {
+            interruptionHandled = true;
+            console.log(`[backing-music] ${label}: interrupted by another app, ending session`);
+            onExternalInterruption();
+          }
+        }, INTERRUPTION_CONFIRM_DELAY_MS);
+      }
+      return;
+    }
+    const now = Date.now();
+    if (now - attachedAt < GRACE_PERIOD_MS || now - lastRecoveryAt < MIN_RECOVERY_INTERVAL_MS) {
+      return;
+    }
+    attemptRecovery();
   });
 
-  return subscription;
+  return { remove: cleanup };
 }
 
 async function playSound(player: AudioPlayer, volume: number) {
@@ -685,7 +736,17 @@ export function BreathingScreen() {
   const showLiveDynamicHoldSeconds = showDynamicHoldButton && isDynamicHoldReady;
 
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true });
+    // shouldPlayInBackground defaults to false - expo-audio proactively
+    // pauses playback on every backgrounding transition unless this is set,
+    // regardless of the native UIBackgroundModes: audio entitlement already
+    // present. interruptionMode defaults to 'mixWithOthers', which let this
+    // app's audio keep playing right alongside e.g. Spotify instead of
+    // yielding to it - 'doNotMix' makes the OS correctly pause us when
+    // another app claims audio focus (and, since that requires backgrounding
+    // this app, AppState is what the backing-music watcher below uses to
+    // tell that apart from a genuine stall rather than fight the
+    // interruption).
+    setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'doNotMix', shouldPlayInBackground: true });
   }, []);
 
   // Refetch whenever this tab gains focus, so a change made on the Settings
@@ -888,7 +949,12 @@ export function BreathingScreen() {
         integrationPlayer.play();
         mainPlayer.pause();
         backingMusicWatcherRef.current?.remove();
-        backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(integrationPlayer, 'Integration', isRunningRef);
+        backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(
+          integrationPlayer,
+          'Integration',
+          isRunningRef,
+          stopBreathing,
+        );
 
         // Gradually fade the integration track to silence over its last
         // INTEGRATION_FADE_DURATION_MS rather than letting it cut off
@@ -1100,7 +1166,7 @@ export function BreathingScreen() {
         }
       }
       backingMusicWatcherRef.current?.remove();
-      backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(player, 'startBackingMusic', isRunningRef);
+      backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(player, 'startBackingMusic', isRunningRef, stopBreathing);
     } catch (error) {
       console.error('[backing-music] startBackingMusic failed', error);
       // mediaserverd can occasionally stay down longer than the retries
@@ -1122,6 +1188,7 @@ export function BreathingScreen() {
               delayedPlayer,
               'startBackingMusic delayed retry',
               isRunningRef,
+              stopBreathing,
             );
           } catch (retryError) {
             console.error('[backing-music] delayed retry failed', retryError);
@@ -1137,6 +1204,7 @@ export function BreathingScreen() {
     tummoSet1MainPlayer,
     tummoSet2MainPlayer,
     rotationPlayers,
+    stopBreathing,
   ]);
 
   const startBreathing = useCallback(() => {
