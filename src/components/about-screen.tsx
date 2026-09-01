@@ -1,12 +1,47 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/themed-text';
 import { WorldHeatmap } from '@/components/world-heatmap';
+import { COMMUNITY_MAP_COUNTS_URL } from '@/constants/community-map';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+
+const COMMUNITY_MAP_FETCH_TIMEOUT_MS = 5000;
+
+// Fetches the latest published counts (see COMMUNITY_MAP_COUNTS_URL's
+// comment for the pipeline that produces them). Resolves to undefined on
+// any failure or timeout, which leaves WorldHeatmap's own placeholder
+// hotspot in place rather than showing a blank map.
+function useCommunityMapCounts(): number[] | undefined {
+  const [counts, setCounts] = useState<number[] | undefined>(undefined);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), COMMUNITY_MAP_FETCH_TIMEOUT_MS);
+
+    fetch(COMMUNITY_MAP_COUNTS_URL, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.counts)) {
+          setCounts(data.counts);
+        }
+      })
+      .catch(() => {
+        // Offline, timed out, or no data published yet - keep the fallback.
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
+
+  return counts;
+}
 
 // Matches the magpie background on the Home screen (breathing-screen.tsx).
 const BG_WREN_SOURCE = require('../../assets/images/bg-variegated-wren.png');
@@ -31,6 +66,7 @@ export function AboutScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [mapWidth, setMapWidth] = useState(0);
+  const communityMapCounts = useCommunityMapCounts();
 
   return (
     <View style={styles.container}>
@@ -60,7 +96,7 @@ export function AboutScreen() {
           </ThemedText>
 
           <View style={styles.mapContainer} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
-            {mapWidth > 0 && <WorldHeatmap width={mapWidth} />}
+            {mapWidth > 0 && <WorldHeatmap width={mapWidth} counts={communityMapCounts} />}
           </View>
 
           <ThemedText type="smallBold" style={styles.mapTitle}>

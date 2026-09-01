@@ -1,0 +1,43 @@
+name: Update community map
+
+on:
+  schedule:
+    # 04:00 UTC daily - the map is a slow-moving decoration, not a
+    # real-time dashboard, so a daily refresh is plenty.
+    - cron: '0 4 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Aggregate PostHog location data onto the hex grid
+        env:
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
+        run: node scripts/aggregate-community-map.mjs
+
+      - name: Commit updated counts if changed
+        run: |
+          if git diff --quiet -- data/community-map-counts.json; then
+            echo "No change in community map data."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/community-map-counts.json
+          git commit -m "Update community map data"
+          git push
