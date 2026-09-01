@@ -187,7 +187,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Cyclic Sighing',
     timing: '2-1-6',
     description: 'Deep inhale, short inhale, long exhale',
-    info: 'Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second "top-off" inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.',
+    info: "Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second 'top-off' inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.",
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 2000, targetScale: 0.85 },
@@ -200,7 +200,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Ujjayi Breath',
     timing: '4-6',
     description: 'Inhale, extended exhale',
-    info: 'Known as "ocean breath" for the soft rushing sound made by gently constricting the back of the throat, Ujjayi is a slow, steady technique traditionally paired with yoga movement. The slightly longer exhale encourages a calm, focused, meditative state.',
+    info: "Known as 'ocean breath' for the soft rushing sound made by gently constricting the back of the throat, Ujjayi is a slow, steady technique traditionally paired with yoga movement. The slightly longer exhale encourages a calm, focused, meditative state.",
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
@@ -227,7 +227,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Cyclic Hyperventilation',
     timing: '30 breaths-hold-1-15',
     description: 'Deep breaths, hold, inhale, hold',
-    info: '30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold - a pattern of rapid breathing and breath-holding known as cyclic hyperventilation. Retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.\n\nPerform up to 3 rounds, this can be configured in the Settings page.\n\nThe integration phase allows you to transition into a slow, gently nasal breath and rest. This duration can be configured in the Settings page.',
+    info: '30 deep, rapid breaths followed by a retention hold (whilst exhaled), then a deep recovery breath with a 15-second hold. The retention duration is deeply personal and varies by person and session - hold only as long as feels comfortable and release whenever you feel the urge to breathe. Always practice sitting or lying down, never in water, and never while driving.\n\nPerform up to 3 rounds, this can be configured in the Settings page.\n\nThe integration phase allows you to transition into a slow, gently nasal breath and rest. This duration can be configured in the Settings page.',
     category: 'advanced',
     phases: [
       ...tummoRapidBreaths,
