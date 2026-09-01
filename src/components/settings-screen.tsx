@@ -306,8 +306,17 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={BG_FINCH_SOURCE} style={styles.bgImage} pointerEvents="none" />
-      <SafeAreaView style={styles.safeArea}>
+      {/* pointerEvents is passed via style rather than as a prop, per the
+          "props.pointerEvents is deprecated" warning - expo-image's
+          ImageStyle type hasn't caught up with that change yet, hence the
+          cast. */}
+      <Image source={BG_FINCH_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
+      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
+          against the device's true bottom edge, so SafeAreaView's default
+          bottom inset (sized for the home indicator) double-reserves space
+          the tab bar already accounts for, leaving a permanent gap above it
+          regardless of scroll position. */}
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
             Settings
@@ -461,7 +470,7 @@ export function SettingsScreen() {
             Hold Duration
           </ThemedText>
 
-          <Host matchContents={{ vertical: true }} style={styles.secondsPickerHost} seedColor={theme.text}>
+          <Host matchContents={false} style={styles.secondsPickerHost} seedColor={theme.text}>
             <Picker
               selectedValue={buteykoHoldSeconds}
               onValueChange={handleButeykoHoldChange}
@@ -584,7 +593,7 @@ export function SettingsScreen() {
                   Hold Duration
                 </ThemedText>
 
-                <Host matchContents={{ vertical: true }} style={styles.secondsPickerHost} seedColor={theme.text}>
+                <Host matchContents={false} style={styles.secondsPickerHost} seedColor={theme.text}>
                   <Picker
                     selectedValue={tummoHoldSeconds}
                     onValueChange={handleTummoHoldSecondsChange}
@@ -893,14 +902,19 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     secondsPickerHost: {
       alignSelf: 'flex-start',
-      // Width is fixed rather than left to matchContents' horizontal mode:
-      // that mode locks its measurement at mount, but selectedValue (loaded
-      // from storage a moment after mount) can render a much wider label
-      // than the default one it mounted with - e.g. "300s" vs "15s" - and
-      // the stale, too-narrow box then lets the wider SwiftUI label overflow
-      // and wrap outside the card. A fixed width sized for the widest
-      // possible label (up to MAX_BUTEYKO_HOLD_SECONDS = 300) avoids that.
+      // Width and height are both fixed rather than left to matchContents:
+      // it locks its measurement at mount (per @expo/ui's own docs, it "can
+      // only be set once on mount"), but selectedValue (loaded from storage
+      // a moment after mount) can render a much wider label than the
+      // default one it mounted with - e.g. "300s" vs "15s" - and the stale,
+      // too-small box then either lets the wider SwiftUI label overflow and
+      // wrap outside the card (width), or visibly drops down and overlaps
+      // the hint text below it once its real height is measured a beat
+      // after mount (height). A fixed size sized for the widest possible
+      // label (up to MAX_BUTEYKO_HOLD_SECONDS = 300) and the control's
+      // standard rendered height avoids both.
       minWidth: 72,
+      height: 34,
     },
     reminderLabel: {
       flex: 1,

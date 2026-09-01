@@ -72,6 +72,17 @@ const CIRCLE_SIZE = 120;
 const GLOW_OUTER_SIZE = CIRCLE_SIZE * 2.0;
 const GLOW_INNER_SIZE = CIRCLE_SIZE * 1.5;
 
+// Used to give the breathing circle's boxShadow the same color+opacity
+// combination shadowColor/shadowOpacity used to provide before those props
+// were deprecated in favor of boxShadow, which takes a single CSS color.
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.replace('#', '');
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 const BG_MAGPIE_SOURCE = require('../../assets/images/bg-magpie.png');
 const BG_MAGPIE_SIZE = 380;
 const BG_MAGPIE_OPACITY = 0.2;
@@ -389,47 +400,57 @@ function PatternCard({
 }) {
   const name = displayName ?? pattern.name;
   return (
-    <Pressable
-      disabled={isRunning}
-      onPress={onSelect}
-      accessibilityRole="button"
-      accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}${isLocked ? ', Plus' : ''}`}
-      accessibilityState={{ selected: isSelected, disabled: isRunning }}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.patternCard,
         isSelected && styles.patternCardSelected,
         {
-          opacity: isRunning ? 0.55 : pressed ? 0.9 : 1,
+          opacity: isRunning ? 0.55 : 1,
           borderColor: isSelected ? accentColor : theme.border,
         },
       ]}>
-      <View style={styles.patternCardHeader}>
-        <ThemedText type="smallBold" style={styles.patternName}>{name}</ThemedText>
-        <View style={styles.patternCardHeaderIcons}>
-          {isLocked && (
-            <SymbolView
-              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
-              size={16}
-              tintColor={theme.textSecondary}
-            />
-          )}
-          <Pressable
-            onPress={onShowInfo}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={`About ${pattern.name}`}>
-            <SymbolView
-              name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-              size={18}
-              tintColor={theme.textSecondary}
-            />
-          </Pressable>
-        </View>
+      {/* A Pressable for the info button used to live inside this one, but
+          two nested interactive elements is invalid on web (React Native
+          Web renders both as literal <button> tags, and a <button> can't
+          contain another <button> - this showed up as a persistent
+          "cannot contain a nested" warning banner covering part of the
+          screen). The icons row below is a sibling instead, absolutely
+          positioned over the same corner it used to occupy in-flow. */}
+      <Pressable
+        disabled={isRunning}
+        onPress={onSelect}
+        accessibilityRole="button"
+        accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}${isLocked ? ', Plus' : ''}`}
+        accessibilityState={{ selected: isSelected, disabled: isRunning }}
+        style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+        <ThemedText type="smallBold" style={styles.patternName}>
+          {name}
+        </ThemedText>
+        <ThemedText type="small" style={styles.patternDescription}>
+          {timing ? `${timing} | ${pattern.description}` : pattern.description}
+        </ThemedText>
+      </Pressable>
+      <View style={[styles.patternCardHeaderIcons, { pointerEvents: 'box-none' }]}>
+        {isLocked && (
+          <SymbolView
+            name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+            size={16}
+            tintColor={theme.textSecondary}
+          />
+        )}
+        <Pressable
+          onPress={onShowInfo}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`About ${pattern.name}`}>
+          <SymbolView
+            name={{ ios: 'info.circle', android: 'info', web: 'info' }}
+            size={18}
+            tintColor={theme.textSecondary}
+          />
+        </Pressable>
       </View>
-      <ThemedText type="small" style={styles.patternDescription}>
-        {timing ? `${timing} | ${pattern.description}` : pattern.description}
-      </ThemedText>
-    </Pressable>
+    </View>
   );
 }
 
@@ -1200,8 +1221,17 @@ export function BreathingScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={BG_MAGPIE_SOURCE} style={styles.bgImage} pointerEvents="none" />
-      <SafeAreaView style={styles.safeArea}>
+      {/* pointerEvents is passed via style rather than as a prop, per the
+          "props.pointerEvents is deprecated" warning - expo-image's
+          ImageStyle type hasn't caught up with that change yet, hence the
+          cast. */}
+      <Image source={BG_MAGPIE_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
+      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
+          against the device's true bottom edge, so SafeAreaView's default
+          bottom inset (sized for the home indicator) double-reserves space
+          the tab bar already accounts for, leaving a permanent gap above it
+          regardless of scroll position. */}
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
@@ -1230,7 +1260,7 @@ export function BreathingScreen() {
                   styles.circle,
                   {
                     backgroundColor: activeAccentColor,
-                    shadowColor: activeAccentColor,
+                    boxShadow: `0px 0px 30px ${hexToRgba(activeAccentColor, 0.9)}`,
                     transform: [{ scale: scaleAnim }],
                   },
                 ]}
@@ -1430,9 +1460,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
     opacity: 0.92,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 30,
     elevation: 20,
   },
   phaseRow: {
@@ -1498,19 +1525,20 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   patternCardSelected: {
     backgroundColor: theme.backgroundSelected,
   },
-  patternCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
   patternCardHeaderIcons: {
+    position: 'absolute',
+    top: Spacing.three,
+    right: Spacing.three,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
   },
   patternName: {
     flexShrink: 1,
+    // Reserves room for patternCardHeaderIcons, which overlays this corner
+    // rather than sharing a flex row with it - see the comment in
+    // PatternCard. Sized for the widest case (lock + info icon together).
+    paddingRight: 48,
     color: theme.text,
   },
   patternDescription: {

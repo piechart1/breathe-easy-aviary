@@ -26,8 +26,17 @@ export function ArticlesScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={BG_EMU_SOURCE} style={styles.bgImage} pointerEvents="none" />
-      <SafeAreaView style={styles.safeArea}>
+      {/* pointerEvents is passed via style rather than as a prop, per the
+          "props.pointerEvents is deprecated" warning - expo-image's
+          ImageStyle type hasn't caught up with that change yet, hence the
+          cast. */}
+      <Image source={BG_EMU_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
+      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
+          against the device's true bottom edge, so SafeAreaView's default
+          bottom inset (sized for the home indicator) double-reserves space
+          the tab bar already accounts for, leaving a permanent gap above it
+          regardless of scroll position. */}
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
             Topics
