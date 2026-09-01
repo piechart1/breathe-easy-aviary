@@ -32,12 +32,12 @@ jobs:
 
       - name: Commit updated counts if changed
         run: |
-          if git diff --quiet -- data/community-map-counts.json; then
+          git add data/community-map-counts.json
+          if git diff --cached --quiet; then
             echo "No change in community map data."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/community-map-counts.json
           git commit -m "Update community map data"
           git push
