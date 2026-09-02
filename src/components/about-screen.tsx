@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
@@ -52,6 +52,8 @@ const BG_WREN_SHIFT_LEFT = 10;
 
 // Required attribution for the licensed backing-music tracks - see
 // src/lib/backing-music.ts for where each track is actually used.
+const SUPPORT_EMAIL = 'breatheeasyaviary@gmail.com';
+
 const MUSIC_CREDITS = [
   'Music track: A Sweet Story by Guillermo Guareschi',
   'Music track: Enlivening by Pufino',
@@ -109,6 +111,18 @@ export function AboutScreen() {
               </ThemedText>
             ))}
           </View>
+
+          <ThemedText type="smallBold" style={styles.mapTitle}>
+            About
+          </ThemedText>
+          <ThemedText type="small" style={styles.subtitle}>
+            Made in Melbourne, Australia.
+          </ThemedText>
+          <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} hitSlop={Spacing.one}>
+            <ThemedText type="small" style={styles.feedbackLink}>
+              Send feedback — {SUPPORT_EMAIL}
+            </ThemedText>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -161,6 +175,10 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     creditLine: {
       color: theme.textSecondary,
+    },
+    feedbackLink: {
+      color: theme.accent,
+      marginTop: Spacing.two,
     },
   });
 }
