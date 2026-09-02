@@ -34,8 +34,11 @@ export const QUOTES: Quote[] = [
 // One quote per calendar day, cycling back to the start once all 16 have
 // shown - days-since-epoch rather than week-indexed, so the selection
 // changes daily instead of weekly (contrast with the notifications' daily-
-// nudge Wednesday rotation in notifications.ts).
+// nudge Wednesday rotation in notifications.ts). Shifted by the device's
+// timezone offset before flooring to a day, so the changeover lands at the
+// user's local midnight rather than UTC midnight.
 export function todaysQuote(date: Date = new Date()): Quote {
-  const dayIndex = Math.floor(date.getTime() / (24 * 60 * 60 * 1000));
+  const localTime = date.getTime() - date.getTimezoneOffset() * 60000;
+  const dayIndex = Math.floor(localTime / (24 * 60 * 60 * 1000));
   return QUOTES[dayIndex % QUOTES.length];
 }
