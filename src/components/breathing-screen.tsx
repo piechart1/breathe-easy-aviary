@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
@@ -89,6 +89,28 @@ const BG_MAGPIE_SIZE = 380;
 const BG_MAGPIE_OPACITY = 0.2;
 const BG_MAGPIE_LIFT = 20;
 const BG_MAGPIE_SHIFT_LEFT = 10;
+// Passed to every useAudioPlayer() call below (a shared reference so it
+// never triggers extra re-renders as a dependency) so iOS never
+// auto-deactivates the shared AVAudioSession when one of these players
+// pauses or finishes. Without it, expo-audio deactivates the session off
+// the main thread a short while after the last player stops (see its
+// changelog: "Deactivate the audio session off the main thread to avoid
+// app hangs") - a reactivation request that lands while that deactivation
+// is still in flight is what produced the intermittent native
+// "Server was dead when activation request was made"/"Session lookup
+// failed" errors seen when quickly stopping one session and starting
+// another (reliably reproduced in testing with a ~3.4-4.2s gap between
+// them, on both guided and advanced patterns alike - it's a session-timing
+// race, not anything specific to a given pattern's audio).
+// Since the session is never deactivated for us automatically once this is
+// set, setIsAudioActiveAsync(false) is called explicitly once a genuine
+// interruption is confirmed (see onExternalInterruption in
+// watchAndKeepBackingMusicPlaying) so this app still releases audio focus
+// promptly when the user has actually moved on, rather than holding it
+// indefinitely - phone calls and another app (e.g. Spotify) taking audio
+// focus are a separate, OS-enforced mechanism unaffected by this option;
+// this only controls whether *our own* code proactively deactivates.
+const KEEP_AUDIO_SESSION_ACTIVE_OPTIONS = { keepAudioSessionActive: true } as const;
 const TICK_SOURCE = require('../../assets/sounds/tick.wav');
 const TICK_ACCENT_VOLUME = 1;
 const TICK_VOLUME = 0.15;
@@ -345,7 +367,15 @@ function watchAndKeepBackingMusicPlaying(
       .catch((error) => console.log('[backing-music] seekTo failed during recovery', error))
       .finally(() => {
         if (isRunningRef.current) {
-          player.play();
+          // Unlike startBackingMusic's initial play(), this has no retry
+          // loop of its own - a failure here was previously an unhandled
+          // rejection (this ran inside a .finally() with no later .catch()),
+          // invisible except as a generic runtime warning.
+          try {
+            player.play();
+          } catch (error) {
+            console.error(`[backing-music] ${label}: recovery play() failed`, error);
+          }
         }
         recovering = false;
       });
@@ -388,6 +418,14 @@ function watchAndKeepBackingMusicPlaying(
           if (isRunningRef.current && !player.playing && AppState.currentState !== 'active') {
             interruptionHandled = true;
             console.log(`[backing-music] ${label}: interrupted by another app, ending session`);
+            // Every player here uses keepAudioSessionActive, so nothing
+            // deactivates the shared session on its own - this is the one
+            // place a confirmed genuine interruption (a call, another app
+            // taking audio focus) is detected, so it's the right point to
+            // release it explicitly rather than holding it indefinitely.
+            setIsAudioActiveAsync(false).catch((error) =>
+              console.log(`[backing-music] ${label}: setIsAudioActiveAsync(false) failed`, error),
+            );
             onExternalInterruption();
           }
         }, INTERRUPTION_CONFIRM_DELAY_MS);
@@ -510,6 +548,14 @@ export function BreathingScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
+  // Bumped on every stop and start. isRunningRef alone can't tell one
+  // session apart from the next - it's back to true the instant a new
+  // session starts, so an async op left over from a stopped session (the
+  // startBackingMusic retry loop, its delayed fallback) would see "running"
+  // and wrongly act on the new session's state. Async backing-music work
+  // captures the generation at the start and bails if it's stale before
+  // touching the player or backingMusicWatcherRef.
+  const audioGenerationRef = useRef(0);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -526,7 +572,7 @@ export function BreathingScreen() {
   // previous one removed first) at every point where "the active track"
   // changes: session start and the Tummo Integration swap.
   const backingMusicWatcherRef = useRef<{ remove: () => void } | null>(null);
-  const tickPlayer = useAudioPlayer(TICK_SOURCE);
+  const tickPlayer = useAudioPlayer(TICK_SOURCE, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   // One player per possible backing track, pre-loaded from mount - matches
   // every other sound in this file (each resonant cue below is its own
   // useAudioPlayer(SOURCE) too) rather than one shared player whose source
@@ -535,13 +581,13 @@ export function BreathingScreen() {
   // hit a documented expo-audio/iOS AVPlayer bug where content-type
   // inference fails and the asset never finishes loading; converting to
   // .m4a sidesteps that class of bug entirely rather than working around it.
-  const rotationPlayer0 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[0]);
-  const rotationPlayer1 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[1]);
-  const rotationPlayer2 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[2]);
-  const rotationPlayer3 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[3]);
-  const rotationPlayer4 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[4]);
-  const rotationPlayer5 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[5]);
-  const rotationPlayer6 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[6]);
+  const rotationPlayer0 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[0], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer1 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[1], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer2 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[2], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer3 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[3], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer4 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[4], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer5 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[5], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const rotationPlayer6 = useAudioPlayer(BACKING_MUSIC_ROTATION_SOURCES[6], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   const rotationPlayers = useMemo(
     () => [
       rotationPlayer0,
@@ -554,44 +600,46 @@ export function BreathingScreen() {
     ],
     [rotationPlayer0, rotationPlayer1, rotationPlayer2, rotationPlayer3, rotationPlayer4, rotationPlayer5, rotationPlayer6],
   );
-  const tummoSet1MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.main);
-  const tummoSet1IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.integration);
-  const tummoSet2MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.main);
-  const tummoSet2IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.integration);
+  const tummoSet1MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.main, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const tummoSet1IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set1.integration, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const tummoSet2MainPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.main, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const tummoSet2IntegrationPlayer = useAudioPlayer(TUMMO_SOUNDTRACK_SOURCES.set2.integration, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   const allBackingMusicPlayers = useMemo(
     () => [...rotationPlayers, tummoSet1MainPlayer, tummoSet1IntegrationPlayer, tummoSet2MainPlayer, tummoSet2IntegrationPlayer],
     [rotationPlayers, tummoSet1MainPlayer, tummoSet1IntegrationPlayer, tummoSet2MainPlayer, tummoSet2IntegrationPlayer],
   );
-  const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale);
-  const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off']);
-  const resonantHoldPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.hold);
-  const resonantHoldDownIntonationPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['hold-down-intonation']);
-  const resonantExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.exhale);
-  const resonantTummoInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-inhale']);
-  const resonantTummoExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-exhale']);
-  const resonantOutRelaxedPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['out-relaxed']);
-  const resonantLastOnePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['last-one']);
-  const resonantFiveMorePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['five-more']);
-  const resonantKeepItGoingPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['keep-it-going']);
-  const resonantDelicateBellsPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['delicate-bells']);
-  const resonantBreathHoldFromNowOnPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['breath-hold-from-now-on']);
+  const resonantInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.inhale, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantInhaleTopOffPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['inhale-top-off'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantHoldPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.hold, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantHoldDownIntonationPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['hold-down-intonation'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES.exhale, KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantTummoInhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-inhale'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantTummoExhalePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['tummo-exhale'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantOutRelaxedPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['out-relaxed'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantLastOnePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['last-one'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantFiveMorePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['five-more'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantKeepItGoingPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['keep-it-going'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantDelicateBellsPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['delicate-bells'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantBreathHoldFromNowOnPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['breath-hold-from-now-on'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   const resonantRelaxYourBodyPlayer = useAudioPlayer(
     RESONANT_SOUND_SOURCES['relax-your-body-slow-your-heartbeat'],
+    KEEP_AUDIO_SESSION_ACTIVE_OPTIONS,
   );
-  const resonantRelaxYourShouldersCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-shoulders']);
-  const resonantRelaxYourBodyCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-body']);
+  const resonantRelaxYourShouldersCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-shoulders'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantRelaxYourBodyCuePlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['relax-your-body'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   const resonantFeelTheWeightPlayer = useAudioPlayer(
     RESONANT_SOUND_SOURCES['feel-the-weight-of-your-body-resting'],
+    KEEP_AUDIO_SESSION_ACTIVE_OPTIONS,
   );
-  const resonantDoingGreatPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['youre-doing-great']);
-  const resonantMinute1Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-1']);
-  const resonantMinute2Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-2']);
-  const resonantMinute3Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-3']);
-  const resonantMinute4Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-4']);
-  const resonantTakeADeepBreathPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['take-a-deep-breath-in-and-hold']);
-  const resonantLetGoCountdownPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['5-4-3-2-1-let-go']);
-  const resonantNothingMoreToDoPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['nothing-more-to-do']);
-  const resonantBlinkYourEyesPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['blink-your-eyes']);
+  const resonantDoingGreatPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['youre-doing-great'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantMinute1Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-1'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantMinute2Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-2'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantMinute3Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-3'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantMinute4Player = useAudioPlayer(RESONANT_SOUND_SOURCES['minute-4'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantTakeADeepBreathPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['take-a-deep-breath-in-and-hold'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantLetGoCountdownPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['5-4-3-2-1-let-go'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantNothingMoreToDoPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['nothing-more-to-do'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
+  const resonantBlinkYourEyesPlayer = useAudioPlayer(RESONANT_SOUND_SOURCES['blink-your-eyes'], KEEP_AUDIO_SESSION_ACTIVE_OPTIONS);
   const resonantPlayers = useMemo(
     () => ({
       inhale: resonantInhalePlayer,
@@ -842,6 +890,7 @@ export function BreathingScreen() {
 
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
+    audioGenerationRef.current += 1;
     activeAnimationRef.current?.stop();
     activeAnimationRef.current = null;
     scaleAnim.stopAnimation(() => {
@@ -1122,6 +1171,14 @@ export function BreathingScreen() {
   // TUMMO_SOUNDTRACK_SOURCES); every other pattern advances one track
   // through the shared 7-song rotation, but only when Backing Music is on.
   const startBackingMusic = useCallback(async () => {
+    // Captured once up front - every await below (track-index lookup,
+    // seekTo, the play() retry backoffs, the delayed fallback) checks this
+    // against audioGenerationRef before touching the player or the shared
+    // watcher ref, so a call left over from a session that's since stopped
+    // (or been replaced by a new one) can't act on the wrong track. See the
+    // audioGenerationRef declaration above for why isRunningRef alone isn't
+    // enough here.
+    const generation = audioGenerationRef.current;
     let player: AudioPlayer | null = null;
     try {
       if (selectedPatternId === 'tummo') {
@@ -1146,6 +1203,9 @@ export function BreathingScreen() {
       // tracks are otherwise reused as-is across repeated sessions. Seek
       // back to the start before every play() so a new session always
       // starts the track fresh.
+      if (audioGenerationRef.current !== generation) {
+        return;
+      }
       await player.seekTo(0);
       // play() can intermittently throw "Server was dead when activation
       // request was made" - iOS's mediaserverd daemon not yet ready to
@@ -1154,6 +1214,9 @@ export function BreathingScreen() {
       // back off and try a few times rather than dropping the music.
       const retryDelaysMs = [300, 800, 1500];
       for (let attempt = 0; ; attempt++) {
+        if (audioGenerationRef.current !== generation) {
+          return;
+        }
         try {
           player.play();
           break;
@@ -1164,6 +1227,13 @@ export function BreathingScreen() {
           console.warn(`[backing-music] play() failed, retrying in ${retryDelaysMs[attempt]}ms`, playError);
           await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
         }
+      }
+      if (audioGenerationRef.current !== generation) {
+        // A newer session started while this one was retrying - undo the
+        // play() above rather than leaving a superseded session's track
+        // audible underneath the new one.
+        player.pause();
+        return;
       }
       backingMusicWatcherRef.current?.remove();
       backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(player, 'startBackingMusic', isRunningRef, stopBreathing);
@@ -1176,7 +1246,7 @@ export function BreathingScreen() {
       if (player && isRunningRef.current) {
         const delayedPlayer = player;
         setTimeout(() => {
-          if (!isRunningRef.current) {
+          if (!isRunningRef.current || audioGenerationRef.current !== generation) {
             return;
           }
           try {
@@ -1213,6 +1283,7 @@ export function BreathingScreen() {
       return;
     }
     isRunningRef.current = true;
+    audioGenerationRef.current += 1;
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
     completedRoundsRef.current = 0;
@@ -1281,6 +1352,13 @@ export function BreathingScreen() {
       if (phaseElapsedIntervalRef.current) {
         clearInterval(phaseElapsedIntervalRef.current);
       }
+      // Mirrors the confirmed-interruption cleanup in
+      // watchAndKeepBackingMusicPlaying - leaving this screen for good is
+      // another point nothing else will release the session kept active by
+      // KEEP_AUDIO_SESSION_ACTIVE_OPTIONS.
+      setIsAudioActiveAsync(false).catch((error) =>
+        console.log('[backing-music] setIsAudioActiveAsync(false) failed on unmount', error),
+      );
     };
   }, [scaleAnim]);
 
