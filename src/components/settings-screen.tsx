@@ -3,8 +3,8 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
-import { Host, Picker } from '@expo/ui';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, SystemFont } from '@/constants/theme';
@@ -83,10 +83,11 @@ const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'metronome', label: 'Metronome' },
 ];
 
-const BUTEYKO_HOLD_SECOND_OPTIONS = Array.from(
-  { length: MAX_BUTEYKO_HOLD_SECONDS - MIN_BUTEYKO_HOLD_SECONDS + 1 },
-  (_, index) => MIN_BUTEYKO_HOLD_SECONDS + index,
-);
+const BUTEYKO_HOLD_STEP_SECONDS = 5;
+
+function clampButeykoHoldSeconds(seconds: number): number {
+  return Math.min(MAX_BUTEYKO_HOLD_SECONDS, Math.max(MIN_BUTEYKO_HOLD_SECONDS, seconds));
+}
 
 const TUMMO_ROUND_OPTIONS = [1, 2, 3] as const;
 
@@ -476,16 +477,35 @@ export function SettingsScreen() {
             Hold Duration
           </ThemedText>
 
-          <Host matchContents={false} style={styles.secondsPickerHost} seedColor={theme.text}>
-            <Picker
-              selectedValue={buteykoHoldSeconds}
-              onValueChange={handleButeykoHoldChange}
-              appearance="menu">
-              {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
-                <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
-              ))}
-            </Picker>
-          </Host>
+          <View style={styles.stepperRow}>
+            <Pressable
+              onPress={() => handleButeykoHoldChange(clampButeykoHoldSeconds(buteykoHoldSeconds - BUTEYKO_HOLD_STEP_SECONDS))}
+              disabled={buteykoHoldSeconds <= MIN_BUTEYKO_HOLD_SECONDS}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease hold duration"
+              style={[styles.stepperButton, buteykoHoldSeconds <= MIN_BUTEYKO_HOLD_SECONDS && styles.stepperButtonDisabled]}>
+              <SymbolView
+                name={{ ios: 'minus', android: 'remove', web: 'remove' }}
+                size={16}
+                tintColor={theme.text}
+              />
+            </Pressable>
+            <ThemedText type="smallBold" style={styles.stepperValue}>
+              {buteykoHoldSeconds}s
+            </ThemedText>
+            <Pressable
+              onPress={() => handleButeykoHoldChange(clampButeykoHoldSeconds(buteykoHoldSeconds + BUTEYKO_HOLD_STEP_SECONDS))}
+              disabled={buteykoHoldSeconds >= MAX_BUTEYKO_HOLD_SECONDS}
+              accessibilityRole="button"
+              accessibilityLabel="Increase hold duration"
+              style={[styles.stepperButton, buteykoHoldSeconds >= MAX_BUTEYKO_HOLD_SECONDS && styles.stepperButtonDisabled]}>
+              <SymbolView
+                name={{ ios: 'plus', android: 'add', web: 'add' }}
+                size={16}
+                tintColor={theme.text}
+              />
+            </Pressable>
+          </View>
 
           <ThemedText type="small" style={styles.sectionHint}>
             Sustainable breath hold duration. You may notice you can increase this value over time as your practice develops.
@@ -599,16 +619,35 @@ export function SettingsScreen() {
                   Hold Duration
                 </ThemedText>
 
-                <Host matchContents={false} style={styles.secondsPickerHost} seedColor={theme.text}>
-                  <Picker
-                    selectedValue={tummoHoldSeconds}
-                    onValueChange={handleTummoHoldSecondsChange}
-                    appearance="menu">
-                    {BUTEYKO_HOLD_SECOND_OPTIONS.map((seconds) => (
-                      <Picker.Item key={seconds} label={`${seconds}s`} value={seconds} />
-                    ))}
-                  </Picker>
-                </Host>
+                <View style={styles.stepperRow}>
+                  <Pressable
+                    onPress={() => handleTummoHoldSecondsChange(clampButeykoHoldSeconds(tummoHoldSeconds - BUTEYKO_HOLD_STEP_SECONDS))}
+                    disabled={tummoHoldSeconds <= MIN_BUTEYKO_HOLD_SECONDS}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease hold duration"
+                    style={[styles.stepperButton, tummoHoldSeconds <= MIN_BUTEYKO_HOLD_SECONDS && styles.stepperButtonDisabled]}>
+                    <SymbolView
+                      name={{ ios: 'minus', android: 'remove', web: 'remove' }}
+                      size={16}
+                      tintColor={theme.text}
+                    />
+                  </Pressable>
+                  <ThemedText type="smallBold" style={styles.stepperValue}>
+                    {tummoHoldSeconds}s
+                  </ThemedText>
+                  <Pressable
+                    onPress={() => handleTummoHoldSecondsChange(clampButeykoHoldSeconds(tummoHoldSeconds + BUTEYKO_HOLD_STEP_SECONDS))}
+                    disabled={tummoHoldSeconds >= MAX_BUTEYKO_HOLD_SECONDS}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase hold duration"
+                    style={[styles.stepperButton, tummoHoldSeconds >= MAX_BUTEYKO_HOLD_SECONDS && styles.stepperButtonDisabled]}>
+                    <SymbolView
+                      name={{ ios: 'plus', android: 'add', web: 'add' }}
+                      size={16}
+                      tintColor={theme.text}
+                    />
+                  </Pressable>
+                </View>
               </View>
             </>
           )}
@@ -934,21 +973,37 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     minutePillText: {
       fontSize: 14,
     },
-    secondsPickerHost: {
-      alignSelf: 'flex-start',
-      // Width and height are both fixed rather than left to matchContents:
-      // it locks its measurement at mount (per @expo/ui's own docs, it "can
-      // only be set once on mount"), but selectedValue (loaded from storage
-      // a moment after mount) can render a much wider label than the
-      // default one it mounted with - e.g. "300s" vs "15s" - and the stale,
-      // too-small box then either lets the wider SwiftUI label overflow and
-      // wrap outside the card (width), or visibly drops down and overlaps
-      // the hint text below it once its real height is measured a beat
-      // after mount (height). A fixed size sized for the widest possible
-      // label (up to MAX_BUTEYKO_HOLD_SECONDS = 300) and the control's
-      // standard rendered height avoids both.
-      minWidth: 72,
+    // Plain RN stepper instead of @expo/ui's Host/Picker - that native
+    // SwiftUI-hosted control had a persistent bug where its label would
+    // render overlapping the hint text below it after an unrelated card
+    // elsewhere on the screen changed size while this one was scrolled out
+    // of view. Several layout-side fixes (matchContents, a reserved
+    // minHeight, even a separate overflow:hidden clipping ancestor) all
+    // failed to stop it, which points to the glitch being in how the
+    // native view composites itself rather than anything fixable from RN
+    // style code. A plain Pressable-based stepper sidesteps the whole
+    // native-hosting bridge for this control.
+    stepperRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.three,
+    },
+    stepperButton: {
+      width: 34,
       height: 34,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepperButtonDisabled: {
+      opacity: 0.35,
+    },
+    stepperValue: {
+      minWidth: 44,
+      textAlign: 'center',
+      color: theme.text,
     },
     reminderLabel: {
       flex: 1,
