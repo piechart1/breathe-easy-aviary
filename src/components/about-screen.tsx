@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { WorldHeatmap } from '@/components/world-heatmap';
 import { COMMUNITY_MAP_COUNTS_URL } from '@/constants/community-map';
+import { getAnalyticsEnabled } from '@/lib/settings';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -65,10 +68,20 @@ const MUSIC_CREDITS = [
 ];
 
 export function AboutScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [mapWidth, setMapWidth] = useState(0);
   const communityMapCounts = useCommunityMapCounts();
+  // null until loaded, so the hint card doesn't flash on screen before we
+  // know whether analytics sharing is already on.
+  const [analyticsEnabled, setAnalyticsEnabled] = useState<boolean | null>(null);
+
+  // Refetch on focus so flipping the toggle in Settings and coming back
+  // hides the card immediately.
+  useFocusEffect(useCallback(() => {
+    getAnalyticsEnabled().then(setAnalyticsEnabled);
+  }, []));
 
   return (
     <View style={styles.container}>
@@ -100,6 +113,33 @@ export function AboutScreen() {
           <View style={styles.mapContainer} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
             {mapWidth > 0 && <WorldHeatmap width={mapWidth} counts={communityMapCounts} />}
           </View>
+
+          {analyticsEnabled === false && (
+            <Pressable
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Turn on sharing anonymous usage data, in Settings"
+              style={({ pressed }) => [styles.analyticsHint, { opacity: pressed ? 0.85 : 1 }]}>
+              <SymbolView
+                name={{ ios: 'globe.americas.fill', android: 'public', web: 'public' }}
+                size={18}
+                tintColor={theme.textSecondary}
+              />
+              <View style={styles.analyticsHintText}>
+                <ThemedText type="smallBold" style={styles.analyticsHintTitle}>
+                  Help build this map
+                </ThemedText>
+                <ThemedText type="small" style={styles.analyticsHintBody}>
+                  Turn on anonymous usage sharing in Settings — it also helps us improve the app.
+                </ThemedText>
+              </View>
+              <SymbolView
+                name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                size={14}
+                tintColor={theme.textSecondary}
+              />
+            </Pressable>
+          )}
 
           <ThemedText type="smallBold" style={styles.mapTitle}>
             Music Credits
@@ -168,6 +208,25 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     mapContainer: {
       marginTop: Spacing.four,
+    },
+    analyticsHint: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.two,
+      backgroundColor: theme.backgroundElement,
+      borderRadius: 16,
+      padding: Spacing.three,
+      marginTop: Spacing.four,
+    },
+    analyticsHintText: {
+      flex: 1,
+      gap: 2,
+    },
+    analyticsHintTitle: {
+      color: theme.text,
+    },
+    analyticsHintBody: {
+      color: theme.textSecondary,
     },
     scrollContent: {
       paddingBottom: Spacing.five,

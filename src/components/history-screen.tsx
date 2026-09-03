@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { getDailyTotals, getStreakDays, getTotalSessionCount, type DailyTotal } from '@/lib/session-history';
+import { getHealthSyncEnabled } from '@/lib/settings';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -97,21 +98,28 @@ function WeekChart({
 }
 
 export function HistoryScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[] | null>(null);
   const [streakDays, setStreakDays] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
+  // null until loaded, so the hint card doesn't flash on screen before we
+  // know whether Health sync is already on.
+  const [healthSyncEnabled, setHealthSyncEnabled] = useState<boolean | null>(null);
 
   const loadTotals = useCallback(() => {
     getDailyTotals(14).then(setDailyTotals);
     getStreakDays().then(setStreakDays);
     getTotalSessionCount().then(setTotalSessions);
+    if (Platform.OS === 'ios') {
+      getHealthSyncEnabled().then(setHealthSyncEnabled);
+    }
   }, []);
 
-  // Refetch every time this tab gains focus, so the rolling 14-day window
-  // and any session just recorded are reflected immediately, not just on
-  // first app launch.
+  // Refetch every time this tab gains focus, so the rolling 14-day window,
+  // any session just recorded, and a Health sync toggle flipped in Settings
+  // are all reflected immediately, not just on first app launch.
   useFocusEffect(loadTotals);
 
   const maxSeconds = dailyTotals ? Math.max(1, ...dailyTotals.map((day) => day.seconds)) : 1;
@@ -179,6 +187,33 @@ export function HistoryScreen() {
               styles={styles}
             />
           </View>
+        )}
+
+        {healthSyncEnabled === false && (
+          <Pressable
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Turn on logging sessions to Apple Health, in Settings"
+            style={({ pressed }) => [styles.healthHint, { opacity: pressed ? 0.85 : 1 }]}>
+            <SymbolView
+              name={{ ios: 'heart.fill', android: 'favorite', web: 'favorite' }}
+              size={18}
+              tintColor={theme.textSecondary}
+            />
+            <View style={styles.healthHintText}>
+              <ThemedText type="smallBold" style={styles.healthHintTitle}>
+                Log sessions as Mindful Minutes
+              </ThemedText>
+              <ThemedText type="small" style={styles.healthHintBody}>
+                Turn on Apple Health syncing in Settings.
+              </ThemedText>
+            </View>
+            <SymbolView
+              name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+              size={14}
+              tintColor={theme.textSecondary}
+            />
+          </Pressable>
         )}
       </SafeAreaView>
     </View>
@@ -268,6 +303,26 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     borderRadius: 3,
   },
   weekRangeLabel: {
+    color: theme.textSecondary,
+  },
+  healthHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    backgroundColor: theme.backgroundElement,
+    borderRadius: 16,
+    padding: Spacing.three,
+    marginTop: 'auto',
+    marginBottom: Spacing.four,
+  },
+  healthHintText: {
+    flex: 1,
+    gap: 2,
+  },
+  healthHintTitle: {
+    color: theme.text,
+  },
+  healthHintBody: {
     color: theme.textSecondary,
   },
   });
