@@ -116,7 +116,10 @@ export function AboutScreen() {
             About
           </ThemedText>
           <ThemedText type="small" style={styles.subtitle}>
-            Made in Melbourne, Australia.
+            Made in Melbourne (Naarm), Australia.
+          </ThemedText>
+          <ThemedText type="small" style={styles.feedbackPrompt}>
+            Tell us what you love, what could be better, or ideas for new features.
           </ThemedText>
           <Pressable onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} hitSlop={Spacing.one}>
             <ThemedText type="small" style={styles.feedbackLink}>
@@ -176,9 +179,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     creditLine: {
       color: theme.textSecondary,
     },
+    feedbackPrompt: {
+      color: theme.textSecondary,
+      marginTop: Spacing.two,
+    },
     feedbackLink: {
       color: theme.accent,
-      marginTop: Spacing.two,
+      marginTop: Spacing.one,
     },
   });
 }
