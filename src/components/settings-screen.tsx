@@ -657,24 +657,6 @@ export function SettingsScreen() {
               })}
             </View>
           )}
-
-          <View style={styles.divider} />
-
-          <View style={styles.toggleRow}>
-            <View style={styles.reminderLabel}>
-              <ThemedText type="smallBold" style={styles.sectionLabel}>
-                Skip to Hold
-              </ThemedText>
-              <ThemedText type="small" style={styles.sectionHint}>
-                Go straight to the retention hold, skipping the 30 breaths
-              </ThemedText>
-            </View>
-            <Switch
-              value={tummoSkipToHold}
-              onValueChange={handleToggleTummoSkipToHold}
-              accessibilityLabel="Skip to Hold"
-            />
-          </View>
         </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
@@ -831,6 +813,24 @@ export function SettingsScreen() {
               <ThemedText type="small" style={styles.sectionHint}>
                 Overrides Plus status locally for testing gated features. Dev builds only - never appears in a release build.
               </ThemedText>
+
+              <View style={styles.divider} />
+
+              <View style={styles.toggleRow}>
+                <View style={styles.reminderLabel}>
+                  <ThemedText type="smallBold" style={styles.sectionLabel}>
+                    Skip to Hold
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.sectionHint}>
+                    Cyclic Hyperventilation: go straight to the retention hold, skipping the 30 breaths
+                  </ThemedText>
+                </View>
+                <Switch
+                  value={tummoSkipToHold}
+                  onValueChange={handleToggleTummoSkipToHold}
+                  accessibilityLabel="Skip to Hold"
+                />
+              </View>
             </View>
           </>
         )}

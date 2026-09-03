@@ -1394,7 +1394,7 @@ export function BreathingScreen() {
               isRunning
                 ? 'Stop breathing exercise'
                 : isSelectedPatternLocked
-                  ? 'Upgrade to Plus to Unlock'
+                  ? 'Tap to Unlock Plus'
                   : 'Begin breathing exercise'
             }
             style={({ pressed }) => [styles.circleSection, { opacity: pressed ? 0.85 : 1 }]}>
@@ -1417,8 +1417,8 @@ export function BreathingScreen() {
                 type="default"
                 style={styles.phaseText}
                 accessibilityLiveRegion="polite"
-                accessibilityLabel={`Breathing status: ${phaseName || (isSelectedPatternLocked ? 'Upgrade to Plus to Unlock' : 'Tap the circle to begin')}`}>
-                {phaseName || (isSelectedPatternLocked ? 'Upgrade to Plus to Unlock' : 'Tap to begin')}
+                accessibilityLabel={`Breathing status: ${phaseName || (isSelectedPatternLocked ? 'Tap to Unlock Plus' : 'Tap the circle to begin')}`}>
+                {phaseName || (isSelectedPatternLocked ? 'Tap to Unlock Plus' : 'Tap to begin')}
               </ThemedText>
               {isRunning && (
                 <ThemedText
