@@ -335,7 +335,7 @@ export function SettingsScreen() {
         </ThemedText>
 
         <View style={styles.section}>
-          <View style={styles.reminderLabel}>
+          <View style={styles.planLabel}>
             <ThemedText type="smallBold" style={styles.cardTitle}>
               {isPlus ? 'Breathe Easy Plus' : 'Free Plan'}
             </ThemedText>
@@ -953,6 +953,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     reminderLabel: {
       flex: 1,
       flexShrink: 1,
+      gap: Spacing.half,
+    },
+    // Same title+hint pairing as reminderLabel, but for a card where the
+    // label stands alone rather than sharing a row with a Switch -
+    // reminderLabel's flex:1 collapses to zero height without a sibling to
+    // size against (same root cause as the cardTitle comment above, for
+    // the Legal rows).
+    planLabel: {
       gap: Spacing.half,
     },
     upgradeButton: {
