@@ -25,20 +25,17 @@ const ROTATION_INDEX_KEY = 'breathe-easy:backing-music-rotation-index';
 // and load strategy (plain vs downloadFirst) as the cause of the tracks
 // never finishing loading on-device.
 export const BACKING_MUSIC_ROTATION_SOURCES: AudioSource[] = [
-  require('../../assets/sounds/bgm-guillermo-guareschi-a-sweet-story.m4a'),
   require('../../assets/sounds/bgm-pufino-careful.m4a'),
   require('../../assets/sounds/bgm-pufino-enlivening.m4a'),
-  require('../../assets/sounds/bgm-pufino-thoughtful.m4a'),
-  require('../../assets/sounds/bgm-spiring-city-life.m4a'),
-  require('../../assets/sounds/bgm-walen-dark-heart.m4a'),
-  require('../../assets/sounds/bgm-walen-freedom-motivation.m4a'),
+  require('../../assets/sounds/bgm-pufino-magnificent.m4a'),
+  require('../../assets/sounds/bgm-pufino-nervous.m4a'),
 ];
 
 // The only track free (non-Plus) users get - "Pufino - Enlivening". Free
 // users skip getNextBackingMusicTrackIndex() entirely and always play this
 // index instead, so they never advance through (or persist a position in)
 // the shared rotation counter.
-export const FREE_TIER_BACKING_MUSIC_INDEX = 2;
+export const FREE_TIER_BACKING_MUSIC_INDEX = 1;
 
 // Advances the persisted rotation index by one (wrapping around) and
 // returns its position in BACKING_MUSIC_ROTATION_SOURCES - called once per
@@ -61,8 +58,8 @@ export const TUMMO_SOUNDTRACK_SOURCES: Record<
   { main: AudioSource; integration: AudioSource }
 > = {
   set1: {
-    main: require('../../assets/sounds/bgm-spiring-city-life.m4a'),
-    integration: require('../../assets/sounds/bgm-guillermo-guareschi-a-sweet-story.m4a'),
+    main: require('../../assets/sounds/bgm-pufino-magnificent.m4a'),
+    integration: require('../../assets/sounds/bgm-pufino-nervous.m4a'),
   },
   set2: {
     main: require('../../assets/sounds/bgm-pufino-enlivening.m4a'),

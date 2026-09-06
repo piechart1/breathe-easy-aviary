@@ -5,12 +5,14 @@ import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Host, Picker } from '@expo/ui';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { Slider } from '@expo/ui/community/slider';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   DEFAULT_BACKING_MUSIC_ENABLED,
+  DEFAULT_BACKING_MUSIC_VOLUME,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
@@ -30,6 +32,7 @@ import {
   type TummoSoundtrack,
   getAnalyticsEnabled,
   getBackingMusicEnabled,
+  getBackingMusicVolume,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
   getHealthSyncEnabled,
@@ -45,6 +48,7 @@ import {
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setBackingMusicEnabled as persistBackingMusicEnabled,
+  setBackingMusicVolume as persistBackingMusicVolume,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setDailyNudgeSettings as persistDailyNudgeSettings,
   setHealthSyncEnabled as persistHealthSyncEnabled,
@@ -115,6 +119,7 @@ export function SettingsScreen() {
   const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [backingMusicEnabled, setBackingMusicEnabledState] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
+  const [backingMusicVolume, setBackingMusicVolumeState] = useState(DEFAULT_BACKING_MUSIC_VOLUME);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [healthSyncEnabled, setHealthSyncEnabledState] = useState(false);
   const [dailyNudge, setDailyNudge] = useState<ReminderSettings>({ enabled: false, hour: 9, minute: 0 });
@@ -138,6 +143,7 @@ export function SettingsScreen() {
       });
       getSoundStyle().then(setSoundStyleState);
       getBackingMusicEnabled().then(setBackingMusicEnabledState);
+      getBackingMusicVolume().then(setBackingMusicVolumeState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getHealthSyncEnabled().then(setHealthSyncEnabledState);
       getDailyNudgeSettings().then(setDailyNudge);
@@ -171,6 +177,12 @@ export function SettingsScreen() {
   const handleToggleBackingMusic = (enabled: boolean) => {
     setBackingMusicEnabledState(enabled);
     persistBackingMusicEnabled(enabled);
+  };
+
+  const handleBackingMusicVolumeChange = (percent: number) => {
+    const rounded = Math.round(percent);
+    setBackingMusicVolumeState(rounded);
+    persistBackingMusicVolume(rounded);
   };
 
   const handleUpgrade = () => {
@@ -419,6 +431,29 @@ export function SettingsScreen() {
           <ThemedText type="small" style={styles.sectionHint}>
             Play a music track underneath breathing exercises.
           </ThemedText>
+
+          {backingMusicEnabled && (
+            <>
+              <View style={styles.toggleRow}>
+                <ThemedText type="smallBold" style={styles.sectionLabel}>
+                  Music Volume
+                </ThemedText>
+                <ThemedText type="small" style={styles.sectionHint}>
+                  {backingMusicVolume}%
+                </ThemedText>
+              </View>
+
+              <Slider
+                value={backingMusicVolume}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                onValueChange={handleBackingMusicVolumeChange}
+                minimumTrackTintColor={theme.accent}
+                style={styles.volumeSlider}
+              />
+            </>
+          )}
 
           <View style={styles.divider} />
 
@@ -933,6 +968,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     minutePillText: {
       fontSize: 14,
+    },
+    volumeSlider: {
+      width: '100%',
     },
     secondsPickerHost: {
       alignSelf: 'flex-start',

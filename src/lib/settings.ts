@@ -6,6 +6,7 @@ const BUTEYKO_HOLD_SECONDS_KEY = 'breathe-easy:buteyko-hold-seconds';
 const ANALYTICS_ENABLED_KEY = 'breathe-easy:analytics-enabled';
 const HEALTH_SYNC_ENABLED_KEY = 'breathe-easy:health-sync-enabled';
 const BACKING_MUSIC_ENABLED_KEY = 'breathe-easy:backing-music-enabled';
+const BACKING_MUSIC_VOLUME_KEY = 'breathe-easy:backing-music-volume';
 const SOUND_STYLE_KEY = 'breathe-easy:sound-style';
 const TUMMO_SKIP_TO_HOLD_KEY = 'breathe-easy:tummo-skip-to-hold';
 const TUMMO_HOLD_SECONDS_KEY = 'breathe-easy:tummo-hold-seconds';
@@ -94,6 +95,25 @@ export async function getBackingMusicEnabled(): Promise<boolean> {
 
 export async function setBackingMusicEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(BACKING_MUSIC_ENABLED_KEY, String(enabled));
+}
+
+// How loud the backing music track plays, as a percentage (0-100) of its
+// base mix volume - full volume by default. Only scales the music track;
+// spoken cues and the metronome are unaffected.
+export const DEFAULT_BACKING_MUSIC_VOLUME = 100;
+
+export async function getBackingMusicVolume(): Promise<number> {
+  const raw = await AsyncStorage.getItem(BACKING_MUSIC_VOLUME_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_BACKING_MUSIC_VOLUME;
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_BACKING_MUSIC_VOLUME;
+  }
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
+export async function setBackingMusicVolume(percent: number): Promise<void> {
+  const clamped = Math.min(100, Math.max(0, Math.round(percent)));
+  await AsyncStorage.setItem(BACKING_MUSIC_VOLUME_KEY, String(clamped));
 }
 
 export type SoundStyle = 'metronome' | 'resonant';

@@ -41,6 +41,7 @@ import { presentPlusPaywall, useIsPlus } from '@/lib/purchases';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
   DEFAULT_BACKING_MUSIC_ENABLED,
+  DEFAULT_BACKING_MUSIC_VOLUME,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
@@ -55,6 +56,7 @@ import {
   type TummoIntegrationMinutes,
   type TummoSoundtrack,
   getBackingMusicEnabled,
+  getBackingMusicVolume,
   getButeykoHoldSeconds,
   getHealthSyncEnabled,
   getSoundStyle,
@@ -724,6 +726,12 @@ export function BreathingScreen() {
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
   const [backingMusicEnabled, setBackingMusicEnabled] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
+  const [backingMusicVolumePercent, setBackingMusicVolumePercent] = useState(DEFAULT_BACKING_MUSIC_VOLUME);
+  // The effective mix volume backing-music players are set to - scales
+  // BACKING_MUSIC_VOLUME by the user's Settings > General > Music Volume
+  // percentage. Only ever applied to backing-music players, never to
+  // spoken cues or the metronome.
+  const backingMusicVolume = BACKING_MUSIC_VOLUME * (backingMusicVolumePercent / 100);
   // Treat the brief `null` ("still loading") window the same as `false` -
   // otherwise a free user could see a locked pattern flash unlocked for a
   // moment before flipping locked again once entitlement status resolves.
@@ -817,6 +825,7 @@ export function BreathingScreen() {
       getSoundStyle().then(setSoundStyle);
       getHealthSyncEnabled().then(setHealthSyncEnabled);
       getBackingMusicEnabled().then(setBackingMusicEnabled);
+      getBackingMusicVolume().then(setBackingMusicVolumePercent);
     }, []),
   );
 
@@ -989,7 +998,7 @@ export function BreathingScreen() {
         // isLoaded/isBuffering both looked fine, playing just never flipped
         // true). Never letting both players be inactive at once avoids it.
         integrationPlayer.loop = true;
-        integrationPlayer.volume = BACKING_MUSIC_VOLUME;
+        integrationPlayer.volume = backingMusicVolume;
         // Not awaited - snaps the position back to the start shortly after
         // playback begins rather than before, so a previous session's
         // paused-mid-track position doesn't carry over without delaying
@@ -1016,7 +1025,7 @@ export function BreathingScreen() {
           const fadeStartedAt = Date.now();
           const fadeIntervalId = setInterval(() => {
             const progress = Math.min(1, (Date.now() - fadeStartedAt) / INTEGRATION_FADE_DURATION_MS);
-            integrationPlayer.volume = BACKING_MUSIC_VOLUME * (1 - progress);
+            integrationPlayer.volume = backingMusicVolume * (1 - progress);
             if (progress >= 1) {
               clearInterval(fadeIntervalId);
             }
@@ -1136,6 +1145,7 @@ export function BreathingScreen() {
       tummoSet1IntegrationPlayer,
       tummoSet2MainPlayer,
       tummoSet2IntegrationPlayer,
+      backingMusicVolume,
       stopBreathing,
     ],
   );
@@ -1196,7 +1206,7 @@ export function BreathingScreen() {
         return;
       }
       player.loop = true;
-      player.volume = BACKING_MUSIC_VOLUME;
+      player.volume = backingMusicVolume;
       // A player that was paused mid-track (stopping a session) resumes
       // from that same position on the next play() rather than restarting -
       // most noticeable on the two advanced patterns, whose dedicated
@@ -1251,7 +1261,7 @@ export function BreathingScreen() {
           }
           try {
             delayedPlayer.loop = true;
-            delayedPlayer.volume = BACKING_MUSIC_VOLUME;
+            delayedPlayer.volume = backingMusicVolume;
             delayedPlayer.play();
             backingMusicWatcherRef.current?.remove();
             backingMusicWatcherRef.current = watchAndKeepBackingMusicPlaying(
@@ -1274,6 +1284,7 @@ export function BreathingScreen() {
     tummoSet1MainPlayer,
     tummoSet2MainPlayer,
     rotationPlayers,
+    backingMusicVolume,
     stopBreathing,
   ]);
 
