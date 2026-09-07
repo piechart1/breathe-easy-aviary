@@ -148,7 +148,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Box Breathing',
     timing: '4-4-4-4',
     description: 'Inhale, hold, exhale, hold',
-    info: 'Also called square breathing, this technique uses equal counts for every phase to create a steady, balanced rhythm. It\'s used by Navy SEALs and in clinical stress management to calm the nervous system, sharpen focus, and regain composure under pressure.',
+    info: 'Also called square breathing, this technique uses equal counts for every phase to create a steady, balanced rhythm. It\'s used by Navy SEALs and in clinical stress management to calm the nervous system, sharpen focus, and regain composure under pressure.\n\nExcellent go to if you need a simple breathing pattern to regulate and calm yourself. Can be performed at any time.',
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
@@ -162,7 +162,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: '4-7-8',
     timing: '4-7-8',
     description: 'Inhale, hold, exhale',
-    info: 'Popularized by Dr. Andrew Weil and rooted in ancient pranayama practice, this pattern stretches the exhale far longer than the inhale. That extended release helps activate the parasympathetic nervous system, making it a favorite for easing anxiety and falling asleep faster.',
+    info: 'Rooted in ancient pranayama practice, this pattern stretches the exhale far longer than the inhale. That extended release helps activate the parasympathetic nervous system, making it a favourite for easing anxiety and falling asleep faster.\n\nCan be performed at any time, however an excellent choice when getting ready for sleep.',
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
@@ -175,7 +175,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Resonance Breathing',
     timing: '5-5',
     description: 'Inhale, exhale',
-    info: 'Also known as coherent breathing, this pattern keeps inhale and exhale equal at a slow, steady pace of about 5-6 breaths per minute. That rhythm helps synchronize your heart rate variability with your breath, promoting a calm, balanced state well suited to everyday practice.',
+    info: 'Also known as coherent breathing, this pattern keeps inhale and exhale equal at a slow, steady pace of about 5-6 breaths per minute. That rhythm helps synchronize your heart rate variability with your breath, promoting a calm, balanced state well suited to everyday practice.\n\nThe simplest breathing pattern and a great alternative to box breathing for those that find the breath holds too much.',
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 5000, targetScale: MAX_BREATH_SCALE },
@@ -187,7 +187,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Cyclic Sighing',
     timing: '2-1-6',
     description: 'Deep inhale, short inhale, long exhale',
-    info: "Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second 'top-off' inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.",
+    info: "Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second 'top-off' inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.\n\nAim for an audible sigh on the exhale. Moderate your breath output rate to use the full exhale duration. Can be a good go to when feeling overwhelmed.",
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 2000, targetScale: 0.85 },
@@ -200,7 +200,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Ujjayi Breath',
     timing: '4-6',
     description: 'Inhale, extended exhale',
-    info: "Known as 'ocean breath' for the soft rushing sound made by gently constricting the back of the throat, Ujjayi is a slow, steady technique traditionally paired with yoga movement. The slightly longer exhale encourages a calm, focused, meditative state.",
+    info: "Known as 'ocean breath' for the soft rushing sound made by gently constricting the back of the throat, Ujjayi is a slow, steady technique traditionally paired with yoga movement. The slightly longer exhale encourages a calm, focused, meditative state.\n\nThis can take some practice to become proficient. See more details in the Reading section on how to perform the technique.",
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
