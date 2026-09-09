@@ -5,12 +5,18 @@ import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { SafetyDisclaimerGate } from '@/components/safety-disclaimer-gate';
-import { scheduleDailyNudge } from '@/lib/notifications';
 import { initPurchases } from '@/lib/purchases';
-import { getAnalyticsEnabled, getDailyNudgeSettings } from '@/lib/settings';
+import { getAnalyticsEnabled } from '@/lib/settings';
 import { initTelemetry } from '@/lib/telemetry';
 
 SplashScreen.preventAutoHideAsync();
+// Called at module load rather than in a useEffect below - Purchases.configure()
+// is synchronous, but React fires a child component's effects before its
+// parent's in the same commit, so any screen's useIsPlus() (which checks
+// this synchronously on mount and permanently gives up on `false` rather
+// than retrying) could otherwise run before this had a chance to. Calling
+// it here guarantees it completes before any component starts rendering.
+initPurchases();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,16 +25,6 @@ export default function RootLayout() {
     getAnalyticsEnabled().then((enabled) => {
       if (enabled) {
         initTelemetry();
-      }
-    });
-    initPurchases();
-    // Re-arms the daily nudge's Wednesday-rotation notification against
-    // today's date - see the comment on WEDNESDAY_ROTATION_BODIES in
-    // notifications.ts for why this needs to happen somewhere that runs
-    // periodically rather than just once when the reminder is turned on.
-    getDailyNudgeSettings().then(({ enabled, hour, minute }) => {
-      if (enabled) {
-        scheduleDailyNudge(hour, minute);
       }
     });
   }, []);

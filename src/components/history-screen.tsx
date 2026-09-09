@@ -163,7 +163,7 @@ export function HistoryScreen() {
               tintColor={SESSIONS_COLOR}
             />
             <ThemedText type="smallBold" style={[styles.pillText, { color: SESSIONS_COLOR }]}>
-              {totalSessions} Breathwork sessions
+              {totalSessions} Breathwork session{totalSessions === 1 ? '' : 's'}
             </ThemedText>
           </View>
         </View>
