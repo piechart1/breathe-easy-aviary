@@ -318,8 +318,12 @@ export function SettingsScreen() {
     persistTummoSkipToHold(enabled);
   };
 
+  // Only ever forces Plus *on* for testing gated features - turning it off
+  // clears the override entirely (null) rather than forcing Plus off, so it
+  // goes back to tracking the real entitlement rather than permanently
+  // masking it.
   const handleToggleDevPlusOverride = (enabled: boolean) => {
-    setDevPlusOverride(enabled);
+    setDevPlusOverride(enabled ? true : null);
   };
 
   return (
