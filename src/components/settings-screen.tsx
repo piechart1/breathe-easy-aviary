@@ -15,7 +15,6 @@ import {
   DEFAULT_BACKING_MUSIC_VOLUME,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
   DEFAULT_SOUND_STYLE,
-  DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
   DEFAULT_TUMMO_INTEGRATION_MINUTES,
@@ -23,7 +22,6 @@ import {
   DEFAULT_TUMMO_SOUNDTRACK,
   MAX_BUTEYKO_HOLD_SECONDS,
   MIN_BUTEYKO_HOLD_SECONDS,
-  TIMER_MINUTE_OPTIONS,
   TUMMO_INTEGRATION_MINUTE_OPTIONS,
   type ReminderSettings,
   type SoundStyle,
@@ -37,7 +35,6 @@ import {
   getDailyNudgeSettings,
   getHealthSyncEnabled,
   getSoundStyle,
-  getTimerSettings,
   getTummoHoldMode,
   getTummoHoldSeconds,
   getTummoIntegrationEnabled,
@@ -53,8 +50,6 @@ import {
   setDailyNudgeSettings as persistDailyNudgeSettings,
   setHealthSyncEnabled as persistHealthSyncEnabled,
   setSoundStyle as persistSoundStyle,
-  setTimerEnabled as persistTimerEnabled,
-  setTimerMinutes as persistTimerMinutes,
   setTummoHoldMode as persistTummoHoldMode,
   setTummoHoldSeconds as persistTummoHoldSeconds,
   setTummoIntegrationEnabled as persistTummoIntegrationEnabled,
@@ -67,7 +62,7 @@ import {
 import { disableTelemetry, initTelemetry } from '@/lib/telemetry';
 import { cancelDailyNudge, cancelWindDown, scheduleDailyNudge, scheduleWindDown } from '@/lib/notifications';
 import { requestHealthKitPermission } from '@/lib/healthkit';
-import { presentPlusPaywall, restorePurchases, setDevPlusOverride, useIsPlus } from '@/lib/purchases';
+import { presentPlusPaywall, resetDevTestAccount, restorePurchases, setDevPlusOverride, useIsPlus } from '@/lib/purchases';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { PRIVACY_POLICY_URL, SAFETY_DISCLAIMER_URL, TERMS_OF_USE_URL } from '@/constants/legal';
 
@@ -115,8 +110,6 @@ export function SettingsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isPlus = useIsPlus() === true;
-  const [timerEnabled, setTimerEnabledState] = useState(false);
-  const [timerMinutes, setTimerMinutesState] = useState(DEFAULT_TIMER_MINUTES);
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [backingMusicEnabled, setBackingMusicEnabledState] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
   const [backingMusicVolume, setBackingMusicVolumeState] = useState(DEFAULT_BACKING_MUSIC_VOLUME);
@@ -137,10 +130,6 @@ export function SettingsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      getTimerSettings().then(({ enabled, minutes }) => {
-        setTimerEnabledState(enabled);
-        setTimerMinutesState(minutes);
-      });
       getSoundStyle().then(setSoundStyleState);
       getBackingMusicEnabled().then(setBackingMusicEnabledState);
       getBackingMusicVolume().then(setBackingMusicVolumeState);
@@ -158,16 +147,6 @@ export function SettingsScreen() {
       getTummoIntegrationMinutes().then(setTummoIntegrationMinutesState);
     }, []),
   );
-
-  const handleToggleTimer = (enabled: boolean) => {
-    setTimerEnabledState(enabled);
-    persistTimerEnabled(enabled);
-  };
-
-  const handleSelectMinutes = (minutes: number) => {
-    setTimerMinutesState(minutes);
-    persistTimerMinutes(minutes);
-  };
 
   const handleSelectSoundStyle = (style: SoundStyle) => {
     setSoundStyleState(style);
@@ -326,6 +305,16 @@ export function SettingsScreen() {
     setDevPlusOverride(enabled ? true : null);
   };
 
+  const handleResetTestAccount = async () => {
+    try {
+      await resetDevTestAccount();
+      Alert.alert('Reset', 'Switched to a brand-new test account with no purchase history.');
+    } catch (error) {
+      console.log('[settings] resetDevTestAccount ERROR', error);
+      Alert.alert('Reset failed', 'Something went wrong resetting the test account.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* pointerEvents is passed via style rather than as a prop, per the
@@ -458,52 +447,6 @@ export function SettingsScreen() {
               />
             </>
           )}
-
-          <View style={styles.divider} />
-
-          <View style={styles.toggleRow}>
-            <ThemedText type="smallBold" style={styles.sectionLabel}>
-              Auto Stop
-            </ThemedText>
-            <Switch
-              value={timerEnabled}
-              onValueChange={handleToggleTimer}
-              accessibilityLabel="Auto stop"
-            />
-          </View>
-
-          {timerEnabled && (
-            <View style={styles.minutesRow}>
-              {TIMER_MINUTE_OPTIONS.map((minutes) => {
-                const isSelected = minutes === timerMinutes;
-                return (
-                  <Pressable
-                    key={minutes}
-                    onPress={() => handleSelectMinutes(minutes)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${minutes} minutes`}
-                    accessibilityState={{ selected: isSelected }}
-                    style={[
-                      styles.minutePill,
-                      { borderColor: isSelected ? theme.accent : theme.border },
-                      isSelected && { backgroundColor: theme.backgroundSelected },
-                    ]}>
-                    <ThemedText
-                      type="smallBold"
-                      style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
-                      {minutes}m
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-
-          <ThemedText type="small" style={styles.sectionHint}>
-            {timerEnabled
-              ? `Sessions will automatically stop after ${timerMinutes} minutes with the exception of Cyclic Hyperventilation which will run until completion of the number of rounds set, unless stopped manually.`
-              : 'Sessions run until you stop them manually.'}
-          </ThemedText>
         </View>
 
         <ThemedText type="smallBold" style={styles.subHeading}>
@@ -870,6 +813,22 @@ export function SettingsScreen() {
                   accessibilityLabel="Skip to Hold"
                 />
               </View>
+
+              <View style={styles.divider} />
+
+              <Pressable
+                onPress={handleResetTestAccount}
+                accessibilityRole="button"
+                accessibilityLabel="Reset test account"
+                style={({ pressed }) => [styles.restoreRow, { opacity: pressed ? 0.7 : 1 }]}>
+                <ThemedText type="small" style={styles.restoreText}>
+                  Reset Test Account
+                </ThemedText>
+              </Pressable>
+
+              <ThemedText type="small" style={styles.sectionHint}>
+                Switches to a fresh RevenueCat ID with no purchase history, for repeatable local StoreKit testing.
+              </ThemedText>
             </View>
           </>
         )}

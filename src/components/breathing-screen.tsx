@@ -68,6 +68,9 @@ import {
   getTummoRounds,
   getTummoSkipToHold,
   getTummoSoundtrack,
+  setTimerEnabled as persistTimerEnabled,
+  setTimerMinutes as persistTimerMinutes,
+  TIMER_MINUTE_OPTIONS,
 } from '@/lib/settings';
 import { trackPatternStarted, trackSessionCompleted } from '@/lib/telemetry';
 
@@ -711,8 +714,22 @@ export function BreathingScreen() {
   const [phaseElapsedSeconds, setPhaseElapsedSeconds] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
+  const [isTimerPickerOpen, setIsTimerPickerOpen] = useState(false);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(DEFAULT_TIMER_MINUTES);
+  // Auto Stop is set here on Home rather than in Settings, and can be
+  // changed while a session is running - startBreathing's elapsed-seconds
+  // interval reads these refs (kept current below) on every tick instead of
+  // a value captured once at session start, so a change made mid-session
+  // takes effect on the very next tick rather than only for the next session.
+  const timerEnabledRef = useRef(timerEnabled);
+  const timerMinutesRef = useRef(timerMinutes);
+  useEffect(() => {
+    timerEnabledRef.current = timerEnabled;
+  }, [timerEnabled]);
+  useEffect(() => {
+    timerMinutesRef.current = timerMinutes;
+  }, [timerMinutes]);
   const [buteykoHoldSeconds, setButeykoHoldSeconds] = useState(DEFAULT_BUTEYKO_HOLD_SECONDS);
   const [tummoSkipToHold, setTummoSkipToHold] = useState(false);
   const [tummoHoldSeconds, setTummoHoldSeconds] = useState(DEFAULT_TUMMO_HOLD_SECONDS);
@@ -1150,6 +1167,18 @@ export function BreathingScreen() {
     ],
   );
 
+  const handleSelectTimerOff = useCallback(() => {
+    setTimerEnabled(false);
+    persistTimerEnabled(false);
+  }, []);
+
+  const handleSelectTimerMinutes = useCallback((minutes: number) => {
+    setTimerEnabled(true);
+    setTimerMinutes(minutes);
+    persistTimerEnabled(true);
+    persistTimerMinutes(minutes);
+  }, []);
+
   // Manual advance for Tummo's Dynamic retention style - mirrors the
   // round-counting/advance logic in runPhase's own auto-advance timeout
   // above, since that timeout is deliberately not scheduled for this phase.
@@ -1314,32 +1343,25 @@ export function BreathingScreen() {
 
     let secondsElapsed = 1;
     setElapsedSeconds(secondsElapsed);
-    // Tummo has a fixed, deliberately-authored sequence (30 breaths, a long
-    // hold, recovery) - the session-length auto-stop is meant for
-    // open-ended guided practice, not a structured exercise with its own
-    // built-in duration, so it never applies here regardless of the
-    // configured minutes.
-    const timerLimitSeconds = timerEnabled && selectedPatternId !== 'tummo' ? timerMinutes * 60 : null;
 
     elapsedIntervalRef.current = setInterval(() => {
       secondsElapsed += 1;
       setElapsedSeconds(secondsElapsed);
+      // Tummo has a fixed, deliberately-authored sequence (30 breaths, a
+      // long hold, recovery) - the session-length auto-stop is meant for
+      // open-ended guided practice, not a structured exercise with its own
+      // built-in duration, so it never applies here regardless of the
+      // configured minutes. Read from the refs (rather than closing over
+      // timerEnabled/timerMinutes once here) so changing Auto Stop while
+      // this session is already running is honored on the very next tick.
+      const timerLimitSeconds =
+        timerEnabledRef.current && selectedPatternId !== 'tummo' ? timerMinutesRef.current * 60 : null;
       if (timerLimitSeconds !== null && secondsElapsed >= timerLimitSeconds) {
         stopBreathing();
       }
     }, 1000);
     runPhase(activePattern, 0);
-  }, [
-    runPhase,
-    scaleAnim,
-    activePattern,
-    isPlus,
-    timerEnabled,
-    timerMinutes,
-    stopBreathing,
-    selectedPatternId,
-    startBackingMusic,
-  ]);
+  }, [runPhase, scaleAnim, activePattern, isPlus, stopBreathing, selectedPatternId, startBackingMusic]);
 
   useEffect(() => {
     if (isRunningRef.current) {
@@ -1397,6 +1419,27 @@ export function BreathingScreen() {
               Breathe Easy
             </ThemedText>
           </View>
+
+          {/* Tummo has its own fixed, deliberately-authored sequence (30
+              breaths, a long hold, recovery) rather than an open-ended
+              duration, so Auto Stop never applies to it - see the same
+              exemption in startBreathing's timer check above. */}
+          {selectedPatternId !== 'tummo' && (
+            <Pressable
+              onPress={() => setIsTimerPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Auto stop, currently ${timerEnabled ? `${timerMinutes} minutes` : 'off'}`}
+              style={({ pressed }) => [styles.timerPill, { opacity: pressed ? 0.85 : 1 }]}>
+              <SymbolView
+                name={{ ios: 'timer', android: 'timer', web: 'timer' }}
+                size={14}
+                tintColor={theme.textSecondary}
+              />
+              <ThemedText type="small" style={styles.timerPillText}>
+                {timerEnabled ? `Auto Stop ${timerMinutes}m` : 'Auto Stop Off'}
+              </ThemedText>
+            </Pressable>
+          )}
 
           <Pressable
             onPress={isRunning ? stopBreathing : startBreathing}
@@ -1551,6 +1594,65 @@ export function BreathingScreen() {
           </Pressable>
         </Pressable>
       )}
+
+      {isTimerPickerOpen && (
+        <Pressable style={styles.modalBackdrop} onPress={() => setIsTimerPickerOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
+            <ThemedText type="smallBold" style={styles.modalTitle}>Auto Stop</ThemedText>
+            <ThemedText type="small" style={styles.modalInfoText}>
+              Automatically stop the session after a set number of minutes. Changing this while a session is
+              running takes effect immediately.
+            </ThemedText>
+            <View style={styles.timerOptionsRow}>
+              <Pressable
+                onPress={handleSelectTimerOff}
+                accessibilityRole="button"
+                accessibilityLabel="Off"
+                accessibilityState={{ selected: !timerEnabled }}
+                style={[
+                  styles.minutePill,
+                  { borderColor: !timerEnabled ? theme.accent : theme.border },
+                  !timerEnabled && { backgroundColor: theme.backgroundSelected },
+                ]}>
+                <ThemedText
+                  type="smallBold"
+                  style={[styles.minutePillText, { color: !timerEnabled ? theme.text : theme.textSecondary }]}>
+                  Off
+                </ThemedText>
+              </Pressable>
+              {TIMER_MINUTE_OPTIONS.map((minutes) => {
+                const isSelected = timerEnabled && minutes === timerMinutes;
+                return (
+                  <Pressable
+                    key={minutes}
+                    onPress={() => handleSelectTimerMinutes(minutes)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${minutes} minutes`}
+                    accessibilityState={{ selected: isSelected }}
+                    style={[
+                      styles.minutePill,
+                      { borderColor: isSelected ? theme.accent : theme.border },
+                      isSelected && { backgroundColor: theme.backgroundSelected },
+                    ]}>
+                    <ThemedText
+                      type="smallBold"
+                      style={[styles.minutePillText, { color: isSelected ? theme.text : theme.textSecondary }]}>
+                      {minutes}m
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() => setIsTimerPickerOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={styles.modalCloseButton}>
+              <ThemedText type="smallBold" style={styles.modalCloseText}>Close</ThemedText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -1585,6 +1687,33 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     ...SystemFont.medium,
     textAlign: 'center',
     color: theme.text,
+  },
+  timerPill: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: 999,
+    backgroundColor: theme.backgroundElement,
+  },
+  timerPillText: {
+    color: theme.textSecondary,
+  },
+  timerOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  minutePill: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  minutePillText: {
+    fontSize: 14,
   },
   circleSection: {
     alignItems: 'center',

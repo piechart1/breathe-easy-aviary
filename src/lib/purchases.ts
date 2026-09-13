@@ -139,6 +139,27 @@ export function useIsPlus(): boolean | null {
   return isPlus;
 }
 
+// Dev-only: switches to a brand-new, never-before-seen app user ID with no
+// purchase history, so local StoreKit testing isn't blocked by RevenueCat's
+// backend still remembering a previous test purchase for the current
+// (anonymous) ID - deleting a local StoreKit transaction doesn't tell
+// RevenueCat's server anything changed, so its cached entitlement can
+// outlive the transaction that created it.
+//
+// logIn() alone won't do this - it *aliases* the current identity's
+// entitlements onto the new ID rather than starting fresh (correct behavior
+// for a real user signing in after purchasing anonymously, wrong for a
+// reset). logOut() is the one that yields a genuinely unaliased identity,
+// but only works from an already-identified user, hence logging into a
+// throwaway ID first before logging out of it.
+export async function resetDevTestAccount(): Promise<void> {
+  if (!__DEV__ || !initialized) {
+    return;
+  }
+  await Purchases.logIn(`dev-test-${Date.now()}`);
+  await Purchases.logOut();
+}
+
 // Single call site for every "Upgrade to Plus" trigger in the app - shows
 // RevenueCat's dashboard-configured paywall (a no-op if the user is already
 // entitled) and reports back whether they ended up with Plus access, so
