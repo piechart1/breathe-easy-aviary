@@ -13,8 +13,6 @@ _Generated 2026-09-21 by `~/tools/project-status/status.py`. Edit outside the ma
 | Version | 1.0.0 |
 | Bundle id | `com.anonymous.breathe-easy` |
 | Test files | 1 |
-| Git | `main`, 117 commits, 2026-08-17 to 2026-09-21 |
-| Working tree | **1 uncommitted file(s)** |
 | Remote | https://github.com/piechart1/breathe-easy-aviary.git |
 
 ## iOS / App Store
