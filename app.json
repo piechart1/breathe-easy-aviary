@@ -10,6 +10,7 @@
     "ios": {
       "bundleIdentifier": "com.anonymous.breathe-easy",
       "buildNumber": "2",
+      "appleTeamId": "9KNUWQFXQP",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -54,6 +55,14 @@
       "@sentry/react-native",
       "./plugins/withoutPushEntitlement",
       "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
       [
         "@kingstinct/react-native-healthkit",
         {
