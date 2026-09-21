@@ -1416,7 +1416,7 @@ export function BreathingScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-              Breathe Easy
+              Breathe Easy Aviary
             </ThemedText>
           </View>
 

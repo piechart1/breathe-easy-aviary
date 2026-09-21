@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Breathe Easy",
+    "name": "Breathe Easy Aviary",
     "slug": "breathe-easy",
     "version": "1.0.1",
     "orientation": "portrait",
@@ -57,8 +57,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Breathe Easy does not read your Health data.",
-          "NSHealthUpdateUsageDescription": "Breathe Easy saves completed breathing sessions to Health as Mindful Minutes.",
+          "NSHealthShareUsageDescription": "Breathe Easy Aviary does not read your Health data.",
+          "NSHealthUpdateUsageDescription": "Breathe Easy Aviary saves completed breathing sessions to Health as Mindful Minutes.",
           "background": false
         }
       ]

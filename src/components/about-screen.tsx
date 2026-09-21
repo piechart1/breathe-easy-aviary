@@ -95,7 +95,7 @@ export function AboutScreen() {
             Around the World
           </ThemedText>
           <ThemedText type="small" style={styles.subtitle}>
-            Where the Breathe Easy community is practicing.
+            Where the Breathe Easy Aviary community is practicing.
           </ThemedText>
 
           <View style={styles.mapContainer} onLayout={(event) => setMapWidth(event.nativeEvent.layout.width)}>
