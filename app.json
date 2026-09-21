@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.anonymous.breathe-easy",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "appleTeamId": "9KNUWQFXQP",
       "config": {
         "usesNonExemptEncryption": false
