@@ -2,13 +2,14 @@
   "expo": {
     "name": "Breathe Easy",
     "slug": "breathe-easy",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "breathe",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.anonymous.breathe-easy",
+      "buildNumber": "2",
       "config": {
         "usesNonExemptEncryption": false
       }
