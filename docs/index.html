@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Breathe Easy Aviary – Guided breathing for iPhone</title>
+  <meta name="description" content="Seven guided breathing techniques, from Box Breathing and 4-7-8 to Cyclic Sighing, with voice cues and backing music. Themed on the birdlife of Australia. Made in Melbourne.">
+
+  <!-- Safari on iPhone shows its own "Open in App Store" banner for this app. -->
+  <meta name="apple-itunes-app" content="app-id=6806774681">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Breathe Easy Aviary">
+  <meta property="og:description" content="Seven guided breathing techniques with voice cues and backing music. Made in Melbourne.">
+  <meta property="og:image" content="icon.png">
+  <meta name="twitter:card" content="summary">
+
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #FFFFFF;
+      --bg-element: #F4F4F4;
+      --border: #E5E7EB;
+      --text: #111111;
+      --text-secondary: #6B7280;
+      --link: #2563EB;
+
+      /* Pattern accents, from src/constants/breathing-patterns.ts */
+      --box: #BCD8E1;
+      --four-seven-eight: #B17DAC;
+      --resonance: #FFBE98;
+      --cyclic-sighing: #A8D5BA;
+      --ujjayi: #8FC1D4;
+      --buteyko: #B8AED4;
+      --cyclic-hyperventilation: #FE5000;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0D1117;
+        --bg-element: #1C212B;
+        --border: #2A3140;
+        --text: #FFFFFF;
+        --text-secondary: #8B949E;
+        --link: #7AA7FF;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: var(--link); }
+    main { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+      padding: 56px 0 48px;
+    }
+    @media (min-width: 760px) {
+      .hero { grid-template-columns: 1.1fr 0.9fr; padding: 88px 0 72px; }
+    }
+    .app-id { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+    .app-id img { width: 72px; height: 72px; border-radius: 16px; box-shadow: 0 8px 24px rgba(17,17,17,.12); }
+    .app-id span { font-weight: 600; font-size: 19px; }
+    h1 {
+      font-size: clamp(34px, 6vw, 52px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin: 0 0 18px;
+      text-wrap: balance;
+    }
+    .lede { font-size: 19px; color: var(--text-secondary); margin: 0 0 32px; max-width: 34em; }
+    .badge img { height: 54px; width: auto; display: block; }
+    .note { font-size: 14px; color: var(--text-secondary); margin-top: 12px; }
+
+    .video {
+      justify-self: center;
+      width: min(100%, 320px);
+      aspect-ratio: 9 / 16;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #0D1117;
+      box-shadow: 0 24px 60px rgba(17,17,17,.18);
+    }
+    .video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    section { padding: 48px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; letter-spacing: -0.01em; margin: 0 0 8px; }
+    .section-intro { color: var(--text-secondary); margin: 0 0 28px; max-width: 40em; }
+
+    .patterns { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .patterns li {
+      background: var(--bg-element);
+      border-radius: 14px;
+      padding: 16px 18px 16px 20px;
+      border-left: 6px solid var(--accent);
+    }
+    .patterns strong { display: block; }
+    .patterns .timing { font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 15px; }
+    .plus { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary); margin-left: 6px; }
+
+    .features { display: grid; gap: 28px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+    .features h3 { font-size: 18px; margin: 0 0 6px; }
+    .features p { margin: 0; color: var(--text-secondary); }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--text-secondary); font-size: 15px; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div>
+      <div class="app-id">
+        <img src="icon.png" alt="" width="72" height="72">
+        <span>Breathe Easy Aviary</span>
+      </div>
+      <h1>Find the power of your breath</h1>
+      <p class="lede">A guided breathing app for iPhone, themed on the birdlife of Australia. Seven well-known techniques for stress relief, better sleep and a steady daily practice, each with voice cues and backing music.</p>
+      <!-- Campaign link (ct=website); see marketing/campaign-links.md. -->
+      <a class="badge" href="https://apps.apple.com/app/apple-store/id6806774681?pt=129380591&amp;ct=website&amp;mt=8">
+        <img src="app-store-badge.svg" alt="Download on the App Store">
+      </a>
+      <p class="note">Free to download, with an optional Plus subscription. Requires iOS 16.4 or later.</p>
+    </div>
+    <div class="video">
+      <video src="promo.mp4" poster="promo-poster.jpg" controls playsinline preload="none" aria-label="35-second promo showing a Box Breathing cycle and the seven patterns"></video>
+    </div>
+  </div>
+
+  <section>
+    <h2>Seven ways to breathe</h2>
+    <p class="section-intro">Each pattern comes with a short guide explaining how it works and when it helps. Sessions can run for a set time or until you choose to stop.</p>
+    <ul class="patterns">
+      <li style="--accent: var(--box)"><strong>Box Breathing</strong><span class="timing">4-4-4-4 · inhale, hold, exhale, hold</span></li>
+      <li style="--accent: var(--four-seven-eight)"><strong>4-7-8</strong><span class="timing">4-7-8 · inhale, hold, long exhale</span></li>
+      <li style="--accent: var(--resonance)"><strong>Resonance Breathing</strong><span class="timing">5-5 · slow, even breaths</span></li>
+      <li style="--accent: var(--cyclic-sighing)"><strong>Cyclic Sighing</strong><span class="timing">2-1-6 · deep inhale, top-up, long exhale</span></li>
+      <li style="--accent: var(--ujjayi)"><strong>Ujjayi Breath</strong><span class="timing">4-6 · the yoga "ocean breath"</span></li>
+      <li style="--accent: var(--buteyko)"><strong>Buteyko Breathing<span class="plus">Plus</span></strong><span class="timing">Light breathing with a gentle hold</span></li>
+      <li style="--accent: var(--cyclic-hyperventilation)"><strong>Cyclic Hyperventilation<span class="plus">Plus</span></strong><span class="timing">Rapid breaths, a retention hold and a quiet integration period</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What's in the app</h2>
+    <div class="features">
+      <div><h3>Voice or metronome</h3><p>Follow a calm voice or a simple tick, with optional backing music. Sessions keep playing with the screen locked, so you can use them to fall asleep.</p></div>
+      <div><h3>Reminders</h3><p>A daily practice reminder, or a wind-down cue before bed.</p></div>
+      <div><h3>Apple Health</h3><p>Completed sessions can be saved to Apple Health as Mindful Minutes.</p></div>
+      <div><h3>Short reading</h3><p>Plain-language articles on the nervous system, heart rate variability, air hunger and diaphragmatic breathing.</p></div>
+      <div><h3>Private by default</h3><p>Usage and crash reporting are off unless you turn them on. There are no ads and no tracking.</p></div>
+      <div><h3>Made in Melbourne</h3><p>Built by one developer in Melbourne (Naarm), with artwork of Australian birds throughout.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <nav>
+      <a href="https://claude.ai/code/artifact/d5136f03-5e57-4a44-a7c8-1c04383aa123#privacy">Privacy Policy</a>
+      <a href="https://claude.ai/code/artifact/d5136f03-5e57-4a44-a7c8-1c04383aa123#terms">Terms of Use</a>
+      <a href="https://claude.ai/code/artifact/d5136f03-5e57-4a44-a7c8-1c04383aa123#safety">Safety</a>
+      <a href="mailto:breatheeasyaviary@gmail.com">Contact</a>
+    </nav>
+    <p>Breathing exercises are not a substitute for medical advice. Please read the safety notes before trying the advanced patterns.</p>
+    <p>© 2026 David Philip Slee. Apple, the Apple logo, iPhone and Apple Health are trademarks of Apple Inc. App Store is a service mark of Apple Inc.</p>
+  </footer>
+</main>
+</body>
+</html>
