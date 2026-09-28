@@ -45,6 +45,6 @@ _This section is yours. The generator never touches it._
 
 **Blocking (Play Store):** `@kingstinct/react-native-healthkit` runs through 4 files including two screens. HealthKit has no Android equivalent, so this is a Health Connect rewrite or a cut feature - a product decision, not a build problem. The `android/` project already exists and the applicationId is set.
 
-**Next:** Settle the HealthKit question before touching the Android build.
+**Next:** Marketing (plan and assets from 25 Sep): add an in-app review prompt, then submit 1.0.2 with the new subtitle, keywords, captioned screenshots, preview video and Marketing URL - drafts in `marketing/`, renders in `~/Remotion`. Landing page is live at https://piechart1.github.io/breathe-easy-aviary/ (from `docs/`). Separately, settle the HealthKit question before touching the Android build.
 
 **Android intent:** Possible, gated on the above.
