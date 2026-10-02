@@ -1,0 +1,477 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T05:38:38Z",
+  "title": "Design System: Breathe Easy Aviary",
+  "extensions": {
+    "colorMeta": {
+      "signal-blue": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#3B82F6",
+        "tonalRamp": [
+          "#031E49",
+          "#063581",
+          "#084BB9",
+          "#0B62F0",
+          "#3F85F6",
+          "#77A8F9",
+          "#AFCCFB",
+          "#E7EFFE"
+        ]
+      },
+      "saltwater-slide": {
+        "role": "secondary",
+        "displayName": "Saltwater Slide",
+        "canonical": "#BCD8E1",
+        "tonalRamp": [
+          "#182E35",
+          "#2A515D",
+          "#3C7385",
+          "#4E96AE",
+          "#75AEC1",
+          "#9DC6D3",
+          "#C5DDE5",
+          "#EDF5F7"
+        ]
+      },
+      "anarchic-venom": {
+        "role": "secondary",
+        "displayName": "Anarchic Venom",
+        "canonical": "#B17DAC",
+        "tonalRamp": [
+          "#301D2E",
+          "#543351",
+          "#794874",
+          "#9D5E97",
+          "#B482AF",
+          "#CAA6C6",
+          "#E0CBDE",
+          "#F5EFF5"
+        ]
+      },
+      "peach-fuzz": {
+        "role": "secondary",
+        "displayName": "Peach Fuzz",
+        "canonical": "#FFBE98",
+        "tonalRamp": [
+          "#4C1C00",
+          "#873200",
+          "#C14700",
+          "#FB5D00",
+          "#FF8137",
+          "#FFA571",
+          "#FFCAAB",
+          "#FFEFE5"
+        ]
+      },
+      "meadow-mist": {
+        "role": "secondary",
+        "displayName": "Meadow Mist",
+        "canonical": "#A8D5BA",
+        "tonalRamp": [
+          "#193424",
+          "#2C5B3F",
+          "#3F825A",
+          "#52AA75",
+          "#78BE94",
+          "#9FD1B3",
+          "#C6E4D2",
+          "#EEF7F1"
+        ]
+      },
+      "ocean-whisper": {
+        "role": "secondary",
+        "displayName": "Ocean Whisper",
+        "canonical": "#8FC1D4",
+        "tonalRamp": [
+          "#152E37",
+          "#255161",
+          "#36748C",
+          "#4697B6",
+          "#6EAFC7",
+          "#98C6D8",
+          "#C2DDE8",
+          "#EDF5F8"
+        ]
+      },
+      "dusk-lavender": {
+        "role": "secondary",
+        "displayName": "Dusk Lavender",
+        "canonical": "#B8AED4",
+        "tonalRamp": [
+          "#211B32",
+          "#3A2F58",
+          "#53437E",
+          "#6B57A4",
+          "#8C7CBA",
+          "#AEA2CE",
+          "#CFC8E2",
+          "#F0EEF6"
+        ]
+      },
+      "ember-orange": {
+        "role": "secondary",
+        "displayName": "Ember Orange",
+        "canonical": "#FE5000",
+        "tonalRamp": [
+          "#4C1800",
+          "#872A00",
+          "#C13D00",
+          "#FB4F00",
+          "#FF7637",
+          "#FF9E71",
+          "#FFC6AB",
+          "#FFEEE5"
+        ]
+      },
+      "deep-navy": {
+        "role": "tertiary",
+        "displayName": "Deep Navy",
+        "canonical": "#152A63",
+        "tonalRamp": [
+          "#0D1B3F",
+          "#182F6F",
+          "#22449F",
+          "#2C58CF",
+          "#5A7DDC",
+          "#8AA3E6",
+          "#BAC9F0",
+          "#EAEEFB"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ]
+      },
+      "mist-card": {
+        "role": "neutral",
+        "displayName": "Mist Card",
+        "canonical": "#F4F4F4",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ]
+      },
+      "mist-selected": {
+        "role": "neutral",
+        "displayName": "Mist Selected",
+        "canonical": "#E8EAED",
+        "tonalRamp": [
+          "#22252B",
+          "#3B424C",
+          "#555E6C",
+          "#6E7B8D",
+          "#8F98A7",
+          "#AFB6C1",
+          "#D0D4DA",
+          "#F1F2F4"
+        ]
+      },
+      "slate-text": {
+        "role": "neutral",
+        "displayName": "Slate Text",
+        "canonical": "#6B7280",
+        "tonalRamp": [
+          "#23252A",
+          "#3D4149",
+          "#585E69",
+          "#727A89",
+          "#9298A4",
+          "#B2B6BE",
+          "#D1D4D9",
+          "#F1F2F3"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E5E7EB",
+        "tonalRamp": [
+          "#21252B",
+          "#3B404C",
+          "#545C6D",
+          "#6D788E",
+          "#8E96A8",
+          "#AFB5C1",
+          "#D0D3DB",
+          "#F1F2F4"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ]
+      },
+      "night-paper": {
+        "role": "neutral",
+        "displayName": "Night Paper",
+        "canonical": "#0D1117",
+        "tonalRamp": [
+          "#1C2431",
+          "#314056",
+          "#465B7B",
+          "#5B77A1",
+          "#7F95B7",
+          "#A4B4CC",
+          "#C9D3E1",
+          "#EFF2F6"
+        ]
+      },
+      "night-card": {
+        "role": "neutral",
+        "displayName": "Night Card",
+        "canonical": "#1C212B",
+        "tonalRamp": [
+          "#1E242E",
+          "#353F52",
+          "#4C5A75",
+          "#637598",
+          "#8694B0",
+          "#A9B3C7",
+          "#CCD2DE",
+          "#F0F1F5"
+        ]
+      },
+      "night-selected": {
+        "role": "neutral",
+        "displayName": "Night Selected",
+        "canonical": "#252B36",
+        "tonalRamp": [
+          "#1F242D",
+          "#374050",
+          "#4F5B73",
+          "#667795",
+          "#8895AE",
+          "#ABB4C5",
+          "#CDD3DD",
+          "#F0F2F5"
+        ]
+      },
+      "night-text": {
+        "role": "neutral",
+        "displayName": "Night Text",
+        "canonical": "#8B949E",
+        "tonalRamp": [
+          "#23262A",
+          "#3D4349",
+          "#586069",
+          "#727D89",
+          "#929AA4",
+          "#B2B8BE",
+          "#D1D5D9",
+          "#F1F2F3"
+        ]
+      },
+      "night-hairline": {
+        "role": "neutral",
+        "displayName": "Night Hairline",
+        "canonical": "#2A3140",
+        "tonalRamp": [
+          "#1E232E",
+          "#353E51",
+          "#4C5975",
+          "#647498",
+          "#8693B0",
+          "#A9B3C7",
+          "#CCD2DE",
+          "#F0F1F5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Large screen titles."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "Screen header."
+      },
+      "phase": {
+        "displayName": "Phase",
+        "purpose": "Live phase word, elapsed time and timing line."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default reading text."
+      },
+      "small-bold": {
+        "displayName": "Small Bold",
+        "purpose": "Pattern names, pill labels."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Descriptions and modal body."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section headers."
+      }
+    },
+    "shadows": [
+      {
+        "name": "breath-glow",
+        "value": "0 0 30px rgba(pattern-color, 0.9)",
+        "purpose": "Glow on the breath circle only, tinted by the selected pattern."
+      },
+      {
+        "name": "modal-backdrop",
+        "value": "rgba(0,0,0,0.6)",
+        "purpose": "Scrim behind modals; no shadow on the card itself."
+      }
+    ],
+    "motion": [
+      {
+        "name": "breath-ease",
+        "value": "Easing.inOut(Easing.ease)",
+        "purpose": "Circle scale over each Inhale and Exhale phase, native driver."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "max-content",
+        "value": "800px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Pattern Card",
+      "kind": "card",
+      "refersTo": "pattern-card",
+      "description": "A breathing pattern in the list; the selected card gains a pattern-colored border.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-name\">Box</div><div class=\"ds-card-desc\">4-4-4-4 | Steady focus</div></div>",
+      "css": ".ds-card{background:#F4F4F4;border:1px solid #BCD8E1;border-radius:16px;padding:16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;max-width:320px} .ds-card-name{font-size:15px;line-height:20px;font-weight:500;color:#111111} .ds-card-desc{font-size:14px;line-height:20px;font-weight:500;color:#6B7280;margin-top:4px}"
+    },
+    {
+      "name": "Auto Stop Pill",
+      "kind": "chip",
+      "refersTo": "timer-pill",
+      "description": "Full-round pill that opens the Auto Stop picker.",
+      "html": "<div class=\"ds-pill\">Auto Stop 10m</div>",
+      "css": ".ds-pill{display:inline-block;background:#F4F4F4;color:#6B7280;border-radius:999px;padding:4px 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:14px;line-height:20px;font-weight:500}"
+    },
+    {
+      "name": "Minute Pill (selected)",
+      "kind": "chip",
+      "refersTo": "minute-pill-selected",
+      "description": "Option in the Auto Stop picker; selected gets a blue border and tonal fill.",
+      "html": "<div class=\"ds-minute\">10m</div>",
+      "css": ".ds-minute{display:inline-block;background:#E8EAED;color:#111111;border:1px solid #3B82F6;border-radius:999px;padding:4px 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:14px;line-height:20px;font-weight:500}"
+    },
+    {
+      "name": "Hold Button",
+      "kind": "button",
+      "refersTo": "hold-button",
+      "description": "Tummo dynamic-hold advance button.",
+      "html": "<button class=\"ds-hold\">Tap to move to Inhale and Retention</button>",
+      "css": ".ds-hold{background:#152A63;color:#FFFFFF;border:none;border-radius:10px;padding:8px 24px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:15px;line-height:20px;font-weight:500;cursor:pointer;transition:opacity .15s} .ds-hold:hover{opacity:.85} .ds-hold:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}"
+    },
+    {
+      "name": "Modal Card",
+      "kind": "card",
+      "refersTo": "modal-card",
+      "description": "Info and Auto Stop dialogs over a 60% black backdrop.",
+      "html": "<div class=\"ds-modal\"><div class=\"ds-modal-title\">Auto Stop</div><div class=\"ds-modal-body\">Automatically stop the session after a set number of minutes.</div><div class=\"ds-modal-close\">Close</div></div>",
+      "css": ".ds-modal{background:#F4F4F4;border-radius:20px;padding:24px;max-width:360px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif} .ds-modal-title{font-size:18px;line-height:20px;font-weight:500;color:#111111} .ds-modal-body{font-size:14px;line-height:20px;font-weight:500;color:#6B7280;margin-top:16px} .ds-modal-close{text-align:right;font-size:15px;line-height:20px;font-weight:500;color:#3B82F6;margin-top:16px}"
+    },
+    {
+      "name": "Breath Circle",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "The glowing circle that scales with each phase, tinted by the selected pattern.",
+      "html": "<div class=\"ds-wrap\"><div class=\"ds-ring2\"></div><div class=\"ds-ring1\"></div><div class=\"ds-circle\"></div></div>",
+      "css": ".ds-wrap{position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center} .ds-ring2{position:absolute;width:240px;height:240px;border-radius:50%;background:#BCD8E1;opacity:.12} .ds-ring1{position:absolute;width:180px;height:180px;border-radius:50%;background:#BCD8E1;opacity:.22} .ds-circle{width:120px;height:120px;border-radius:50%;background:#BCD8E1;opacity:.92;box-shadow:0 0 30px rgba(188,216,225,.9)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Dawn Chorus",
+    "overview": "The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint magpie in the lower corner. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.",
+    "keyCharacteristics": [
+      "Flat tonal layers: page, then card, then selected card, in steps of a few percent of lightness.",
+      "One glow in the product, on the breath circle, tinted by the selected pattern.",
+      "Seven pastel pattern colors carry the brand. System blue is a utility accent only.",
+      "System font throughout; hierarchy comes from size and a single bold weight.",
+      "Bird art sits behind content at low opacity and never competes with controls.",
+      "Light and dark themes share the same structure and the same accent."
+    ],
+    "rules": [
+      {
+        "name": "The Pattern Owns The Color Rule",
+        "body": "The pastel on screen is always the selected pattern's. Never assign a pattern color to anything that is not that pattern, and never mix two pattern colors in one view.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blue Is A Utility Rule",
+        "body": "Signal Blue marks interactive state (selection, links, modal actions). It is not a brand color and is never used on the breath circle or its glow.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Bold Rule",
+        "body": "Bold weight marks the screen title and the active timing segment. Elsewhere hierarchy comes from size and color, not weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Only Glow Rule",
+        "body": "Glow belongs to the breath circle. No card, button or text gets a shadow or glow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do take every color from the theme tokens, and the breath circle color from the pattern's accent.",
+      "Do keep depth tonal: page (#FFFFFF), card (#F4F4F4), selected (#E8EAED) in light, and the equivalent steps in dark.",
+      "Do use Signal Blue (#3B82F6) for selection and actions only.",
+      "Do give every control an accessibility label and keep the phase word in a polite live region.",
+      "Do set elapsed time and counters in tabular figures so they do not jitter."
+    ],
+    "donts": [
+      "Don't put shadows or glows on cards, pills, buttons or modals.",
+      "Don't use a pattern color for anything that is not that pattern, or Signal Blue on the breath circle.",
+      "Don't introduce a second typeface or add bold weight beyond the title and the active timing segment.",
+      "Don't hardcode a one-off color in a component. The Hold Button's Deep Navy (#152A63) is a known exception and should move into the theme.",
+      "Don't let bird art rise above 20% opacity or sit in front of controls."
+    ]
+  }
+}
