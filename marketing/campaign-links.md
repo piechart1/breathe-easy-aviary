@@ -30,5 +30,5 @@ When one post or video matters enough to measure on its own, give it its own nam
 
 ## Notes
 
-- The QR code in the promo (`apple.co/4haLK5y`) has no campaign name, so those downloads show as web referrals with no source. If you regenerate it, point it at the `promo-qr` link above.
+- The QR code at the end of the promo was regenerated on 25 Sep 2026 and now points at the `promo-qr` link (without the optional `apple-store/` part of the path, to keep the code less dense). Copies of the promo rendered before that carry the old `apple.co/4haLK5y` code, which has no campaign name.
 - Social apps often open links in their own in-app browser. The campaign still counts, as long as the person then opens the App Store and downloads within 24 hours.
