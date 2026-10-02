@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breathing session flow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      /* Tokens taken from the Breathe app (src/constants/theme.ts, light palette) */
+      --color-paper:   #ffffff;
+      --color-ink:     #111111;
+      --color-muted:   #6b7280;
+      --color-accent:  #3b82f6;
+      --font-sans:     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono:     ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-sans);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+
+    .source {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--color-muted);
+      margin-top: 1rem;
+    }
+
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · Breathe Easy Aviary</p>
+    <h1>Breathing session flow</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="breathing-session-flow-title breathing-session-flow-desc">
+        <title id="breathing-session-flow-title">Breathing session flow</title>
+        <desc id="breathing-session-flow-desc">Flowchart of one breathing session: tapping the circle, the Plus check, the repeating phase loop with Tummo rounds and Integration, and the four triggers that stop a session.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#6b7280"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#ffffff"/>
+
+        <!-- Arrows first -->
+        <g fill="none" stroke="#6b7280" stroke-width="1.2">
+          <path d="M144 108 H184" marker-end="url(#arrow)"/>
+          <path d="M264 156 V276" marker-end="url(#arrow)"/>
+          <path d="M344 108 H400" marker-end="url(#arrow)"/>
+          <path d="M568 108 H616" marker-end="url(#arrow)"/>
+          <path d="M744 152 V244" marker-end="url(#arrow)"/>
+          <path d="M744 356 V412" marker-end="url(#arrow)"/>
+          <path d="M644 444 H600" marker-end="url(#arrow)"/>
+          <path d="M500 348 V408" marker-end="url(#arrow)"/>
+        </g>
+        <!-- Phase loop: back to the next phase (focal path) -->
+        <path d="M848 300 H908 Q916 300 916 292 V116 Q916 108 908 108 H872" fill="none" stroke="#3b82f6" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
+
+        <!-- Arrow labels, each on an opaque mask with a gap from its stroke -->
+        <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8" fill="#8b949e" letter-spacing="0.06em">
+          <rect x="358" y="84" width="28" height="14" rx="2" fill="#ffffff"/>
+          <text x="372" y="94" text-anchor="middle">NO</text>
+
+          <rect x="272" y="208" width="32" height="14" rx="2" fill="#ffffff"/>
+          <text x="288" y="218" text-anchor="middle">YES</text>
+
+          <rect x="752" y="376" width="32" height="14" rx="2" fill="#ffffff"/>
+          <text x="768" y="386" text-anchor="middle">YES</text>
+
+          <rect x="866" y="278" width="28" height="14" rx="2" fill="#ffffff"/>
+          <text x="880" y="288" text-anchor="middle">NO</text>
+
+          <rect x="836" y="190" width="72" height="14" rx="2" fill="#ffffff"/>
+          <text x="872" y="200" text-anchor="middle" fill="#3b82f6">NEXT PHASE</text>
+        </g>
+
+        <!-- Nodes -->
+        <!-- A: start -->
+        <rect x="24" y="84" width="120" height="48" rx="24" fill="#ffffff"/>
+        <rect x="24" y="84" width="120" height="48" rx="24" fill="#f4f4f4" stroke="#111111" stroke-width="1"/>
+        <text x="84" y="112" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Tap the circle</text>
+
+        <!-- B: decision -->
+        <polygon points="184,108 264,60 344,108 264,156" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="264" y="105" text-anchor="middle" font-size="11" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Advanced and</text>
+        <text x="264" y="119" text-anchor="middle" font-size="11" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">not Plus?</text>
+
+        <!-- C: paywall, end -->
+        <rect x="184" y="276" width="160" height="48" rx="24" fill="#ffffff"/>
+        <rect x="184" y="276" width="160" height="48" rx="24" fill="#f4f4f4" stroke="#111111" stroke-width="1"/>
+        <text x="264" y="297" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Show Plus paywall</text>
+        <text x="264" y="311" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">session does not start</text>
+
+        <!-- D: start session -->
+        <rect x="400" y="72" width="168" height="72" rx="6" fill="#ffffff"/>
+        <rect x="400" y="72" width="168" height="72" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="484" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Start session</text>
+        <text x="484" y="112" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">reset circle, start timer</text>
+        <text x="484" y="126" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">music begins at 200 ms</text>
+
+        <!-- E: run phase (focal) -->
+        <rect x="616" y="64" width="256" height="88" rx="6" fill="#ffffff"/>
+        <rect x="616" y="64" width="256" height="88" rx="6" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-width="1.2"/>
+        <text x="744" y="87" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Run phase</text>
+        <text x="744" y="105" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">label, haptic, ticks or voice cue</text>
+        <text x="744" y="119" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">animate circle, set phase timer</text>
+        <text x="744" y="133" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Tummo dynamic hold waits for a tap</text>
+
+        <!-- F: decision -->
+        <polygon points="640,300 744,244 848,300 744,356" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="744" y="297" text-anchor="middle" font-size="11" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Tummo, all</text>
+        <text x="744" y="311" text-anchor="middle" font-size="11" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">rounds done?</text>
+
+        <!-- H: integration -->
+        <rect x="644" y="412" width="200" height="64" rx="6" fill="#ffffff"/>
+        <rect x="644" y="412" width="200" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="744" y="439" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Integration</text>
+        <text x="744" y="456" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">silent rest, if turned on</text>
+
+        <!-- J: stop triggers (input) -->
+        <rect x="400" y="252" width="200" height="96" rx="6" fill="#ffffff"/>
+        <rect x="400" y="252" width="200" height="96" rx="6" fill="rgba(107,114,128,0.10)" stroke="#8b949e" stroke-width="1"/>
+        <text x="500" y="274" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Any stop trigger</text>
+        <g font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">
+          <text x="500" y="294">tap the circle again</text>
+          <text x="500" y="308">Auto Stop time reached</text>
+          <text x="500" y="322">another app takes audio</text>
+          <text x="500" y="336">different pattern chosen</text>
+        </g>
+
+        <!-- I: stop session, end -->
+        <rect x="400" y="408" width="200" height="72" rx="24" fill="#ffffff"/>
+        <rect x="400" y="408" width="200" height="72" rx="24" fill="#f4f4f4" stroke="#111111" stroke-width="1"/>
+        <text x="500" y="436" text-anchor="middle" font-size="12" font-weight="600" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Stop session</text>
+        <text x="500" y="453" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">save time, log to Health</text>
+        <text x="500" y="467" text-anchor="middle" font-size="9" fill="#6b7280" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">reset circle and audio</text>
+
+        <!-- Legend -->
+        <line x1="24" y1="516" x2="936" y2="516" stroke="#e5e7eb" stroke-width="0.8"/>
+        <text x="24" y="540" fill="#6b7280" font-size="8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" letter-spacing="0.14em">LEGEND</text>
+        <rect x="100" y="530" width="28" height="14" rx="7" fill="#f4f4f4" stroke="#111111" stroke-width="1"/>
+        <text x="138" y="540" fill="#6b7280" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">start / end</text>
+        <rect x="244" y="530" width="28" height="14" rx="3" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="282" y="540" fill="#6b7280" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">step</text>
+        <polygon points="368,537 376,530 384,537 376,544" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+        <text x="394" y="540" fill="#6b7280" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">decision</text>
+        <rect x="488" y="530" width="28" height="14" rx="3" fill="rgba(107,114,128,0.10)" stroke="#8b949e" stroke-width="1"/>
+        <text x="526" y="540" fill="#6b7280" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">trigger</text>
+        <rect x="612" y="530" width="28" height="14" rx="3" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-width="1.2"/>
+        <text x="650" y="540" fill="#6b7280" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">core loop</text>
+      </svg>
+    </div>
+    <p class="source">Source: src/components/breathing-screen.tsx (startBreathing, runPhase, stopBreathing)</p>
+  </div>
+</body>
+</html>
