@@ -2,14 +2,14 @@
   "expo": {
     "name": "Breathe Easy Aviary",
     "slug": "breathe-easy",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "breathe",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.anonymous.breathe-easy",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "appleTeamId": "9KNUWQFXQP",
       "config": {
         "usesNonExemptEncryption": false

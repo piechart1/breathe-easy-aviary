@@ -47,6 +47,7 @@ import {
 } from '@/lib/backing-music';
 import { logMindfulSession } from '@/lib/healthkit';
 import { presentPlusPaywall, useIsPlus } from '@/lib/purchases';
+import { noteSessionForReviewPrompt } from '@/lib/review-prompt';
 import { recordSessionSeconds } from '@/lib/session-history';
 import {
   DEFAULT_BACKING_MUSIC_ENABLED,
@@ -1119,6 +1120,7 @@ export function BreathingScreen() {
     Object.values(resonantPlayers).forEach((player) => player.pause());
     const completedSeconds = elapsedSecondsRef.current;
     elapsedSecondsRef.current = 0;
+    noteSessionForReviewPrompt(completedSeconds);
     if (completedSeconds >= MIN_ACKNOWLEDGED_SESSION_SECONDS) {
       setCompletedSessionSeconds(completedSeconds);
       if (hapticsEnabledRef.current) {
