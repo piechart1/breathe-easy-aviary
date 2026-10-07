@@ -19,6 +19,7 @@ const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 const HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY = 'breathe-easy:has-accepted-safety-disclaimer';
 const LAST_PATTERN_ID_KEY = 'breathe-easy:last-pattern-id';
+const HAPTICS_ENABLED_KEY = 'breathe-easy:haptics-enabled';
 
 export const DEFAULT_TIMER_MINUTES = 10;
 export const TIMER_MINUTE_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30] as const;
@@ -309,4 +310,17 @@ export async function getLastPatternId(): Promise<string | null> {
 
 export async function setLastPatternId(patternId: string): Promise<void> {
   await AsyncStorage.setItem(LAST_PATTERN_ID_KEY, patternId);
+}
+
+// Whether the phone taps at each change of phase and at the end of a
+// session - on by default.
+export const DEFAULT_HAPTICS_ENABLED = true;
+
+export async function getHapticsEnabled(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(HAPTICS_ENABLED_KEY);
+  return raw === null ? DEFAULT_HAPTICS_ENABLED : raw === 'true';
+}
+
+export async function setHapticsEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(HAPTICS_ENABLED_KEY, String(enabled));
 }

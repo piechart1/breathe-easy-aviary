@@ -1,18 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Host, Picker } from '@expo/ui';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { Slider } from '@expo/ui/community/slider';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, SystemFont } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useScreenGutter } from '@/hooks/use-screen-gutter';
 import { useTheme } from '@/hooks/use-theme';
 import {
   DEFAULT_BACKING_MUSIC_ENABLED,
   DEFAULT_BACKING_MUSIC_VOLUME,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
+  DEFAULT_HAPTICS_ENABLED,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TUMMO_HOLD_MODE,
   DEFAULT_TUMMO_HOLD_SECONDS,
@@ -29,6 +30,7 @@ import {
   type TummoSoundtrack,
   getAnalyticsEnabled,
   getBackingMusicEnabled,
+  getHapticsEnabled,
   getBackingMusicVolume,
   getButeykoHoldSeconds,
   getDailyNudgeSettings,
@@ -44,6 +46,7 @@ import {
   getWindDownSettings,
   setAnalyticsEnabled as persistAnalyticsEnabled,
   setBackingMusicEnabled as persistBackingMusicEnabled,
+  setHapticsEnabled as persistHapticsEnabled,
   setBackingMusicVolume as persistBackingMusicVolume,
   setButeykoHoldSeconds as persistButeykoHoldSeconds,
   setDailyNudgeSettings as persistDailyNudgeSettings,
@@ -100,10 +103,12 @@ function reminderToDate(reminder: ReminderSettings): Date {
 
 export function SettingsScreen() {
   const theme = useTheme();
+  const screenGutter = useScreenGutter();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isPlus = useIsPlus() === true;
   const [soundStyle, setSoundStyleState] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [backingMusicEnabled, setBackingMusicEnabledState] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
+  const [hapticsEnabled, setHapticsEnabledState] = useState(DEFAULT_HAPTICS_ENABLED);
   const [backingMusicVolume, setBackingMusicVolumeState] = useState(DEFAULT_BACKING_MUSIC_VOLUME);
   const [analyticsEnabled, setAnalyticsEnabledState] = useState(false);
   const [healthSyncEnabled, setHealthSyncEnabledState] = useState(false);
@@ -124,6 +129,7 @@ export function SettingsScreen() {
     useCallback(() => {
       getSoundStyle().then(setSoundStyleState);
       getBackingMusicEnabled().then(setBackingMusicEnabledState);
+      getHapticsEnabled().then(setHapticsEnabledState);
       getBackingMusicVolume().then(setBackingMusicVolumeState);
       getAnalyticsEnabled().then(setAnalyticsEnabledState);
       getHealthSyncEnabled().then(setHealthSyncEnabledState);
@@ -143,6 +149,11 @@ export function SettingsScreen() {
   const handleSelectSoundStyle = (style: SoundStyle) => {
     setSoundStyleState(style);
     persistSoundStyle(style);
+  };
+
+  const handleToggleHaptics = (enabled: boolean) => {
+    setHapticsEnabledState(enabled);
+    persistHapticsEnabled(enabled);
   };
 
   const handleToggleBackingMusic = (enabled: boolean) => {
@@ -308,20 +319,10 @@ export function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
-          against the device's true bottom edge, so SafeAreaView's default
-          bottom inset (sized for the home indicator) double-reserves space
-          the tab bar already accounts for, leaving a permanent gap above it
-          regardless of scroll position. */}
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Settings
-          </ThemedText>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.container}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: screenGutter }]} showsVerticalScrollIndicator={false}>
         <ThemedText type="smallBold" style={styles.subHeading}>
           Plus
         </ThemedText>
@@ -393,6 +394,23 @@ export function SettingsScreen() {
 
           <ThemedText type="small" style={styles.sectionHint}>
             Choose the audio cue style played during breathing exercises.
+          </ThemedText>
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <ThemedText type="smallBold" style={styles.sectionLabel}>
+              Haptics
+            </ThemedText>
+            <Switch
+              value={hapticsEnabled}
+              onValueChange={handleToggleHaptics}
+              accessibilityLabel="Haptics"
+            />
+          </View>
+
+          <ThemedText type="small" style={styles.sectionHint}>
+            A light tap at each change of phase and when a session ends.
           </ThemedText>
 
           <View style={styles.divider} />
@@ -820,8 +838,6 @@ export function SettingsScreen() {
           </>
         )}
         </ScrollView>
-      </SafeAreaView>
-    </View>
   );
 }
 
@@ -831,20 +847,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       backgroundColor: theme.background,
     },
-    safeArea: {
-      flex: 1,
-      paddingHorizontal: Spacing.four,
-    },
     scrollContent: {
       paddingBottom: Spacing.five,
-    },
-    header: {
-      alignItems: 'center',
-      marginTop: Spacing.two,
-    },
-    title: {
-      ...SystemFont.medium,
-      color: theme.text,
     },
     subHeading: {
       marginTop: Spacing.five,

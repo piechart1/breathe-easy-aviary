@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
@@ -11,7 +10,8 @@ import { BREATHING_PATTERNS } from '@/constants/breathing-patterns';
 import { COMMUNITY_MAP_COUNTS_URL } from '@/constants/community-map';
 import { PATTERN_BIRDS } from '@/constants/pattern-birds';
 import { getAnalyticsEnabled } from '@/lib/settings';
-import { Spacing, SystemFont } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useScreenGutter } from '@/hooks/use-screen-gutter';
 import { useTheme } from '@/hooks/use-theme';
 
 const COMMUNITY_MAP_FETCH_TIMEOUT_MS = 5000;
@@ -53,6 +53,7 @@ const SUPPORT_EMAIL = 'breatheeasyaviary@gmail.com';
 export function AboutScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const screenGutter = useScreenGutter();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [mapWidth, setMapWidth] = useState(0);
   const communityMapCounts = useCommunityMapCounts();
@@ -67,20 +68,10 @@ export function AboutScreen() {
   }, []));
 
   return (
-    <View style={styles.container}>
-      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
-          against the device's true bottom edge, so SafeAreaView's default
-          bottom inset (sized for the home indicator) double-reserves space
-          the tab bar already accounts for, leaving a permanent gap above it
-          regardless of scroll position. */}
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            About
-          </ThemedText>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.container}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: screenGutter }]} showsVerticalScrollIndicator={false}>
           <ThemedText type="smallBold" style={styles.mapTitle}>
             Around the World
           </ThemedText>
@@ -166,8 +157,6 @@ export function AboutScreen() {
             })}
           </View>
         </ScrollView>
-      </SafeAreaView>
-    </View>
   );
 }
 
@@ -176,18 +165,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.background,
-    },
-    safeArea: {
-      flex: 1,
-      paddingHorizontal: Spacing.four,
-    },
-    header: {
-      alignItems: 'center',
-      marginTop: Spacing.two,
-    },
-    title: {
-      ...SystemFont.medium,
-      color: theme.text,
     },
     mapTitle: {
       color: theme.text,

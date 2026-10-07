@@ -27,7 +27,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 ## Capabilities and Constraints
 
 - Built with Expo (SDK 57) and React Native, with file-based routing in `src/app`. Screens live in `src/components`, app logic in `src/lib`, and static data (patterns, articles, theme, legal copy) in `src/constants`.
-- Published on the App Store as "Breathe Easy Aviary" (v1.0, released 2026-09-17). The in-app display name is "Breathe Easy". The bundle id `com.anonymous.breathe-easy` is permanent for that listing.
+- Published on the App Store as "Breathe Easy Aviary" (v1.0, released 2026-09-17). The app shows the same name on the home screen and in its Home header. The bundle id `com.anonymous.breathe-easy` is permanent for that listing.
 - Not on the Play Store. HealthKit has no Android equivalent, so Android is gated on an undecided product choice between a Health Connect rewrite and cutting the feature.
 - Sound styles are Voice (resonant spoken cues) and Tick (metronome). Cyclic Hyperventilation is the user-facing name for the pattern coded as `tummo`.
 - Opt-in telemetry (PostHog, Sentry) stays off unless the user enables it. The App Store privacy declarations must stay accurate to the real data flows.
@@ -36,7 +36,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 
 ## Brand Commitments
 
-- Name: "Breathe Easy Aviary" on the App Store and in legal copy. The in-app name stays "Breathe Easy".
+- Name: "Breathe Easy Aviary" on the App Store and in legal copy. The in-app name is the same.
 - Identity centered on Australian birds. The avatar picker candidates are Cockatoo, Splendid fairywren, Mallee ringneck, Eastern rosella and Barn owl. Each breathing pattern has its own background bird on Home (magpie, kookaburra, emu, variegated fairywren, Gouldian finch, Major Mitchell's cockatoo, sulphur-crested cockatoo), listed on the About screen.
 - Voice: plain, calm, and based in Melbourne, Australia.
 

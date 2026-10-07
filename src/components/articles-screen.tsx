@@ -1,37 +1,27 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { ARTICLES } from '@/constants/articles';
 import { todaysQuote } from '@/constants/quotes';
-import { Spacing, SystemFont } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useScreenGutter } from '@/hooks/use-screen-gutter';
 import { useTheme } from '@/hooks/use-theme';
 
 export function ArticlesScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const screenGutter = useScreenGutter();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const quote = useMemo(() => todaysQuote(), []);
 
   return (
-    <View style={styles.container}>
-      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
-          against the device's true bottom edge, so SafeAreaView's default
-          bottom inset (sized for the home indicator) double-reserves space
-          the tab bar already accounts for, leaving a permanent gap above it
-          regardless of scroll position. */}
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Topics
-          </ThemedText>
-        </View>
-
         <ScrollView
-          contentContainerStyle={styles.list}
+          style={styles.container}
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.list, { paddingHorizontal: screenGutter }]}
           showsVerticalScrollIndicator={false}>
           <View style={styles.quoteContainer}>
             <ThemedText type="small" style={styles.quoteText}>
@@ -61,8 +51,6 @@ export function ArticlesScreen() {
             </Pressable>
           ))}
         </ScrollView>
-      </SafeAreaView>
-    </View>
   );
 }
 
@@ -71,18 +59,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.background,
-    },
-    safeArea: {
-      flex: 1,
-      paddingHorizontal: Spacing.four,
-    },
-    header: {
-      alignItems: 'center',
-      marginTop: Spacing.two,
-    },
-    title: {
-      ...SystemFont.medium,
-      color: theme.text,
     },
     list: {
       gap: Spacing.three,

@@ -6,10 +6,12 @@ import {
   AppState,
   Easing,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +20,8 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { BottomSheet, Button as MenuButton, Group, Host, Menu, RNHostView, Section } from '@expo/ui/swift-ui';
+import { presentationDragIndicator } from '@expo/ui/swift-ui/modifiers';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -48,6 +52,7 @@ import {
   DEFAULT_BACKING_MUSIC_ENABLED,
   DEFAULT_BACKING_MUSIC_VOLUME,
   DEFAULT_BUTEYKO_HOLD_SECONDS,
+  DEFAULT_HAPTICS_ENABLED,
   DEFAULT_SOUND_STYLE,
   DEFAULT_TIMER_MINUTES,
   DEFAULT_TUMMO_HOLD_MODE,
@@ -63,6 +68,7 @@ import {
   getBackingMusicEnabled,
   getBackingMusicVolume,
   getButeykoHoldSeconds,
+  getHapticsEnabled,
   getHealthSyncEnabled,
   getLastPatternId,
   getSoundStyle,
@@ -96,6 +102,12 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// On iOS, Auto Stop is a system menu that drops down from its pill and a
+// pattern's info is a system bottom sheet, both from @expo/ui's SwiftUI
+// components. Those only exist on iOS, so other platforms keep the Modal
+// pop-ups further down.
+const USE_IOS_SYSTEM_UI = Platform.OS === 'ios';
+const PLUS_LOOKUP_GRACE_MS = 3000;
 const BACKDROP_LIFT = 20;
 const BACKDROP_FADE_MS = 250;
 // Passed to every useAudioPlayer() call below (a shared reference so it
@@ -247,28 +259,36 @@ function getPatternTiming(
     // Dynamic retention has no fixed length to show - the live elapsed
     // count while actually in that phase is rendered separately, over top
     // of this label, in the "Tap to begin" timing segments below.
-    const holdLabel = tummoHoldMode === 'dynamic' ? 'dynamic' : `${tummoHoldSeconds}`;
+    const holdLabel = tummoHoldMode === 'dynamic' ? 'hold' : `${tummoHoldSeconds}`;
     return pattern.timing.replace('hold', holdLabel);
   }
   return pattern.timing;
 }
 
-// Tummo's card name reflects the number of rounds and (when Settings'
+// Timings are stored hyphenated ("4-4-4-4") so they can be split into
+// segments; on screen the parts are spaced out with a centered dot, which
+// reads more clearly once a part is a word ("30 breaths · hold · 1 · 15").
+const TIMING_SEPARATOR = ' · ';
+function formatTiming(timing: string): string {
+  return timing.split('-').join(TIMING_SEPARATOR);
+}
+
+// An extra line on Tummo's card for the number of rounds and (when Settings'
 // Integration toggle is on) the integration period that follows the final
 // round, since together those determine how the whole session plays out.
-function getPatternDisplayName(
+function getPatternDetail(
   pattern: BreathingPattern,
   tummoRounds: number,
   tummoIntegrationEnabled: boolean,
   tummoIntegrationMinutes: number,
-): string {
-  if (pattern.id === 'tummo') {
-    const roundsLabel = `${tummoRounds} round${tummoRounds === 1 ? '' : 's'}`;
-    return tummoIntegrationEnabled
-      ? `${pattern.name} - ${roundsLabel} then ${tummoIntegrationMinutes} minutes integration`
-      : `${pattern.name} - ${roundsLabel}`;
+): string | undefined {
+  if (pattern.id !== 'tummo') {
+    return undefined;
   }
-  return pattern.name;
+  const roundsLabel = `${tummoRounds} round${tummoRounds === 1 ? '' : 's'}`;
+  return tummoIntegrationEnabled
+    ? `${roundsLabel}, then ${tummoIntegrationMinutes} minutes integration`
+    : roundsLabel;
 }
 
 // Reassurance cues for Tummo's retention hold, for as long as the hold
@@ -527,7 +547,7 @@ function BackdropBird({ bird, visible, isDark }: { bird: PatternBird; visible: b
 
 function PatternCard({
   pattern,
-  displayName,
+  detail,
   timing,
   isSelected,
   isRunning,
@@ -539,7 +559,7 @@ function PatternCard({
   onShowInfo,
 }: {
   pattern: BreathingPattern;
-  displayName?: string;
+  detail?: string;
   timing?: string;
   isSelected: boolean;
   isRunning: boolean;
@@ -550,7 +570,7 @@ function PatternCard({
   onSelect: () => void;
   onShowInfo: () => void;
 }) {
-  const name = displayName ?? pattern.name;
+  const name = pattern.name;
   return (
     <View
       style={[
@@ -572,23 +592,33 @@ function PatternCard({
         disabled={isRunning}
         onPress={onSelect}
         accessibilityRole="button"
-        accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}${isLocked ? ', Plus' : ''}`}
+        accessibilityLabel={`${name}, ${timing ? `${timing}, ` : ''}${pattern.description}${detail ? `, ${detail}` : ''}${isLocked ? ', Plus' : ''}`}
         accessibilityState={{ selected: isSelected, disabled: isRunning }}
         style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
         <ThemedText type="smallBold" style={styles.patternName}>
           {name}
         </ThemedText>
         <ThemedText type="small" style={styles.patternDescription}>
-          {timing ? `${timing} | ${pattern.description}` : pattern.description}
+          {timing ? `${formatTiming(timing)} | ${pattern.description}` : pattern.description}
         </ThemedText>
+        {detail && (
+          <ThemedText type="small" style={styles.patternDescription}>
+            {detail}
+          </ThemedText>
+        )}
       </Pressable>
       <View style={[styles.patternCardHeaderIcons, { pointerEvents: 'box-none' }]}>
         {isLocked && (
-          <SymbolView
-            name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
-            size={16}
-            tintColor={theme.textSecondary}
-          />
+          <>
+            <ThemedText type="small" style={styles.patternLockLabel}>
+              Plus
+            </ThemedText>
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              size={16}
+              tintColor={theme.textSecondary}
+            />
+          </>
         )}
         <Pressable
           onPress={onShowInfo}
@@ -609,6 +639,7 @@ function PatternCard({
 export function BreathingScreen() {
   const theme = useTheme();
   const colorScheme = useColorScheme();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
@@ -779,7 +810,7 @@ export function BreathingScreen() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   // Seconds elapsed in the current phase - only actually ticked for
   // Tummo's Dynamic-mode retention hold, to show a live count in place of
-  // the "dynamic" timing label while that phase runs.
+  // the "hold" timing label while that phase runs.
   const [phaseElapsedSeconds, setPhaseElapsedSeconds] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   // Length of the session that just ended, shown in place of "Tap to begin"
@@ -814,6 +845,9 @@ export function BreathingScreen() {
   const [tummoSoundtrack, setTummoSoundtrack] = useState<TummoSoundtrack>(DEFAULT_TUMMO_SOUNDTRACK);
   const [soundStyle, setSoundStyle] = useState<SoundStyle>(DEFAULT_SOUND_STYLE);
   const [healthSyncEnabled, setHealthSyncEnabled] = useState(false);
+  // Read through a ref by runPhase and stopBreathing, so turning Haptics
+  // off in Settings doesn't need to rebuild either callback.
+  const hapticsEnabledRef = useRef(DEFAULT_HAPTICS_ENABLED);
   const [backingMusicEnabled, setBackingMusicEnabled] = useState(DEFAULT_BACKING_MUSIC_ENABLED);
   const [backingMusicVolumePercent, setBackingMusicVolumePercent] = useState(DEFAULT_BACKING_MUSIC_VOLUME);
   // The effective mix volume backing-music players are set to - scales
@@ -821,10 +855,20 @@ export function BreathingScreen() {
   // percentage. Only ever applied to backing-music players, never to
   // spoken cues or the metronome.
   const backingMusicVolume = BACKING_MUSIC_VOLUME * (backingMusicVolumePercent / 100);
-  // Treat the brief `null` ("still loading") window the same as `false` -
-  // otherwise a free user could see a locked pattern flash unlocked for a
-  // moment before flipping locked again once entitlement status resolves.
-  const isPlus = useIsPlus() === true;
+  // useIsPlus() is `null` for a moment at launch while the entitlement is
+  // looked up. Advanced patterns stay gated during that window, but the
+  // locks themselves aren't drawn until the answer is in, so a subscriber
+  // doesn't see their patterns shown as locked and then unlock. If the
+  // lookup hasn't answered after a few seconds the locks are shown anyway.
+  const plusStatus = useIsPlus();
+  const isPlus = plusStatus === true;
+  const [plusLookupTimedOut, setPlusLookupTimedOut] = useState(false);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setPlusLookupTimedOut(true), PLUS_LOOKUP_GRACE_MS);
+    return () => clearTimeout(timeoutId);
+  }, []);
+  const isPlusPending = plusStatus === null && !plusLookupTimedOut;
+  const showLocks = !isPlus && !isPlusPending;
 
   const selectedPattern =
     BREATHING_PATTERNS.find((pattern) => pattern.id === selectedPatternId) ?? BREATHING_PATTERNS[0];
@@ -873,11 +917,11 @@ export function BreathingScreen() {
   const timingSegments = selectedPatternTiming ? selectedPatternTiming.split('-') : [];
   const activePhase = activePattern.phases[currentPhaseIndex];
   const activeTimingSegmentIndex = isRunning ? activePhase?.timingSegmentIndex ?? currentPhaseIndex : -1;
-  const isSelectedPatternLocked = selectedPattern.category === 'advanced' && !isPlus;
+  const isSelectedPatternLocked = selectedPattern.category === 'advanced' && showLocks;
   const showDynamicHoldButton = selectedPattern.id === 'tummo' && tummoHoldMode === 'dynamic';
   const isDynamicHoldReady = isRunning && activePhase?.timingSegmentIndex === 1;
   // Once the dynamic hold actually commences, its timing-segment shows a
-  // live elapsed-seconds count in place of the static "dynamic" label.
+  // live elapsed-seconds count in place of the static "hold" label.
   const showLiveDynamicHoldSeconds = showDynamicHoldButton && isDynamicHoldReady;
 
   useEffect(() => {
@@ -913,6 +957,9 @@ export function BreathingScreen() {
       getTummoSoundtrack().then(setTummoSoundtrack);
       getSoundStyle().then(setSoundStyle);
       getHealthSyncEnabled().then(setHealthSyncEnabled);
+      getHapticsEnabled().then((enabled) => {
+        hapticsEnabledRef.current = enabled;
+      });
       getBackingMusicEnabled().then(setBackingMusicEnabled);
       getBackingMusicVolume().then(setBackingMusicVolumePercent);
     }, []),
@@ -1074,7 +1121,9 @@ export function BreathingScreen() {
     elapsedSecondsRef.current = 0;
     if (completedSeconds >= MIN_ACKNOWLEDGED_SESSION_SECONDS) {
       setCompletedSessionSeconds(completedSeconds);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (hapticsEnabledRef.current) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       AccessibilityInfo.announceForAccessibility(`Session complete, ${formatElapsedSpoken(completedSeconds)}`);
     } else {
       setCompletedSessionSeconds(null);
@@ -1140,7 +1189,9 @@ export function BreathingScreen() {
         }, 1000);
       }
 
-      if (phase.name === 'Inhale') {
+      if (!hapticsEnabledRef.current) {
+        // Haptics are turned off in Settings.
+      } else if (phase.name === 'Inhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else if (phase.name === 'Exhale') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1482,7 +1533,11 @@ export function BreathingScreen() {
 
   const startBreathing = useCallback(() => {
     if (activePattern.category === 'advanced' && !isPlus) {
-      presentPlusPaywall();
+      // Still looking up the entitlement - don't put the paywall in front
+      // of someone who may turn out to be a subscriber.
+      if (!isPlusPending) {
+        presentPlusPaywall();
+      }
       return;
     }
     isRunningRef.current = true;
@@ -1522,7 +1577,7 @@ export function BreathingScreen() {
       setElapsedSeconds(secondsElapsed);
     }, 1000);
     runPhase(activePattern, 0);
-  }, [runPhase, scaleAnim, activePattern, isPlus, selectedPatternId, startBackingMusic, cancelBackingMusicFade]);
+  }, [runPhase, scaleAnim, activePattern, isPlus, isPlusPending, selectedPatternId, startBackingMusic, cancelBackingMusicFade]);
 
   useEffect(() => {
     if (isRunningRef.current) {
@@ -1558,6 +1613,20 @@ export function BreathingScreen() {
       );
     };
   }, [scaleAnim]);
+
+  const timerPill = (
+    <View style={styles.timerPill}>
+      <SymbolView name={{ ios: 'timer', android: 'timer', web: 'timer' }} size={14} tintColor={theme.textSecondary} />
+      <ThemedText type="small" style={styles.timerPillText}>
+        {timerEnabled ? `Auto Stop ${timerMinutes}m` : 'Auto Stop Off'}
+      </ThemedText>
+      <SymbolView
+        name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }}
+        size={10}
+        tintColor={theme.textSecondary}
+      />
+    </View>
+  );
 
   // Tapping the circle stops a running session straight away, except on
   // Tummo: its long retention hold is done with eyes closed and the circle
@@ -1634,23 +1703,51 @@ export function BreathingScreen() {
               breaths, a long hold, recovery) rather than an open-ended
               duration, so Auto Stop never applies to it - see the same
               exemption in startBreathing's timer check above. */}
-          {selectedPatternId !== 'tummo' && (
-            <Pressable
-              onPress={() => setIsTimerPickerOpen(true)}
-              hitSlop={{ top: 8, bottom: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Auto stop, currently ${timerEnabled ? `${timerMinutes} minutes` : 'off'}`}
-              style={({ pressed }) => [styles.timerPill, { opacity: pressed ? 0.85 : 1 }]}>
-              <SymbolView
-                name={{ ios: 'timer', android: 'timer', web: 'timer' }}
-                size={14}
-                tintColor={theme.textSecondary}
-              />
-              <ThemedText type="small" style={styles.timerPillText}>
-                {timerEnabled ? `Auto Stop ${timerMinutes}m` : 'Auto Stop Off'}
-              </ThemedText>
-            </Pressable>
-          )}
+          {selectedPatternId !== 'tummo' &&
+            (USE_IOS_SYSTEM_UI ? (
+              // The pill is the menu's label. Its wrapper adds 8pt above and
+              // below so the tappable area is 44pt tall, and the Host's
+              // negative margin takes that back out of the layout.
+              <Host matchContents style={styles.timerMenuHost}>
+                <Menu
+                  label={
+                    <RNHostView matchContents>
+                      <View
+                        style={styles.timerMenuLabel}
+                        accessible
+                        accessibilityRole="button"
+                        accessibilityLabel={`Auto stop, currently ${timerEnabled ? `${timerMinutes} minutes` : 'off'}`}>
+                        {timerPill}
+                      </View>
+                    </RNHostView>
+                  }>
+                  <Section title="Stop the session after">
+                    <MenuButton
+                      label="Off"
+                      systemImage={!timerEnabled ? 'checkmark' : undefined}
+                      onPress={handleSelectTimerOff}
+                    />
+                    {TIMER_MINUTE_OPTIONS.map((minutes) => (
+                      <MenuButton
+                        key={minutes}
+                        label={`${minutes} minute${minutes === 1 ? '' : 's'}`}
+                        systemImage={timerEnabled && minutes === timerMinutes ? 'checkmark' : undefined}
+                        onPress={() => handleSelectTimerMinutes(minutes)}
+                      />
+                    ))}
+                  </Section>
+                </Menu>
+              </Host>
+            ) : (
+              <Pressable
+                onPress={() => setIsTimerPickerOpen(true)}
+                hitSlop={{ top: 8, bottom: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Auto stop, currently ${timerEnabled ? `${timerMinutes} minutes` : 'off'}`}
+                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+                {timerPill}
+              </Pressable>
+            ))}
 
           <Pressable
             onPress={handleCirclePress}
@@ -1720,7 +1817,7 @@ export function BreathingScreen() {
                         style={index === activeTimingSegmentIndex ? styles.patternTimingSegmentActive : undefined}>
                         {displaySegment}
                       </Text>
-                      {index < timingSegments.length - 1 ? '-' : ''}
+                      {index < timingSegments.length - 1 ? TIMING_SEPARATOR : ''}
                     </Text>
                   );
                 })}
@@ -1757,7 +1854,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                displayName={getPatternDisplayName(
+                detail={getPatternDetail(
                   pattern,
                   tummoRounds,
                   tummoIntegrationEnabled,
@@ -1782,7 +1879,7 @@ export function BreathingScreen() {
               <PatternCard
                 key={pattern.id}
                 pattern={pattern}
-                displayName={getPatternDisplayName(
+                detail={getPatternDetail(
                   pattern,
                   tummoRounds,
                   tummoIntegrationEnabled,
@@ -1791,7 +1888,7 @@ export function BreathingScreen() {
                 timing={getPatternTiming(pattern, buteykoHoldSeconds, tummoHoldSeconds, tummoHoldMode)}
                 isSelected={pattern.id === selectedPatternId}
                 isRunning={isRunning}
-                isLocked={!isPlus}
+                isLocked={showLocks}
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
                 theme={theme}
                 styles={styles}
@@ -1805,14 +1902,53 @@ export function BreathingScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Both pop-ups are native Modals rather than views layered inside
+      {/* A pattern's info, as a system bottom sheet sized to its text and
+          dismissed by swiping down or with Close. The Host is only somewhere
+          for the sheet to attach; it takes up no room itself. Long text (or
+          a large text size) scrolls inside the sheet rather than growing it
+          past the screen. */}
+      {USE_IOS_SYSTEM_UI && (
+        <Host style={styles.sheetHost} pointerEvents="none">
+          <BottomSheet
+            isPresented={infoPattern !== null}
+            onIsPresentedChange={(isPresented) => {
+              if (!isPresented) {
+                setInfoPatternId(null);
+              }
+            }}
+            fitToContents>
+            <Group modifiers={[presentationDragIndicator('visible')]}>
+              <RNHostView matchContents>
+                <View style={[styles.sheetContent, { width: windowWidth, maxHeight: windowHeight * 0.8 }]}>
+                  <ThemedText type="smallBold" style={styles.modalTitle} accessibilityRole="header">
+                    {shownInfoPattern?.name}
+                  </ThemedText>
+                  <ScrollView style={styles.modalScroll}>
+                    <ThemedText type="small" style={styles.modalInfoText}>{shownInfoPattern?.info}</ThemedText>
+                  </ScrollView>
+                  <Pressable
+                    onPress={() => setInfoPatternId(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                    style={styles.modalCloseButton}>
+                    <ThemedText type="smallBold" style={styles.modalCloseText}>Close</ThemedText>
+                  </Pressable>
+                </View>
+              </RNHostView>
+            </Group>
+          </BottomSheet>
+        </Host>
+      )}
+
+      {/* The pop-ups used on platforms without the system menu and sheet
+          above. Both are native Modals rather than views layered inside
           this screen, so they cover the tab bar and a screen reader stays
           inside them until they close. The backdrop is its own Pressable
           behind the card, hidden from screen readers (Close does the same
           job), rather than a parent of it - a pressable parent would be read
           as one single button, hiding the card's contents. */}
       <Modal
-        visible={infoPattern !== null}
+        visible={!USE_IOS_SYSTEM_UI && infoPattern !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setInfoPatternId(null)}>
@@ -1841,7 +1977,7 @@ export function BreathingScreen() {
       </Modal>
 
       <Modal
-        visible={isTimerPickerOpen}
+        visible={!USE_IOS_SYSTEM_UI && isTimerPickerOpen}
         transparent
         animationType="fade"
         onRequestClose={() => setIsTimerPickerOpen(false)}>
@@ -1936,6 +2072,24 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     ...SystemFont.medium,
     textAlign: 'center',
     color: theme.text,
+  },
+  timerMenuHost: {
+    alignSelf: 'center',
+    marginVertical: -8,
+  },
+  timerMenuLabel: {
+    paddingVertical: 8,
+  },
+  sheetHost: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+  },
+  sheetContent: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.five,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
   },
   timerPill: {
     flexDirection: 'row',
@@ -2059,7 +2213,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    fontSize: 12,
+    fontSize: 13,
   },
   patternSectionHeaderSpaced: {
     marginTop: Spacing.two,
@@ -2086,11 +2240,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     flexShrink: 1,
     // Reserves room for patternCardHeaderIcons, which overlays this corner
     // rather than sharing a flex row with it - see the comment in
-    // PatternCard. Sized for the widest case (lock + info icon together).
-    paddingRight: 48,
+    // PatternCard. Sized for the widest case ("Plus", lock and info icon together).
+    paddingRight: 88,
     color: theme.text,
   },
   patternDescription: {
+    color: theme.textSecondary,
+  },
+  patternLockLabel: {
     color: theme.textSecondary,
   },
   modalBackdrop: {
@@ -2115,7 +2272,10 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.text,
     fontSize: 18,
   },
+  // flexGrow is 0 (a ScrollView's default is 1) so the text only takes the
+  // height it needs and the pop-up or sheet is sized to fit it.
   modalScroll: {
+    flexGrow: 0,
     flexShrink: 1,
   },
   modalScrollContent: {

@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { getDailyTotals, getStreakDays, getTotalSessionCount, type DailyTotal } from '@/lib/session-history';
 import { getHealthSyncEnabled } from '@/lib/settings';
-import { Spacing, SystemFont } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useScreenGutter } from '@/hooks/use-screen-gutter';
 import { useTheme } from '@/hooks/use-theme';
 
 const BAR_COLOR = '#B0A99F'; // warm stone/taupe
@@ -93,6 +93,7 @@ function WeekChart({
 export function HistoryScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const screenGutter = useScreenGutter();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [dailyTotals, setDailyTotals] = useState<DailyTotal[] | null>(null);
   const [streakDays, setStreakDays] = useState(0);
@@ -120,19 +121,11 @@ export function HistoryScreen() {
   const newerWeek = dailyTotals?.slice(7, 14) ?? [];
 
   return (
-    <View style={styles.container}>
-      {/* edges excludes 'bottom' - this screen sits above the tab bar, not
-          against the device's true bottom edge, so SafeAreaView's default
-          bottom inset (sized for the home indicator) double-reserves space
-          the tab bar already accounts for, leaving a permanent gap above it
-          regardless of scroll position. */}
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">
-            Breathing Time
-          </ThemedText>
-        </View>
-
+      <ScrollView
+        style={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: screenGutter }]}
+        showsVerticalScrollIndicator={false}>
         <View style={styles.pillsRow}>
           <View style={[styles.pill, { backgroundColor: STREAK_BG }]}>
             <SymbolView
@@ -203,8 +196,7 @@ export function HistoryScreen() {
             />
           </Pressable>
         )}
-      </SafeAreaView>
-    </View>
+      </ScrollView>
   );
 }
 
@@ -214,17 +206,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     flex: 1,
     backgroundColor: theme.background,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-  },
-  header: {
-    alignItems: 'center',
-    marginTop: Spacing.two,
-  },
-  title: {
-    ...SystemFont.medium,
-    color: theme.text,
+  scrollContent: {
+    paddingBottom: Spacing.five,
   },
   subtitle: {
     fontSize: 18,
@@ -292,7 +275,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     backgroundColor: theme.backgroundElement,
     borderRadius: 16,
     padding: Spacing.three,
-    marginTop: 'auto',
+    marginTop: Spacing.five,
     marginBottom: Spacing.four,
   },
   healthHintText: {
