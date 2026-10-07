@@ -47,12 +47,13 @@ breathwork,box breathing,buteyko,meditation,anxiety,stress,sleep,calm,mindfulnes
 
 Buteyko is the one term here with few competing apps, and it's the one the app ranks for (9th). Box breathing, breathwork, meditation, mindfulness and sleep are dominated by large, highly rated apps, so they're unlikely to bring in people for some time.
 
-Proposed (100/100), assuming the first subtitle:
+Proposed (98/100), assuming the first subtitle and the new name below:
 
 ```
-cyclic,sighing,resonance,buteyko,tummo,ujjayi,breathwork,pranayama,anxiety,stress,calm,relax,478,hrv
+cyclic,sighing,resonance,coherent,buteyko,tummo,ujjayi,pranayama,anxiety,stress,calm,relax,478,hrv
 ```
 
+- `breathwork` moves into the app name, so it comes out of this field. `coherent` takes its place: "coherent breathing" is another name for resonance breathing.
 - Adds the technique names that currently aren't anywhere in the name, subtitle or keywords: cyclic sighing, resonance, tummo, ujjayi. These are the searches with the fewest competing apps.
 - `478` catches people who type 4-7-8 without hyphens.
 - Drops `box breathing` and `sleep` (they move into the subtitle, and repeating them wastes characters), and `meditation` and `mindfulness` (broad terms with a lot of competition, and the app isn't a meditation app).
@@ -66,7 +67,15 @@ Seven guided breathing techniques, from Box Breathing and 4-7-8 to Cyclic Sighin
 
 ## Name
 
-"Breathe Easy Aviary" is 19 of 30 characters. Adding a descriptive word to the name, such as "Breathe Easy Aviary: Breathwork" (31, one too many), would help search more than any other field, but it changes the name you chose, so it's your call. Leaving it as is is fine.
+Decided 7 Oct 2026: change the App Store name from "Breathe Easy Aviary" to
+
+```
+Breathe Easy Aviary Breathwork
+```
+
+That is 30 of 30 characters. It puts "breathwork" in the name, which is generally found to count for more in search than the keyword field. On 7 Oct the app was outside the top 200 for "breathwork" in the Australian store; the top three results had 620, 1,352 and 781 ratings.
+
+This changes the App Store listing name only. The name under the icon on the home screen stays "Breathe Easy Aviary".
 
 ## After submitting
 
