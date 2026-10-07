@@ -111,7 +111,7 @@ components:
 
 **Creative North Star: "The Dawn Chorus"**
 
-The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint magpie in the lower corner. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.
+The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint bird in the lower corner, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.
 
 The system is a calm native iOS surface with a light and a dark theme. Depth comes from tonal layering, never from card shadows. The only light source is the breath circle, which glows in the active pattern's color. Typography is the platform's own, set in medium weight with a bold reserved for titles and the active timing segment.
 
@@ -231,7 +231,7 @@ Soft and rounded. Cards use 16px corners, modals 20px, buttons 10px, and pills a
 - **Style:** native tab bar on the page background. The selected indicator uses the card tone and the selected label is Ink.
 
 ### Bird Backdrop
-- **Style:** a bird illustration (magpie on the main screen) at 20% opacity, mirrored, bleeding off the lower right and sitting behind the content.
+- **Style:** each breathing pattern has its own bird illustration (see `src/constants/pattern-birds.ts`), shown on the Home screen only, bleeding off the lower right and sitting behind the content. Opacity is 50% in light mode and 35% in dark mode (45% for the magpie and emu, which are dark birds). Selecting a pattern cross-fades to its bird. The other tabs have no bird backdrop; the About screen lists the birds in full color.
 
 ## Do's and Don'ts
 
@@ -247,4 +247,4 @@ Soft and rounded. Cards use 16px corners, modals 20px, buttons 10px, and pills a
 - **Don't** use a pattern color for anything that is not that pattern, or Signal Blue on the breath circle.
 - **Don't** introduce a second typeface or add bold weight beyond the title and the active timing segment.
 - **Don't** hardcode a one-off color in a component. The Hold Button's Deep Navy (#152A63) is a known exception and should move into the theme.
-- **Don't** let bird art rise above 20% opacity or sit in front of controls.
+- **Don't** let bird art rise above 50% opacity or sit in front of controls.

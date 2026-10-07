@@ -7,7 +7,9 @@ import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
 import { WorldHeatmap } from '@/components/world-heatmap';
+import { BREATHING_PATTERNS } from '@/constants/breathing-patterns';
 import { COMMUNITY_MAP_COUNTS_URL } from '@/constants/community-map';
+import { PATTERN_BIRDS } from '@/constants/pattern-birds';
 import { getAnalyticsEnabled } from '@/lib/settings';
 import { Spacing, SystemFont } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -46,13 +48,6 @@ function useCommunityMapCounts(): number[] | undefined {
   return counts;
 }
 
-// Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_WREN_SOURCE = require('../../assets/images/bg-variegated-wren.png');
-const BG_WREN_SIZE = 380;
-const BG_WREN_OPACITY = 0.2;
-const BG_WREN_LIFT = 20;
-const BG_WREN_SHIFT_LEFT = 10;
-
 const SUPPORT_EMAIL = 'breatheeasyaviary@gmail.com';
 
 export function AboutScreen() {
@@ -73,11 +68,6 @@ export function AboutScreen() {
 
   return (
     <View style={styles.container}>
-      {/* pointerEvents is passed via style rather than as a prop, per the
-          "props.pointerEvents is deprecated" warning - expo-image's
-          ImageStyle type hasn't caught up with that change yet, hence the
-          cast. */}
-      <Image source={BG_WREN_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
       {/* edges excludes 'bottom' - this screen sits above the tab bar, not
           against the device's true bottom edge, so SafeAreaView's default
           bottom inset (sized for the home indicator) double-reserves space
@@ -143,6 +133,38 @@ export function AboutScreen() {
               Send feedback — {SUPPORT_EMAIL}
             </ThemedText>
           </Pressable>
+
+          <ThemedText type="smallBold" style={styles.mapTitle}>
+            The Aviary
+          </ThemedText>
+          <ThemedText type="small" style={styles.subtitle}>
+            Each breathing pattern has its own bird on the Home screen.
+          </ThemedText>
+          <View style={styles.birdList}>
+            {BREATHING_PATTERNS.map((pattern) => {
+              const bird = PATTERN_BIRDS[pattern.id];
+              if (!bird) {
+                return null;
+              }
+              return (
+                <View
+                  key={pattern.id}
+                  style={styles.birdRow}
+                  accessible
+                  accessibilityLabel={`${bird.name}, ${pattern.name}`}>
+                  <Image source={bird.source} style={styles.birdImage} contentFit="contain" />
+                  <View style={styles.birdText}>
+                    <ThemedText type="smallBold" style={styles.birdName}>
+                      {bird.name}
+                    </ThemedText>
+                    <ThemedText type="small" style={styles.birdPattern}>
+                      {pattern.name}
+                    </ThemedText>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -154,14 +176,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.background,
-    },
-    bgImage: {
-      position: 'absolute',
-      width: BG_WREN_SIZE,
-      height: BG_WREN_SIZE,
-      right: -BG_WREN_SIZE * 0.22 + BG_WREN_SHIFT_LEFT,
-      bottom: -BG_WREN_SIZE * 0.06 + BG_WREN_LIFT,
-      opacity: BG_WREN_OPACITY,
     },
     safeArea: {
       flex: 1,
@@ -207,6 +221,33 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     scrollContent: {
       paddingBottom: Spacing.five,
+    },
+    birdList: {
+      marginTop: Spacing.three,
+      gap: Spacing.two,
+    },
+    birdRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.three,
+      backgroundColor: theme.backgroundElement,
+      borderRadius: 16,
+      paddingVertical: Spacing.two,
+      paddingHorizontal: Spacing.three,
+    },
+    birdImage: {
+      width: 56,
+      height: 56,
+    },
+    birdText: {
+      flex: 1,
+      gap: 2,
+    },
+    birdName: {
+      color: theme.text,
+    },
+    birdPattern: {
+      color: theme.textSecondary,
     },
     feedbackPrompt: {
       color: theme.textSecondary,

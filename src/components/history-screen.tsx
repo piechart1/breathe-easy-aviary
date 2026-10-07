@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,12 +16,6 @@ const STREAK_BG = 'rgba(230, 126, 34, 0.15)';
 const SESSIONS_COLOR = '#22A06B';
 const SESSIONS_BG = 'rgba(34, 160, 107, 0.15)';
 const CHART_HEIGHT = 120;
-// Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_KOOKABURRA_SOURCE = require('../../assets/images/bg-kookaburra.png');
-const BG_KOOKABURRA_SIZE = 380;
-const BG_KOOKABURRA_OPACITY = 0.2;
-const BG_KOOKABURRA_LIFT = 20;
-const BG_KOOKABURRA_SHIFT_LEFT = 10;
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
@@ -128,11 +121,6 @@ export function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* pointerEvents is passed via style rather than as a prop, per the
-          "props.pointerEvents is deprecated" warning - expo-image's
-          ImageStyle type hasn't caught up with that change yet, hence the
-          cast. */}
-      <Image source={BG_KOOKABURRA_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
       {/* edges excludes 'bottom' - this screen sits above the tab bar, not
           against the device's true bottom edge, so SafeAreaView's default
           bottom inset (sized for the home indicator) double-reserves space
@@ -225,14 +213,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   container: {
     flex: 1,
     backgroundColor: theme.background,
-  },
-  bgImage: {
-    position: 'absolute',
-    width: BG_KOOKABURRA_SIZE,
-    height: BG_KOOKABURRA_SIZE,
-    right: -BG_KOOKABURRA_SIZE * 0.22 + BG_KOOKABURRA_SHIFT_LEFT,
-    bottom: -BG_KOOKABURRA_SIZE * 0.06 + BG_KOOKABURRA_LIFT,
-    opacity: BG_KOOKABURRA_OPACITY,
   },
   safeArea: {
     flex: 1,

@@ -428,7 +428,7 @@
   ],
   "narrative": {
     "northStar": "The Dawn Chorus",
-    "overview": "The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint magpie in the lower corner. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.",
+    "overview": "The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint bird in the lower corner, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.",
     "keyCharacteristics": [
       "Flat tonal layers: page, then card, then selected card, in steps of a few percent of lightness.",
       "One glow in the product, on the breath circle, tinted by the selected pattern.",
@@ -471,7 +471,7 @@
       "Don't use a pattern color for anything that is not that pattern, or Signal Blue on the breath circle.",
       "Don't introduce a second typeface or add bold weight beyond the title and the active timing segment.",
       "Don't hardcode a one-off color in a component. The Hold Button's Deep Navy (#152A63) is a known exception and should move into the theme.",
-      "Don't let bird art rise above 20% opacity or sit in front of controls."
+      "Don't let bird art rise above 50% opacity or sit in front of controls."
     ]
   }
 }

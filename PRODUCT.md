@@ -37,7 +37,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 ## Brand Commitments
 
 - Name: "Breathe Easy Aviary" on the App Store and in legal copy. The in-app name stays "Breathe Easy".
-- Identity centered on Australian birds. The avatar picker candidates are Cockatoo, Splendid fairywren, Mallee ringneck, Eastern rosella and Barn owl. The background art is a magpie.
+- Identity centered on Australian birds. The avatar picker candidates are Cockatoo, Splendid fairywren, Mallee ringneck, Eastern rosella and Barn owl. Each breathing pattern has its own background bird on Home (magpie, kookaburra, emu, variegated fairywren, Gouldian finch, Major Mitchell's cockatoo, sulphur-crested cockatoo), listed on the About screen.
 - Voice: plain, calm, and based in Melbourne, Australia.
 
 ## Evidence on Hand

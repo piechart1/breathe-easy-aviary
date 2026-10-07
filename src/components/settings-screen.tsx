@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
 import { Host, Picker } from '@expo/ui';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { Slider } from '@expo/ui/community/slider';
@@ -69,13 +68,6 @@ import { PRIVACY_POLICY_URL, SAFETY_DISCLAIMER_URL, TERMS_OF_USE_URL } from '@/c
 function openLegalUrl(url: string) {
   openBrowserAsync(url, { presentationStyle: WebBrowserPresentationStyle.AUTOMATIC });
 }
-
-// Matches the magpie background on the Home screen (breathing-screen.tsx).
-const BG_FINCH_SOURCE = require('../../assets/images/bg-finch.png');
-const BG_FINCH_SIZE = 320;
-const BG_FINCH_OPACITY = 0.2;
-const BG_FINCH_LIFT = 20;
-const BG_FINCH_SHIFT_LEFT = 10;
 
 const SOUND_STYLE_OPTIONS: { id: SoundStyle; label: string }[] = [
   { id: 'resonant', label: 'Voice' },
@@ -317,11 +309,6 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* pointerEvents is passed via style rather than as a prop, per the
-          "props.pointerEvents is deprecated" warning - expo-image's
-          ImageStyle type hasn't caught up with that change yet, hence the
-          cast. */}
-      <Image source={BG_FINCH_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
       {/* edges excludes 'bottom' - this screen sits above the tab bar, not
           against the device's true bottom edge, so SafeAreaView's default
           bottom inset (sized for the home indicator) double-reserves space
@@ -843,14 +830,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.background,
-    },
-    bgImage: {
-      position: 'absolute',
-      width: BG_FINCH_SIZE,
-      height: BG_FINCH_SIZE,
-      right: -BG_FINCH_SIZE * 0.22 + BG_FINCH_SHIFT_LEFT,
-      bottom: -BG_FINCH_SIZE * 0.06 + BG_FINCH_LIFT,
-      opacity: BG_FINCH_OPACITY,
     },
     safeArea: {
       flex: 1,

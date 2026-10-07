@@ -31,7 +31,9 @@ import {
   type BreathingPhase,
   type PhaseName,
 } from '@/constants/breathing-patterns';
+import { PATTERN_BIRD_LIGHT_OPACITY, PATTERN_BIRDS, type PatternBird } from '@/constants/pattern-birds';
 import { SystemFont, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   BACKING_MUSIC_ROTATION_SOURCES,
@@ -94,11 +96,8 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const BG_MAGPIE_SOURCE = require('../../assets/images/bg-magpie.png');
-const BG_MAGPIE_SIZE = 380;
-const BG_MAGPIE_OPACITY = 0.2;
-const BG_MAGPIE_LIFT = 20;
-const BG_MAGPIE_SHIFT_LEFT = 10;
+const BACKDROP_LIFT = 20;
+const BACKDROP_FADE_MS = 250;
 // Passed to every useAudioPlayer() call below (a shared reference so it
 // never triggers extra re-renders as a dependency) so iOS never
 // auto-deactivates the shared AVAudioSession when one of these players
@@ -493,6 +492,39 @@ async function playSound(player: AudioPlayer, volume: number) {
 
 type Styles = ReturnType<typeof createStyles>;
 
+// One pattern's bird behind the Home screen. Every bird stays mounted in its
+// own fixed position and only its opacity changes, fading in when its
+// pattern is selected and out when another is. Swapping a single image's
+// source instead showed the outgoing bird for a moment at the incoming
+// bird's size, position and mirroring, which read as a flicker.
+function BackdropBird({ bird, visible, isDark }: { bird: PatternBird; visible: boolean; isDark: boolean }) {
+  const targetOpacity = visible ? (isDark ? bird.darkOpacity : PATTERN_BIRD_LIGHT_OPACITY) : 0;
+  const opacity = useRef(new Animated.Value(targetOpacity)).current;
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: targetOpacity,
+      duration: BACKDROP_FADE_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [opacity, targetOpacity]);
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        width: bird.size,
+        height: bird.size,
+        right: -bird.size * 0.22 + bird.shiftLeft,
+        bottom: -bird.size * 0.06 + BACKDROP_LIFT,
+        opacity,
+        transform: [{ scaleX: bird.mirrored ? -1 : 1 }],
+        pointerEvents: 'none',
+      }}>
+      <Image source={bird.source} style={StyleSheet.absoluteFill} accessible={false} />
+    </Animated.View>
+  );
+}
+
 function PatternCard({
   pattern,
   displayName,
@@ -576,6 +608,7 @@ function PatternCard({
 
 export function BreathingScreen() {
   const theme = useTheme();
+  const colorScheme = useColorScheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const scaleAnim = useRef(new Animated.Value(MIN_BREATH_SCALE)).current;
   const isRunningRef = useRef(false);
@@ -1573,11 +1606,14 @@ export function BreathingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* pointerEvents is passed via style rather than as a prop, per the
-          "props.pointerEvents is deprecated" warning - expo-image's
-          ImageStyle type hasn't caught up with that change yet, hence the
-          cast. */}
-      <Image source={BG_MAGPIE_SOURCE} style={[styles.bgImage, { pointerEvents: 'none' } as any]} />
+      {Object.entries(PATTERN_BIRDS).map(([patternId, bird]) => (
+        <BackdropBird
+          key={patternId}
+          bird={bird}
+          visible={patternId === selectedPatternId}
+          isDark={colorScheme === 'dark'}
+        />
+      ))}
       {/* edges excludes 'bottom' - this screen sits above the tab bar, not
           against the device's true bottom edge, so SafeAreaView's default
           bottom inset (sized for the home indicator) double-reserves space
@@ -1885,15 +1921,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     flex: 1,
     backgroundColor: theme.background,
   },
-  bgImage: {
-    position: 'absolute',
-    width: BG_MAGPIE_SIZE,
-    height: BG_MAGPIE_SIZE,
-    right: -BG_MAGPIE_SIZE * 0.22 + BG_MAGPIE_SHIFT_LEFT,
-    bottom: -BG_MAGPIE_SIZE * 0.06 + BG_MAGPIE_LIFT,
-    opacity: BG_MAGPIE_OPACITY,
-    transform: [{ scaleX: -1 }],
-  },
   safeArea: {
     flex: 1,
   },
@@ -2022,6 +2049,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   dynamicHoldButtonText: {
     color: '#FFFFFF',
     textAlign: 'center',
+    fontSize: 20,
+    lineHeight: 26,
   },
   patternList: {
     gap: Spacing.three,
