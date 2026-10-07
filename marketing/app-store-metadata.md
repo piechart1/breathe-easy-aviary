@@ -77,6 +77,29 @@ That is 30 of 30 characters. It puts "breathwork" in the name, which is generall
 
 This changes the App Store listing name only. The name under the icon on the home screen stays "Breathe Easy Aviary".
 
+## What's New in 1.0.2
+
+Draft for the "What's New in This Version" field (4,000 character limit; this is about 640):
+
+```
+Each breathing pattern now has its own Australian bird on the Home screen. You can meet all seven on the About page.
+
+Also in this update:
+• The app opens on the pattern you used last, and shows its name under the breath circle.
+• Sessions end more gently. Auto Stop waits for the end of your exhale, the music fades out, and you see how long you practised.
+• While a session runs, the pattern list steps aside so the circle has the screen to itself.
+• Auto Stop is now a quick menu, and each pattern's guide opens in a sheet you can swipe away.
+• A new Haptics switch in Settings.
+• Better support for VoiceOver and larger text sizes.
+```
+
+## Store assets for 1.0.2
+
+Re-captured on 7 Oct 2026 from the 1.0.2 build, because the screens changed. Rendered in `~/Remotion`:
+
+- Six captioned screenshots: `~/Remotion/out/screenshots/Shot1-Session.png` to `Shot6-Progress.png` (1320×2868).
+- App preview video: `~/Remotion/out/app-preview.mp4` (886×1920, 29 seconds).
+
 ## After submitting
 
 Check the positions again two to three weeks after the new version goes live, using the same searches. Swap out keywords that still aren't in the top 50 for other technique or use-case words.
