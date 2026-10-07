@@ -20,10 +20,11 @@ export const Colors = {
     background: '#FFFFFF',
     backgroundElement: '#F4F4F4',
     backgroundSelected: '#E8EAED',
-    textSecondary: '#6B7280',
+    textSecondary: '#5F6673',
     textOnAccent: '#FFFFFF',
     border: '#E5E7EB',
     accent: AccentColors.blue,
+    deepNavy: '#152A63',
   },
   dark: {
     text: '#FFFFFF',
@@ -34,6 +35,7 @@ export const Colors = {
     textOnAccent: '#FFFFFF',
     border: '#2A3140',
     accent: AccentColors.blue,
+    deepNavy: '#152A63',
   },
 } as const;
 

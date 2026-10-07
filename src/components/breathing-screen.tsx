@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
+  Alert,
   Animated,
   AppState,
   Easing,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -59,6 +62,7 @@ import {
   getBackingMusicVolume,
   getButeykoHoldSeconds,
   getHealthSyncEnabled,
+  getLastPatternId,
   getSoundStyle,
   getTimerSettings,
   getTummoHoldMode,
@@ -68,6 +72,7 @@ import {
   getTummoRounds,
   getTummoSkipToHold,
   getTummoSoundtrack,
+  setLastPatternId as persistLastPatternId,
   setTimerEnabled as persistTimerEnabled,
   setTimerMinutes as persistTimerMinutes,
   TIMER_MINUTE_OPTIONS,
@@ -169,6 +174,13 @@ const INTEGRATION_BLINK_CUE_DURATION_MS = 7190;
 const INTEGRATION_FADE_DURATION_MS = 10000;
 const INTEGRATION_FADE_STEP_MS = 100;
 const RESONANT_CUE_VOLUME = 1;
+// How long the backing track takes to fade to silence when a session ends,
+// rather than cutting off the instant it stops.
+const SESSION_END_FADE_DURATION_MS = 2000;
+const SESSION_END_FADE_STEP_MS = 50;
+// Sessions shorter than this (a stray tap on the circle, a change of mind)
+// end without the "Session complete" acknowledgement.
+const MIN_ACKNOWLEDGED_SESSION_SECONDS = 10;
 // Tummo's rapid-breath cues repeat every ~1.5s for up to 30 breaths, so they
 // run quieter than the rest of the resonant cues, which only play once per
 // (much longer) phase.
@@ -198,6 +210,20 @@ function resonantSoundIdsForPhase(phase: BreathingPhase): (keyof typeof RESONANT
     (id): id is keyof typeof RESONANT_SOUND_SOURCES => id in RESONANT_SOUND_SOURCES,
   );
   return primaryId ? [primaryId, ...overlayIds] : overlayIds;
+}
+
+// Spoken form of a session length for VoiceOver, e.g. "3 minutes 20 seconds".
+function formatElapsedSpoken(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (minutes > 0) {
+    parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+  }
+  if (seconds > 0 || minutes === 0) {
+    parts.push(`${seconds} second${seconds === 1 ? '' : 's'}`);
+  }
+  return parts.join(' ');
 }
 
 function formatElapsed(totalSeconds: number) {
@@ -534,7 +560,7 @@ function PatternCard({
         )}
         <Pressable
           onPress={onShowInfo}
-          hitSlop={10}
+          hitSlop={13}
           accessibilityRole="button"
           accessibilityLabel={`About ${pattern.name}`}>
           <SymbolView
@@ -562,6 +588,7 @@ export function BreathingScreen() {
   // touching the player or backingMusicWatcherRef.
   const audioGenerationRef = useRef(0);
   const activeAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const resonantCueTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -572,6 +599,15 @@ export function BreathingScreen() {
   const completedRoundsRef = useRef(0);
   const phaseElapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
+  // Mirrors the elapsedSeconds state so the phase timer and stopBreathing
+  // can read the current count without waiting for a render.
+  const elapsedSecondsRef = useRef(0);
+  // The backing track(s) currently fading out after a session ended - see
+  // fadeOutBackingMusic below.
+  const backingMusicFadeRef = useRef<{
+    intervalId: ReturnType<typeof setInterval>;
+    players: AudioPlayer[];
+  } | null>(null);
   // Whichever backing-music player is currently supposed to be playing -
   // see watchAndKeepBackingMusicPlaying above. Reassigned (with the
   // previous one removed first) at every point where "the active track"
@@ -713,6 +749,9 @@ export function BreathingScreen() {
   // the "dynamic" timing label while that phase runs.
   const [phaseElapsedSeconds, setPhaseElapsedSeconds] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  // Length of the session that just ended, shown in place of "Tap to begin"
+  // until the next session starts or another pattern is chosen.
+  const [completedSessionSeconds, setCompletedSessionSeconds] = useState<number | null>(null);
   const [infoPatternId, setInfoPatternId] = useState<string | null>(null);
   const [isTimerPickerOpen, setIsTimerPickerOpen] = useState(false);
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -786,8 +825,8 @@ export function BreathingScreen() {
               }
               // Dynamic mode has no fixed hold length - runPhase skips its
               // auto-advance timeout for this phase entirely (see
-              // isManualHold there) and waits for the "Tap to move to
-              // Inhale and Retention" button instead. durationMs here just
+              // isManualHold there) and waits for the "End hold and
+              // breathe in" button instead. durationMs here just
               // sizes the tick/cue schedule generously so ticks and the
               // reassurance cues still play for a long hold.
               const durationMs =
@@ -845,6 +884,29 @@ export function BreathingScreen() {
       getBackingMusicVolume().then(setBackingMusicVolumePercent);
     }, []),
   );
+
+  // Open on the pattern used last time rather than always the first one.
+  // Read once on mount, not on every focus like the settings above - the
+  // selection is only ever changed on this screen. Skipped if a session has
+  // already been started in the moment before the read resolves, since
+  // changing the selection stops a running session.
+  useEffect(() => {
+    getLastPatternId().then((patternId) => {
+      if (!isRunningRef.current && BREATHING_PATTERNS.some((pattern) => pattern.id === patternId)) {
+        setSelectedPatternId(patternId as string);
+      }
+    });
+  }, []);
+
+  // The breath circle sits at the top of the scroll view and most of the
+  // cards below the fold, so selecting one scrolls back up to show the
+  // circle (and the pattern name beside it) change to the new choice.
+  const handleSelectPattern = useCallback((patternId: string) => {
+    setSelectedPatternId(patternId);
+    setCompletedSessionSeconds(null);
+    persistLastPatternId(patternId);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  }, []);
 
   const clearScheduledTicks = useCallback(() => {
     tickTimeoutsRef.current.forEach(clearTimeout);
@@ -914,6 +976,48 @@ export function BreathingScreen() {
     [resonantPlayers, clearScheduledResonantCues],
   );
 
+  // Ends any fade still in progress by pausing its players outright - called
+  // before a new fade or a new session, so a track that is still fading
+  // can't keep playing underneath whatever starts next.
+  const cancelBackingMusicFade = useCallback(() => {
+    const fade = backingMusicFadeRef.current;
+    if (!fade) {
+      return;
+    }
+    clearInterval(fade.intervalId);
+    fade.players.forEach((player) => player.pause());
+    backingMusicFadeRef.current = null;
+  }, []);
+
+  // Fades whichever backing track is playing down to silence and then
+  // pauses it, so a session doesn't end on an abrupt cut. Players that
+  // aren't actually playing (never started, still buffering) are paused
+  // straight away.
+  const fadeOutBackingMusic = useCallback(() => {
+    cancelBackingMusicFade();
+    const players = allBackingMusicPlayers.filter((player) => player.playing);
+    allBackingMusicPlayers.forEach((player) => {
+      if (!player.playing) {
+        player.pause();
+      }
+    });
+    if (players.length === 0) {
+      return;
+    }
+    const startVolumes = players.map((player) => player.volume);
+    const startedAt = Date.now();
+    const intervalId = setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / SESSION_END_FADE_DURATION_MS);
+      players.forEach((player, index) => {
+        player.volume = startVolumes[index] * (1 - progress);
+      });
+      if (progress >= 1) {
+        cancelBackingMusicFade();
+      }
+    }, SESSION_END_FADE_STEP_MS);
+    backingMusicFadeRef.current = { intervalId, players };
+  }, [allBackingMusicPlayers, cancelBackingMusicFade]);
+
   const stopBreathing = useCallback(() => {
     isRunningRef.current = false;
     audioGenerationRef.current += 1;
@@ -931,8 +1035,18 @@ export function BreathingScreen() {
     tickPlayer.pause();
     backingMusicWatcherRef.current?.remove();
     backingMusicWatcherRef.current = null;
-    allBackingMusicPlayers.forEach((player) => player.pause());
+    fadeOutBackingMusic();
     Object.values(resonantPlayers).forEach((player) => player.pause());
+    const completedSeconds = elapsedSecondsRef.current;
+    elapsedSecondsRef.current = 0;
+    if (completedSeconds >= MIN_ACKNOWLEDGED_SESSION_SECONDS) {
+      setCompletedSessionSeconds(completedSeconds);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      AccessibilityInfo.announceForAccessibility(`Session complete, ${formatElapsedSpoken(completedSeconds)}`);
+    } else {
+      setCompletedSessionSeconds(null);
+      AccessibilityInfo.announceForAccessibility('Session stopped');
+    }
     if (elapsedIntervalRef.current) {
       clearInterval(elapsedIntervalRef.current);
       elapsedIntervalRef.current = null;
@@ -961,7 +1075,7 @@ export function BreathingScreen() {
     clearScheduledTicks,
     clearScheduledResonantCues,
     tickPlayer,
-    allBackingMusicPlayers,
+    fadeOutBackingMusic,
     resonantPlayers,
     selectedPatternId,
     healthSyncEnabled,
@@ -1110,7 +1224,7 @@ export function BreathingScreen() {
       // Tummo's main retention hold, when Settings has Dynamic retention
       // style selected, has no fixed length - there's no auto-advance timer
       // for this phase at all. It only moves on when the practitioner taps
-      // the "Tap to move to Inhale and Retention" button (handleManualHoldAdvance
+      // the "End hold and breathe in" button (handleManualHoldAdvance
       // below), which does the exact same round-counting and phase advance
       // this timeout does for every other phase.
       const isManualHold = pattern.id === 'tummo' && phase.timingSegmentIndex === 1 && tummoHoldMode === 'dynamic';
@@ -1122,6 +1236,22 @@ export function BreathingScreen() {
           // Integration only ever runs once, after the final round - once
           // its own timer is up, the session is over regardless.
           if (phaseIndex === INTEGRATION_PHASE_INDEX) {
+            stopBreathing();
+            return;
+          }
+          // Auto Stop ends the session at the end of an exhale rather than
+          // the instant its time is up, so it never cuts off partway
+          // through a breath. Every pattern it applies to has an Exhale
+          // phase; Tummo has its own fixed sequence and is exempt (see the
+          // Auto Stop pill's comment in the render below). Read from the
+          // refs so a change to Auto Stop made mid-session is honored at
+          // the next exhale.
+          if (
+            phase.name === 'Exhale' &&
+            pattern.id !== 'tummo' &&
+            timerEnabledRef.current &&
+            elapsedSecondsRef.current >= timerMinutesRef.current * 60
+          ) {
             stopBreathing();
             return;
           }
@@ -1324,11 +1454,17 @@ export function BreathingScreen() {
     }
     isRunningRef.current = true;
     audioGenerationRef.current += 1;
+    cancelBackingMusicFade();
+    setCompletedSessionSeconds(null);
     setIsRunning(true);
     scaleAnim.setValue(MIN_BREATH_SCALE);
     completedRoundsRef.current = 0;
     sessionStartRef.current = new Date();
     trackPatternStarted(selectedPatternId);
+    // Screen readers are told when a session starts and ends, not each
+    // phase - the voice cues and ticks already carry the phases, and a
+    // spoken announcement every few seconds would talk over them.
+    AccessibilityInfo.announceForAccessibility(`${activePattern.name} started`);
     // Staggered rather than called inline: firing this in the same tick as
     // runPhase's own first-phase resonant cue(s) below stacks multiple
     // simultaneous native play() calls right at session start - Tummo's
@@ -1341,27 +1477,19 @@ export function BreathingScreen() {
       }
     }, 200);
 
+    // Auto Stop is checked in runPhase, at the end of each exhale, rather
+    // than on this tick - see the comment there.
     let secondsElapsed = 1;
+    elapsedSecondsRef.current = secondsElapsed;
     setElapsedSeconds(secondsElapsed);
 
     elapsedIntervalRef.current = setInterval(() => {
       secondsElapsed += 1;
+      elapsedSecondsRef.current = secondsElapsed;
       setElapsedSeconds(secondsElapsed);
-      // Tummo has a fixed, deliberately-authored sequence (30 breaths, a
-      // long hold, recovery) - the session-length auto-stop is meant for
-      // open-ended guided practice, not a structured exercise with its own
-      // built-in duration, so it never applies here regardless of the
-      // configured minutes. Read from the refs (rather than closing over
-      // timerEnabled/timerMinutes once here) so changing Auto Stop while
-      // this session is already running is honored on the very next tick.
-      const timerLimitSeconds =
-        timerEnabledRef.current && selectedPatternId !== 'tummo' ? timerMinutesRef.current * 60 : null;
-      if (timerLimitSeconds !== null && secondsElapsed >= timerLimitSeconds) {
-        stopBreathing();
-      }
     }, 1000);
     runPhase(activePattern, 0);
-  }, [runPhase, scaleAnim, activePattern, isPlus, stopBreathing, selectedPatternId, startBackingMusic]);
+  }, [runPhase, scaleAnim, activePattern, isPlus, selectedPatternId, startBackingMusic, cancelBackingMusicFade]);
 
   useEffect(() => {
     if (isRunningRef.current) {
@@ -1385,6 +1513,9 @@ export function BreathingScreen() {
       if (phaseElapsedIntervalRef.current) {
         clearInterval(phaseElapsedIntervalRef.current);
       }
+      if (backingMusicFadeRef.current) {
+        clearInterval(backingMusicFadeRef.current.intervalId);
+      }
       // Mirrors the confirmed-interruption cleanup in
       // watchAndKeepBackingMusicPlaying - leaving this screen for good is
       // another point nothing else will release the session kept active by
@@ -1395,8 +1526,50 @@ export function BreathingScreen() {
     };
   }, [scaleAnim]);
 
+  // Tapping the circle stops a running session straight away, except on
+  // Tummo: its long retention hold is done with eyes closed and the circle
+  // sits just above the hold button, so a stray tap there would otherwise
+  // end (and log) the whole session. The session carries on underneath the
+  // prompt until End Session is chosen.
+  const handleCirclePress = () => {
+    if (!isRunning) {
+      startBreathing();
+      return;
+    }
+    if (selectedPatternId !== 'tummo') {
+      stopBreathing();
+      return;
+    }
+    Alert.alert('End this session?', undefined, [
+      { text: 'Keep Going', style: 'cancel' },
+      {
+        text: 'End Session',
+        style: 'destructive',
+        onPress: () => {
+          if (isRunningRef.current) {
+            stopBreathing();
+          }
+        },
+      },
+    ]);
+  };
+
+  // What the status line under the circle reads while no session is running.
+  const idleStatusText =
+    completedSessionSeconds !== null
+      ? 'Session complete'
+      : isSelectedPatternLocked
+        ? 'Tap to Unlock Plus'
+        : 'Tap to begin';
   const activeAccentColor = PATTERN_ACCENT_COLORS[selectedPatternId] ?? BreathingColors.saltwaterSlide;
   const infoPattern = BREATHING_PATTERNS.find((pattern) => pattern.id === infoPatternId) ?? null;
+  // Keeps the info pop-up's text in place while it fades out, after
+  // infoPatternId has already been cleared.
+  const lastInfoPatternRef = useRef<BreathingPattern | null>(null);
+  if (infoPattern) {
+    lastInfoPatternRef.current = infoPattern;
+  }
+  const shownInfoPattern = infoPattern ?? lastInfoPatternRef.current;
 
   return (
     <View style={styles.container}>
@@ -1412,6 +1585,7 @@ export function BreathingScreen() {
           regardless of scroll position. */}
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
@@ -1427,6 +1601,7 @@ export function BreathingScreen() {
           {selectedPatternId !== 'tummo' && (
             <Pressable
               onPress={() => setIsTimerPickerOpen(true)}
+              hitSlop={{ top: 8, bottom: 8 }}
               accessibilityRole="button"
               accessibilityLabel={`Auto stop, currently ${timerEnabled ? `${timerMinutes} minutes` : 'off'}`}
               style={({ pressed }) => [styles.timerPill, { opacity: pressed ? 0.85 : 1 }]}>
@@ -1442,14 +1617,14 @@ export function BreathingScreen() {
           )}
 
           <Pressable
-            onPress={isRunning ? stopBreathing : startBreathing}
+            onPress={handleCirclePress}
             accessibilityRole="button"
             accessibilityLabel={
               isRunning
-                ? 'Stop breathing exercise'
+                ? `Stop ${selectedPattern.name}`
                 : isSelectedPatternLocked
-                  ? 'Tap to Unlock Plus'
-                  : 'Begin breathing exercise'
+                  ? `${selectedPattern.name}, Tap to Unlock Plus`
+                  : `Begin ${selectedPattern.name}`
             }
             style={({ pressed }) => [styles.circleSection, { opacity: pressed ? 0.85 : 1 }]}>
             <View style={styles.circleWrapper}>
@@ -1466,13 +1641,15 @@ export function BreathingScreen() {
                 ]}
               />
             </View>
+            <ThemedText type="default" style={styles.selectedPatternName}>
+              {selectedPattern.name}
+            </ThemedText>
             <View style={styles.phaseRow}>
               <ThemedText
                 type="default"
                 style={styles.phaseText}
-                accessibilityLiveRegion="polite"
-                accessibilityLabel={`Breathing status: ${phaseName || (isSelectedPatternLocked ? 'Tap to Unlock Plus' : 'Tap the circle to begin')}`}>
-                {phaseName || (isSelectedPatternLocked ? 'Tap to Unlock Plus' : 'Tap to begin')}
+                accessibilityLabel={`Breathing status: ${phaseName || idleStatusText}`}>
+                {phaseName || idleStatusText}
               </ThemedText>
               {isRunning && (
                 <ThemedText
@@ -1480,6 +1657,14 @@ export function BreathingScreen() {
                   style={styles.elapsedText}
                   accessibilityLabel={`Elapsed time: ${formatElapsed(elapsedSeconds)}`}>
                   {formatElapsed(elapsedSeconds)}
+                </ThemedText>
+              )}
+              {!isRunning && completedSessionSeconds !== null && (
+                <ThemedText
+                  type="default"
+                  style={styles.elapsedText}
+                  accessibilityLabel={formatElapsedSpoken(completedSessionSeconds)}>
+                  {formatElapsed(completedSessionSeconds)}
                 </ThemedText>
               )}
             </View>
@@ -1512,18 +1697,22 @@ export function BreathingScreen() {
               onPress={handleManualHoldAdvance}
               disabled={!isDynamicHoldReady}
               accessibilityRole="button"
-              accessibilityLabel="Tap to move to Inhale and Retention"
+              accessibilityLabel="End hold and breathe in"
               accessibilityState={{ disabled: !isDynamicHoldReady }}
               style={({ pressed }) => [
                 styles.dynamicHoldButton,
                 { opacity: !isDynamicHoldReady ? 0.4 : pressed ? 0.85 : 1 },
               ]}>
               <ThemedText type="smallBold" style={styles.dynamicHoldButtonText}>
-                Tap to move to Inhale and Retention
+                End hold and breathe in
               </ThemedText>
             </Pressable>
           )}
 
+          {/* The list is only for choosing a pattern, which can't be done
+              mid-session, so it's hidden while one runs to leave the circle
+              as the single thing on screen. */}
+          {!isRunning && (
           <View style={styles.patternList}>
             <ThemedText type="smallBold" style={styles.patternSectionHeader}>
               Guided Patterns
@@ -1545,7 +1734,7 @@ export function BreathingScreen() {
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
                 theme={theme}
                 styles={styles}
-                onSelect={() => setSelectedPatternId(pattern.id)}
+                onSelect={() => handleSelectPattern(pattern.id)}
                 onShowInfo={() => setInfoPatternId(pattern.id)}
               />
             ))}
@@ -1570,20 +1759,40 @@ export function BreathingScreen() {
                 accentColor={PATTERN_ACCENT_COLORS[pattern.id] ?? BreathingColors.saltwaterSlide}
                 theme={theme}
                 styles={styles}
-                onSelect={() => setSelectedPatternId(pattern.id)}
+                onSelect={() => handleSelectPattern(pattern.id)}
                 onShowInfo={() => setInfoPatternId(pattern.id)}
               />
             ))}
           </View>
+          )}
 
         </ScrollView>
       </SafeAreaView>
 
-      {infoPattern && (
-        <Pressable style={styles.modalBackdrop} onPress={() => setInfoPatternId(null)}>
-          <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
-            <ThemedText type="smallBold" style={styles.modalTitle}>{infoPattern.name}</ThemedText>
-            <ThemedText type="small" style={styles.modalInfoText}>{infoPattern.info}</ThemedText>
+      {/* Both pop-ups are native Modals rather than views layered inside
+          this screen, so they cover the tab bar and a screen reader stays
+          inside them until they close. The backdrop is its own Pressable
+          behind the card, hidden from screen readers (Close does the same
+          job), rather than a parent of it - a pressable parent would be read
+          as one single button, hiding the card's contents. */}
+      <Modal
+        visible={infoPattern !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInfoPatternId(null)}>
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessible={false}
+            onPress={() => setInfoPatternId(null)}
+          />
+          <View style={styles.modalCard}>
+            <ThemedText type="smallBold" style={styles.modalTitle} accessibilityRole="header">
+              {shownInfoPattern?.name}
+            </ThemedText>
+            <ScrollView style={styles.modalScroll}>
+              <ThemedText type="small" style={styles.modalInfoText}>{shownInfoPattern?.info}</ThemedText>
+            </ScrollView>
             <Pressable
               onPress={() => setInfoPatternId(null)}
               accessibilityRole="button"
@@ -1591,14 +1800,26 @@ export function BreathingScreen() {
               style={styles.modalCloseButton}>
               <ThemedText type="smallBold" style={styles.modalCloseText}>Close</ThemedText>
             </Pressable>
-          </Pressable>
-        </Pressable>
-      )}
+          </View>
+        </View>
+      </Modal>
 
-      {isTimerPickerOpen && (
-        <Pressable style={styles.modalBackdrop} onPress={() => setIsTimerPickerOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
-            <ThemedText type="smallBold" style={styles.modalTitle}>Auto Stop</ThemedText>
+      <Modal
+        visible={isTimerPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsTimerPickerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessible={false}
+            onPress={() => setIsTimerPickerOpen(false)}
+          />
+          <View style={styles.modalCard}>
+            <ThemedText type="smallBold" style={styles.modalTitle} accessibilityRole="header">
+              Auto Stop
+            </ThemedText>
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
             <ThemedText type="small" style={styles.modalInfoText}>
               Automatically stop the session after a set number of minutes. Changing this while a session is
               running takes effect immediately.
@@ -1643,6 +1864,7 @@ export function BreathingScreen() {
                 );
               })}
             </View>
+            </ScrollView>
             <Pressable
               onPress={() => setIsTimerPickerOpen(false)}
               accessibilityRole="button"
@@ -1650,9 +1872,9 @@ export function BreathingScreen() {
               style={styles.modalCloseButton}>
               <ThemedText type="smallBold" style={styles.modalCloseText}>Close</ThemedText>
             </Pressable>
-          </Pressable>
-        </Pressable>
-      )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1707,6 +1929,10 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     gap: Spacing.two,
   },
   minutePill: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.one,
     borderRadius: 999,
@@ -1748,6 +1974,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     opacity: 0.92,
     elevation: 20,
   },
+  selectedPatternName: {
+    textAlign: 'center',
+    fontSize: 18,
+    lineHeight: 24,
+    color: theme.text,
+  },
   phaseRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -1778,12 +2010,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.text,
   },
   dynamicHoldButton: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    minHeight: 64,
     marginTop: Spacing.three,
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 10,
-    backgroundColor: '#152A63',
+    paddingVertical: Spacing.three,
+    borderRadius: 16,
+    backgroundColor: theme.deepNavy,
   },
   dynamicHoldButtonText: {
     color: '#FFFFFF',
@@ -1831,11 +2065,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.textSecondary,
   },
   modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1844,6 +2074,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   modalCard: {
     width: '100%',
     maxWidth: 360,
+    // Leaves the card (and its Close button) on screen when the info text
+    // is long or the text size is large - the text scrolls inside instead.
+    maxHeight: '90%',
     backgroundColor: theme.backgroundElement,
     borderRadius: 20,
     padding: Spacing.four,
@@ -1853,12 +2086,20 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.text,
     fontSize: 18,
   },
+  modalScroll: {
+    flexShrink: 1,
+  },
+  modalScrollContent: {
+    gap: Spacing.three,
+  },
   modalInfoText: {
     color: theme.textSecondary,
     lineHeight: 20,
   },
   modalCloseButton: {
     alignSelf: 'flex-end',
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },

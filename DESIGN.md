@@ -7,7 +7,7 @@ colors:
   paper: "#FFFFFF"
   mist-card: "#F4F4F4"
   mist-selected: "#E8EAED"
-  slate-text: "#6B7280"
+  slate-text: "#5F6673"
   hairline: "#E5E7EB"
   night-ink: "#FFFFFF"
   night-paper: "#0D1117"
@@ -141,7 +141,7 @@ Pattern colors. Each pattern owns one, shown on the breath circle, its glow ring
 - **Ember Orange** (#FE5000): Cyclic Hyperventilation (Tummo), the one saturated, high-energy pattern color.
 
 ### Tertiary
-- **Deep Navy** (#152A63): the fill of the Tummo "Tap to move to Inhale and Retention" button, a deliberate dark anchor with white text.
+- **Deep Navy** (#152A63): the fill of the Tummo "End hold and breathe in" button, a deliberate dark anchor with white text.
 
 ### Neutral
 Light theme:
@@ -149,7 +149,7 @@ Light theme:
 - **Paper** (#FFFFFF): page background.
 - **Mist Card** (#F4F4F4): cards, pills, modal surface.
 - **Mist Selected** (#E8EAED): selected card and selected pill fill.
-- **Slate Text** (#6B7280): secondary text, icons, phase and timing text.
+- **Slate Text** (#5F6673): secondary text, icons, phase and timing text.
 - **Hairline** (#E5E7EB): card borders and dividers.
 
 Dark theme:

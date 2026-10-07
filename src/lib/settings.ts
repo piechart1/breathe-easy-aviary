@@ -18,6 +18,7 @@ const TUMMO_INTEGRATION_MINUTES_KEY = 'breathe-easy:tummo-integration-minutes';
 const DAILY_NUDGE_KEY = 'breathe-easy:daily-nudge';
 const WIND_DOWN_KEY = 'breathe-easy:wind-down';
 const HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY = 'breathe-easy:has-accepted-safety-disclaimer';
+const LAST_PATTERN_ID_KEY = 'breathe-easy:last-pattern-id';
 
 export const DEFAULT_TIMER_MINUTES = 10;
 export const TIMER_MINUTE_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30] as const;
@@ -296,4 +297,16 @@ export async function getHasAcceptedSafetyDisclaimer(): Promise<boolean> {
 
 export async function setHasAcceptedSafetyDisclaimer(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(HAS_ACCEPTED_SAFETY_DISCLAIMER_KEY, String(enabled));
+}
+
+// The pattern last selected on Home, so the next launch opens on it rather
+// than always resetting to the first one. Returns null when nothing has been
+// saved yet - the caller checks the id against the current pattern list,
+// since a saved id could belong to a pattern a later version has removed.
+export async function getLastPatternId(): Promise<string | null> {
+  return AsyncStorage.getItem(LAST_PATTERN_ID_KEY);
+}
+
+export async function setLastPatternId(patternId: string): Promise<void> {
+  await AsyncStorage.setItem(LAST_PATTERN_ID_KEY, patternId);
 }

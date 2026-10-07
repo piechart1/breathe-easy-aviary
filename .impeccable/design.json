@@ -202,7 +202,7 @@
       "slate-text": {
         "role": "neutral",
         "displayName": "Slate Text",
-        "canonical": "#6B7280",
+        "canonical": "#5F6673",
         "tonalRamp": [
           "#23252A",
           "#3D4149",
@@ -383,7 +383,7 @@
       "refersTo": "pattern-card",
       "description": "A breathing pattern in the list; the selected card gains a pattern-colored border.",
       "html": "<div class=\"ds-card\"><div class=\"ds-card-name\">Box</div><div class=\"ds-card-desc\">4-4-4-4 | Steady focus</div></div>",
-      "css": ".ds-card{background:#F4F4F4;border:1px solid #BCD8E1;border-radius:16px;padding:16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;max-width:320px} .ds-card-name{font-size:15px;line-height:20px;font-weight:500;color:#111111} .ds-card-desc{font-size:14px;line-height:20px;font-weight:500;color:#6B7280;margin-top:4px}"
+      "css": ".ds-card{background:#F4F4F4;border:1px solid #BCD8E1;border-radius:16px;padding:16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;max-width:320px} .ds-card-name{font-size:15px;line-height:20px;font-weight:500;color:#111111} .ds-card-desc{font-size:14px;line-height:20px;font-weight:500;color:#5F6673;margin-top:4px}"
     },
     {
       "name": "Auto Stop Pill",
@@ -391,7 +391,7 @@
       "refersTo": "timer-pill",
       "description": "Full-round pill that opens the Auto Stop picker.",
       "html": "<div class=\"ds-pill\">Auto Stop 10m</div>",
-      "css": ".ds-pill{display:inline-block;background:#F4F4F4;color:#6B7280;border-radius:999px;padding:4px 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:14px;line-height:20px;font-weight:500}"
+      "css": ".ds-pill{display:inline-block;background:#F4F4F4;color:#5F6673;border-radius:999px;padding:4px 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:14px;line-height:20px;font-weight:500}"
     },
     {
       "name": "Minute Pill (selected)",
@@ -406,7 +406,7 @@
       "kind": "button",
       "refersTo": "hold-button",
       "description": "Tummo dynamic-hold advance button.",
-      "html": "<button class=\"ds-hold\">Tap to move to Inhale and Retention</button>",
+      "html": "<button class=\"ds-hold\">End hold and breathe in</button>",
       "css": ".ds-hold{background:#152A63;color:#FFFFFF;border:none;border-radius:10px;padding:8px 24px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-size:15px;line-height:20px;font-weight:500;cursor:pointer;transition:opacity .15s} .ds-hold:hover{opacity:.85} .ds-hold:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}"
     },
     {
@@ -415,7 +415,7 @@
       "refersTo": "modal-card",
       "description": "Info and Auto Stop dialogs over a 60% black backdrop.",
       "html": "<div class=\"ds-modal\"><div class=\"ds-modal-title\">Auto Stop</div><div class=\"ds-modal-body\">Automatically stop the session after a set number of minutes.</div><div class=\"ds-modal-close\">Close</div></div>",
-      "css": ".ds-modal{background:#F4F4F4;border-radius:20px;padding:24px;max-width:360px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif} .ds-modal-title{font-size:18px;line-height:20px;font-weight:500;color:#111111} .ds-modal-body{font-size:14px;line-height:20px;font-weight:500;color:#6B7280;margin-top:16px} .ds-modal-close{text-align:right;font-size:15px;line-height:20px;font-weight:500;color:#3B82F6;margin-top:16px}"
+      "css": ".ds-modal{background:#F4F4F4;border-radius:20px;padding:24px;max-width:360px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif} .ds-modal-title{font-size:18px;line-height:20px;font-weight:500;color:#111111} .ds-modal-body{font-size:14px;line-height:20px;font-weight:500;color:#5F6673;margin-top:16px} .ds-modal-close{text-align:right;font-size:15px;line-height:20px;font-weight:500;color:#3B82F6;margin-top:16px}"
     },
     {
       "name": "Breath Circle",
