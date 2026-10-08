@@ -42,7 +42,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 
 ## Evidence on Hand
 
-- Live landing page at https://piechart1.github.io/breathe-easy-aviary/ (source in `docs/`, including `promo.mp4` and `promo-poster.jpg`).
+- Live landing page at https://piechart1.github.io/breathe-easy-aviary/ (source in `docs/`; the video on the page is `showcase.mp4` with `showcase-poster.jpg`).
 - App Store listing: https://apps.apple.com/gb/app/breathe-easy-aviary/id6806774681
 - Marketing drafts in `marketing/` (subtitle, keywords, promo text, search-rank checks) and app icon assets in `handoff/`.
 - No testimonials, reviews, customer counts or benchmarks are on hand. Do not fabricate them.
