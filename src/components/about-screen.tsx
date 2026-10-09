@@ -48,7 +48,7 @@ function useCommunityMapCounts(): number[] | undefined {
   return counts;
 }
 
-const SUPPORT_EMAIL = 'breatheeasyaviary@gmail.com';
+const SUPPORT_EMAIL = 'hello@piechartstudios.com';
 
 export function AboutScreen() {
   const router = useRouter();
