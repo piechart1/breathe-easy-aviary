@@ -32,7 +32,7 @@ jobs:
 
       - name: Commit updated counts if changed
         run: |
-          git add data/community-map-counts.json
+          git add data/community-map-counts.json docs/data/community-map-counts.json
           if git diff --cached --quiet; then
             echo "No change in community map data."
             exit 0

@@ -1,7 +1,7 @@
 // Queries PostHog for city-level session activity, projects each city onto
 // the About screen's hex grid (src/constants/world-hex-grid.json), and
-// writes data/community-map-counts.json - which the app fetches at runtime
-// over plain HTTPS (see src/components/about-screen.tsx). Runs daily via
+// writes docs/data/community-map-counts.json (and a copy in data/ for older
+// app versions) - which the app fetches at runtime over plain HTTPS (see src/components/about-screen.tsx). Runs daily via
 // .github/workflows/update-community-map.yml; can also be run locally for
 // testing with the same env vars set.
 //
@@ -96,11 +96,19 @@ async function main() {
   }
 
   const output = { generatedAt: new Date().toISOString(), counts };
-  const outputPath = fileURLToPath(new URL('../data/community-map-counts.json', import.meta.url));
-  mkdirSync(dirname(outputPath), { recursive: true });
-  writeFileSync(outputPath, JSON.stringify(output));
+  // Written twice. docs/data/ is served at breathe.piechartstudios.com, which
+  // the app reads from 1.0.3 on. data/ is the address 1.0.2 and earlier read
+  // (raw.githubusercontent.com), so it must keep being updated while those
+  // versions are in use.
+  const outputPaths = ['../docs/data/community-map-counts.json', '../data/community-map-counts.json'].map(
+    (path) => fileURLToPath(new URL(path, import.meta.url)),
+  );
+  for (const outputPath of outputPaths) {
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, JSON.stringify(output));
+  }
 
-  console.log(`Queried ${rows.length} cities from PostHog, wrote counts for ${counts.filter((c) => c > 0).length} hexes to ${outputPath}.`);
+  console.log(`Queried ${rows.length} cities from PostHog, wrote counts for ${counts.filter((c) => c > 0).length} hexes to ${outputPaths.join(' and ')}.`);
 }
 
 main().catch((error) => {
