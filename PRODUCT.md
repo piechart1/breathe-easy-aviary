@@ -32,7 +32,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 - Sound styles are Voice (resonant spoken cues) and Tick (metronome). Cyclic Hyperventilation is the user-facing name for the pattern coded as `tummo`.
 - Opt-in telemetry (PostHog, Sentry) stays off unless the user enables it. The App Store privacy declarations must stay accurate to the real data flows.
 - A first-launch safety disclaimer gate is shown before the tab navigator.
-- Undecided: Android; the avatar picker and customizable Metrics profile (five birds, with Plus gating to be reconfirmed); a custom domain for the landing page.
+- Undecided: Android; the avatar picker and customizable Metrics profile (five birds, with Plus gating to be reconfirmed).
 
 ## Brand Commitments
 
@@ -42,7 +42,7 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 
 ## Evidence on Hand
 
-- Live landing page at https://piechart1.github.io/breathe-easy-aviary/ (source in `docs/`; the video on the page is `showcase.mp4` with `showcase-poster.jpg`).
+- Live landing page at https://breathe.piechartstudios.com/ (source in `docs/`; the video on the page is `showcase.mp4` with `showcase-poster.jpg`).
 - App Store listing: https://apps.apple.com/gb/app/breathe-easy-aviary/id6806774681
 - Marketing drafts in `marketing/` (subtitle, keywords, promo text, search-rank checks) and app icon assets in `handoff/`.
 - No testimonials, reviews, customer counts or benchmarks are on hand. Do not fabricate them.
