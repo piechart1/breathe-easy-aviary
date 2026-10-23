@@ -56,4 +56,4 @@ The Aviary and Australian-birds identity: bird imagery and a Melbourne-made pers
 
 ## Accessibility & Inclusion
 
-Phase text uses a polite live region and the main controls have accessibility labels. No further product-specific requirement has been established.
+The main controls have accessibility labels. Screen readers are told when a session starts and ends, not each phase, so announcements don't talk over the voice cues. No further product-specific requirement has been established.

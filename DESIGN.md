@@ -1,6 +1,6 @@
 ---
 name: Breathe Easy Aviary
-description: A calm, tonal iOS breathing app where a soft glowing circle leads and a faint Australian bird watches from the corner.
+description: A calm, tonal iOS breathing app where a soft glowing circle leads and a large Australian bird watches from the lower right.
 colors:
   signal-blue: "#3B82F6"
   ink: "#111111"
@@ -56,7 +56,7 @@ typography:
     lineHeight: "20px"
   label:
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    fontSize: "12px"
+    fontSize: "13px"
     fontWeight: 500
     letterSpacing: "0.5px"
 rounded:
@@ -111,7 +111,7 @@ components:
 
 **Creative North Star: "The Dawn Chorus"**
 
-The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint bird in the lower corner, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.
+The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one large bird in the lower right, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.
 
 The system is a calm native iOS surface with a light and a dark theme. Depth comes from tonal layering, never from card shadows. The only light source is the breath circle, which glows in the active pattern's color. Typography is the platform's own, set in medium weight with a bold reserved for titles and the active timing segment.
 
@@ -120,7 +120,7 @@ The system is a calm native iOS surface with a light and a dark theme. Depth com
 - One glow in the product, on the breath circle, tinted by the selected pattern.
 - Seven pastel pattern colors carry the brand. System blue is a utility accent only.
 - System font throughout; hierarchy comes from size and a single bold weight.
-- Bird art sits behind content at low opacity and never competes with controls.
+- Bird art sits behind content and never sits in front of controls.
 - Light and dark themes share the same structure and the same accent.
 
 ## Colors
@@ -179,7 +179,7 @@ Dark theme:
 - **Phase** (500, 18px, 24px): the live phase word (Inhale, Hold, Exhale), the elapsed time (tabular figures) and the pattern timing line, all in Slate Text. The active timing segment turns bold and Ink.
 - **Body** (500, 16px, 22px): default reading text.
 - **Small / Small Bold** (500, 14px or 15px, 20px): pattern names and descriptions, modal body text, pill labels.
-- **Label** (500, 12px, 0.5px tracking, uppercase): section headers such as "Guided Patterns" and "Advanced / Self-Paced".
+- **Label** (500, 13px, 0.5px tracking, uppercase): section headers such as "Guided Patterns" and "Advanced / Self-Paced".
 
 ### Named Rules
 **The One Bold Rule.** Bold weight marks the screen title and the active timing segment. Elsewhere hierarchy comes from size and color, not weight.
@@ -221,8 +221,8 @@ Soft and rounded. Cards use 16px corners, modals 20px, buttons 10px, and pills a
 - **Minute pill:** full-round, 1px border (Hairline, or Signal Blue when selected), Mist Selected fill when selected.
 
 ### Hold Button
-- **Style:** Deep Navy fill, white text, 10px corners, 8px by 24px padding, centered under the circle.
-- **State:** 40% opacity until the dynamic hold is active, 85% when pressed.
+- **Style:** Deep Navy fill, white text (Text on Accent) at 20px, 16px corners, full width, at least 64px tall, 16px below the timing line.
+- **State:** shown only during the Cyclic Hyperventilation retention hold in Dynamic mode, the one phase where it can be pressed; it fades in over 400ms when the hold starts. 85% opacity when pressed.
 
 ### Modal Card
 - **Style:** 20px corners, Mist Card fill, 24px padding, max width 360px, over a 60% black backdrop. Title in Small Bold at 18px, body in Small Slate Text, and a right-aligned "Close" in Signal Blue.
@@ -231,7 +231,7 @@ Soft and rounded. Cards use 16px corners, modals 20px, buttons 10px, and pills a
 - **Style:** native tab bar on the page background. The selected indicator uses the card tone and the selected label is Ink.
 
 ### Bird Backdrop
-- **Style:** each breathing pattern has its own bird illustration (see `src/constants/pattern-birds.ts`), shown on the Home screen only, bleeding off the lower right and sitting behind the content. Opacity is 50% in light mode and 35% in dark mode (45% for the magpie and emu, which are dark birds). Selecting a pattern cross-fades to its bird. The other tabs have no bird backdrop; the About screen lists the birds in full color.
+- **Style:** each breathing pattern has its own bird illustration (see `src/constants/pattern-birds.ts`), shown on the Home screen only, bleeding off the lower right and sitting behind the content. Opacity is 50% in light mode and 35% in dark mode (45% for the magpie and emu, which are dark birds). Selecting a pattern cross-fades to its bird. The bird is drawn large on purpose: while idle the pattern cards cover much of it, and during a session, when the pattern list hides, it fills much of the lower half of the screen. That size is intended (decided 23 Oct 2026); don't shrink or fade it during sessions. The other tabs have no bird backdrop; the About screen lists the birds in full color.
 
 ## Do's and Don'ts
 
@@ -239,12 +239,12 @@ Soft and rounded. Cards use 16px corners, modals 20px, buttons 10px, and pills a
 - **Do** take every color from the theme tokens, and the breath circle color from the pattern's accent.
 - **Do** keep depth tonal: page (#FFFFFF), card (#F4F4F4), selected (#E8EAED) in light, and the equivalent steps in dark.
 - **Do** use Signal Blue (#3B82F6) for selection and actions only.
-- **Do** give every control an accessibility label and keep the phase word in a polite live region.
+- **Do** give every control an accessibility label, and announce only the start and end of a session to screen readers, not each phase, so announcements don't talk over the voice cues.
 - **Do** set elapsed time and counters in tabular figures so they do not jitter.
 
 ### Don't:
 - **Don't** put shadows or glows on cards, pills, buttons or modals.
 - **Don't** use a pattern color for anything that is not that pattern, or Signal Blue on the breath circle.
 - **Don't** introduce a second typeface or add bold weight beyond the title and the active timing segment.
-- **Don't** hardcode a one-off color in a component. The Hold Button's Deep Navy (#152A63) is a known exception and should move into the theme.
+- **Don't** hardcode a one-off color in a component; add it to the theme instead, as the Hold Button's Deep Navy was.
 - **Don't** let bird art rise above 50% opacity or sit in front of controls.

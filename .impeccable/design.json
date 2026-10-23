@@ -428,7 +428,7 @@
   ],
   "narrative": {
     "northStar": "The Dawn Chorus",
-    "overview": "The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one faint bird in the lower corner, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.",
+    "overview": "The screen is a quiet room at first light. A single circle swells and settles in a pastel that belongs to the pattern being practiced, and everything else holds still around it: flat, tonal cards, a system typeface, and one large bird in the lower right, a different one for each pattern. The personality is soft and warm. It comes from the seven pastels and the bird art, not from ornament or heavy chrome.",
     "keyCharacteristics": [
       "Flat tonal layers: page, then card, then selected card, in steps of a few percent of lightness.",
       "One glow in the product, on the breath circle, tinted by the selected pattern.",
@@ -463,14 +463,14 @@
       "Do take every color from the theme tokens, and the breath circle color from the pattern's accent.",
       "Do keep depth tonal: page (#FFFFFF), card (#F4F4F4), selected (#E8EAED) in light, and the equivalent steps in dark.",
       "Do use Signal Blue (#3B82F6) for selection and actions only.",
-      "Do give every control an accessibility label and keep the phase word in a polite live region.",
+      "Do give every control an accessibility label, and announce only the start and end of a session to screen readers, not each phase, so announcements don't talk over the voice cues.",
       "Do set elapsed time and counters in tabular figures so they do not jitter."
     ],
     "donts": [
       "Don't put shadows or glows on cards, pills, buttons or modals.",
       "Don't use a pattern color for anything that is not that pattern, or Signal Blue on the breath circle.",
       "Don't introduce a second typeface or add bold weight beyond the title and the active timing segment.",
-      "Don't hardcode a one-off color in a component. The Hold Button's Deep Navy (#152A63) is a known exception and should move into the theme.",
+      "Don't hardcode a one-off color in a component; add it to the theme instead, as the Hold Button's Deep Navy was.",
       "Don't let bird art rise above 50% opacity or sit in front of controls."
     ]
   }

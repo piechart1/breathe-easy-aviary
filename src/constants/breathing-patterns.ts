@@ -76,7 +76,7 @@ export const PATTERN_ACCENT_COLORS: Record<string, string> = {
 // ("Repeat 3 times" in its description) - there's only one round of 30
 // breaths in the data itself, clustered into thirds by the two breath-number
 // sets below.
-const TUMMO_RAPID_BREATH_COUNT = 30;
+export const TUMMO_RAPID_BREATH_COUNT = 30;
 // Breath numbers (1-indexed) that layer the regular breathe-in-relaxed/
 // breathe-out-relaxed cues on top of the quiet tummo-inhale/tummo-exhale
 // ones - the first two breaths of each third of the 30.
@@ -148,7 +148,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Box Breathing',
     timing: '4-4-4-4',
     description: 'Inhale, hold, exhale, hold',
-    info: 'Also called square breathing, this technique uses equal counts for every phase to create a steady, balanced rhythm. It\'s used by Navy SEALs and in clinical stress management to calm the nervous system, sharpen focus, and regain composure under pressure.\n\nExcellent go to if you need a simple breathing pattern to regulate and calm yourself. Can be performed at any time.',
+    info: 'Also called square breathing, this technique uses equal counts for every phase to create a steady, balanced rhythm. It\'s used by Navy SEALs and in clinical stress management to calm the nervous system, sharpen focus, and regain composure under pressure.\n\nExcellent go-to if you need a simple breathing pattern to regulate and calm yourself. Can be performed at any time.',
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 4000, targetScale: MAX_BREATH_SCALE },
@@ -187,7 +187,7 @@ export const BREATHING_PATTERNS: BreathingPattern[] = [
     name: 'Cyclic Sighing',
     timing: '2-1-6',
     description: 'Deep inhale, short inhale, long exhale',
-    info: "Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second 'top-off' inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.\n\nAim for an audible sigh on the exhale. Moderate your breath output rate to use the full exhale duration. Can be a good go to when feeling overwhelmed.",
+    info: "Studied by Stanford researchers for its mood-boosting effects, this pattern pairs a deep nasal inhale with a short second 'top-off' inhale, then one long, extended exhale through the mouth. The prolonged exhale is what drives the calming effect, engaging the parasympathetic nervous system more strongly than a single-breath pattern.\n\nAim for an audible sigh on the exhale. Moderate your breath output rate to use the full exhale duration. Can be a good go-to when feeling overwhelmed.",
     category: 'guided',
     phases: [
       { name: 'Inhale', durationMs: 2000, targetScale: 0.85 },
