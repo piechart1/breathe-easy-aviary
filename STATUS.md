@@ -2,7 +2,7 @@
 
 <!-- status:begin -->
 
-_Generated 2026-10-08 by `~/tools/project-status/status.py`. Edit outside the markers only._
+_Generated 2026-10-23 by `~/tools/project-status/status.py`. Edit outside the markers only._
 
 ## At a glance
 
@@ -41,10 +41,10 @@ _This section is yours. The generator never touches it._
 
 **State:** The only published app. Live since 17 September 2026. v1.0.2 (build 4) has been on the App Store since 7 October 2026, under the listing name "Breathe Easy Aviary Breathwork"; the name on the home screen is still Breathe Easy Aviary. One test file.
 
-**Blocking (iOS):** Nothing. Note that it shipped with Expo's placeholder bundle id, `com.anonymous.breathe-easy`. A bundle id cannot be changed on an existing listing, so that name is permanent unless a separate listing is published.
+**Blocking (iOS):** Nothing. Builds with Xcode 27.1 need `expo-modules-core` 57.0.24 or later (Expo's fix for Xcode 27); the lockfile was moved to it on 23 Oct 2026, and builds failed before that. `npx expo install --check` still lists 10 other Expo packages a few patch versions behind. Note that it shipped with Expo's placeholder bundle id, `com.anonymous.breathe-easy`. A bundle id cannot be changed on an existing listing, so that name is permanent unless a separate listing is published.
 
 **Blocking (Play Store):** `@kingstinct/react-native-healthkit` runs through 4 files including two screens. HealthKit has no Android equivalent, so this is a Health Connect rewrite or a cut feature - a product decision, not a build problem. The `android/` project already exists and the applicationId is set.
 
-**Next:** Around 21 to 28 October 2026, run `marketing/check-ranks.py` and compare with the 7 Oct positions in `marketing/app-store-metadata.md`, to see what the new name, subtitle and keywords changed. Four shorts were made on 8 October 2026 and are in `~/Remotion/out/shorts/`. Suggested YouTube schedule: the app showcase now, Cyclic Hyperventilation a few days later, the World Mental Health Day one on 10 October and the National Bird Week one on 19 October. The App Store link for the channel is the `youtube` one in `marketing/campaign-links.md`. TikTok is not started. The store assets and the shorts are rendered from `~/Remotion`, which is not in git; its README covers how. The landing page at https://breathe.piechartstudios.com/ (from `docs/`) shows the showcase video and links to the YouTube channel. Separately, settle the HealthKit question before touching the Android build.
+**Next:** Ship 1.0.3. It carries the Home screen fixes from the 23 Oct Impeccable re-critique (score 26 → 28/40, reports in `.impeccable/critique/`) and the new subtitle and keyword field drafted in `marketing/app-store-metadata.md` ("1.0.3 proposal"). A Cyclic Hyperventilation custom product page was submitted for review on 23 Oct with the keyword `tummo`; once 1.0.3 is approved, add `hyperventilation` and `hold` to it. Its screenshots are rendered from `~/Remotion` (not in git; its README covers how). Open critique items, deferred: light-mode contrast of the pale circles and selected card, a visible stop hint, the bird overlapping the timing line at the largest text sizes (left as is by choice). Marketing: YouTube shorts are up; TikTok is not started. Separately, settle the HealthKit question before touching the Android build.
 
 **Android intent:** Possible, gated on the above.
