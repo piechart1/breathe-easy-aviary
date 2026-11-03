@@ -72,7 +72,7 @@
 | Buteyko hold-length picker | Uses `@expo/ui` `Picker`. | `settings-screen.tsx:457-480` |
 | Cyclic Hyperventilation: rounds, soundtrack, hold mode or length, Integration | | `settings-screen.tsx:482-647` |
 | Reminders: "Daily practice" and "Wind-down at night" | Each has a toggle and a time picker. If the OS permission is refused, the toggle switches back off. | `settings-screen.tsx:207-261,649-711` |
-| Data: share anonymous usage and crash-data | Turns telemetry on or off straight away. | `settings-screen.tsx:189-197,713-731` |
+| Data: share anonymous usage and crash data | Turns telemetry on or off straight away. | `settings-screen.tsx:189-197,713-731` |
 | Data: log sessions to Apple Health (iOS only) | | `settings-screen.tsx:199-205,733-751` |
 | Legal links | Privacy, Terms and Safety open in the in-app browser. | `settings-screen.tsx:71-73,754-780`; `src/constants/legal.ts:1-5` |
 | Developer section (`__DEV__` only) | Force Plus, Skip to Hold, and Reset Test Account (RevenueCat). | `settings-screen.tsx:303-319,782-839`; `src/lib/purchases.ts:16-43,155-161` |
